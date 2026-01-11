@@ -352,9 +352,11 @@ CCarPlayer::CCarPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3d
 {
 	m_pCamera = ChangeCamera(/*SPACESHIP_CAMERA*/THIRD_PERSON_CAMERA, 0.0f);
 
-	CGameObject* pGameObject = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/SuperCar.bin");
+	CGameObject* pGameObject = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/Origami_Pig.bin");
 
 	pGameObject->Rotate(0.0f, 0.0f, 0.0f);
+	pGameObject->SetScale(0.2f, 0.2f, 0.2f); // 여기서 플레이어 스케일 조정 가능
+
 	SetChild(pGameObject, true);
 
 	OnInitialize();
