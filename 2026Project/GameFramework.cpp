@@ -364,13 +364,35 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 					ChangeSwapChainState();
 					break;
 				case VK_SPACE:
-					if (!m_bJump)
+				{
+					// 1단 점프
+					if (m_nJumpCount == 0)
 					{
+						m_nJumpCount = 1;
+						m_fFirstJumpTime = m_fTotalTime;
+
 						m_fJumpCurrentTime = m_fTotalTime;
-						m_pPlayer->SetGravity(XMFLOAT3(0, 2, 0));
+						m_pPlayer->SetGravity(XMFLOAT3(0, 2.0f, 0));
 						m_bJump = true;
 					}
-					break;
+					// 2단 점프
+					else if (m_nJumpCount == 1)
+					{
+						float dt = m_fTotalTime - m_fFirstJumpTime;
+						if (dt <= m_fSecondJumpWindow)
+						{
+							m_nJumpCount = 2;
+
+							m_fJumpCurrentTime = m_fTotalTime;
+
+							m_pPlayer->SetGravity(XMFLOAT3(0, 2.0f, 0));
+							m_bJump = true;
+						}
+					}
+					
+				}
+				break;
+
 				case 'S':
 					m_pPlayer->SetVelocity(XMFLOAT3(0, 0, 0));
 					break;
@@ -700,6 +722,9 @@ void CGameFramework::CollisionProcess()
 		m_pPlayer->SetGravity(XMFLOAT3(0, 0, 0));
 		XMFLOAT3 currentVel = m_pPlayer->GetVelocity();
 		m_pPlayer->SetVelocity(XMFLOAT3(currentVel.x, 0.0f, currentVel.z));
+
+		m_nJumpCount = 0;  
+
 	}
 
 	if (2 == m_nStage && m_pScene->CheckCollision() && !m_bIsStun)
