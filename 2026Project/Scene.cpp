@@ -252,7 +252,7 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		// Àå¾Ö¹° 3
 
 		for (int i = 0; i < 15; ++i) {
-			CGameObject* pSuperCobraModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/log.bin");
+			CGameObject* pSuperCobraModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/vine.bin");
 			CSuperCobraObject* pSuperCobraObject = NULL;
 			pSuperCobraObject = new CSuperCobraObject();
 			pSuperCobraObject->SetChild(pSuperCobraModel, true);
