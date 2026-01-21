@@ -167,7 +167,7 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 	CGameObject* pGroundModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Ground.bin");
 	CGameObject* pGroundObject = new CGameObject();
 	pGroundObject->SetChild(pGroundModel);
-	pGroundObject->SetPosition(0.0f, 0.0f, 0.0f);
+	pGroundObject->SetPosition(0.0f, -12.0f, 0.0f);
 	pGroundObject->Rotate(0.0f, 0.0f, 0.0f);
 	pGroundObject->SetScale(100, 5, 100);
 	pGroundObject->Rotate(0.0f, 0.f, 0.0f);
@@ -185,7 +185,7 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 
 	m_ppGameObjects[0] = pGroundObject;
 
-	CGameObject* pSuperCobraModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/SuperCobra.bin");
+	CGameObject* pSuperCobraModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/log.bin");
 	CSuperCobraObject* pSuperCobraObject = NULL;
 
 	pSuperCobraObject = new CSuperCobraObject();
@@ -214,54 +214,67 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 	m_ppGameObjects[38] = pObstacleObject;
 	// 가운데 장애물
 
+	
 	{
+
+		// 장애물 1 - 통나무 
+
 		for (int i = 0; i < 20; ++i) {
-			CGameObject* pSuperCobraModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/SuperCobra.bin");
+			CGameObject* pSuperCobraModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/log.bin");
 			CSuperCobraObject* pSuperCobraObject = NULL;
 			pSuperCobraObject = new CSuperCobraObject();
 			pSuperCobraObject->SetChild(pSuperCobraModel, true);
 			pSuperCobraObject->OnInitialize();
-			pSuperCobraObject->SetPosition(uid1(dre), 18.0f, uid3(dre));
-			pSuperCobraObject->SetScale(4.5f, 4.5f, 4.5f);
+			pSuperCobraObject->SetPosition(uid1(dre), 0.0f, uid3(dre));
+			pSuperCobraObject->SetScale(10.5f, 10.5f, 10.5f);
 			pSuperCobraObject->Rotate(0.0f, uid(dre), 0.0f);
 			pSuperCobraObject->ComputeCombinedAABB();
 			m_ppGameObjects[39+i] = pSuperCobraObject;
 		}
 
+
+		// 장애물 2 - 바나나 
+
 		for (int i = 0; i < 20; ++i) {
-			CGameObject* pSuperCobraModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/SuperCobra.bin");
+			CGameObject* pSuperCobraModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/banana.bin");
 			CSuperCobraObject* pSuperCobraObject = NULL;
 			pSuperCobraObject = new CSuperCobraObject();
 			pSuperCobraObject->SetChild(pSuperCobraModel, true);
 			pSuperCobraObject->OnInitialize();
-			pSuperCobraObject->SetPosition(uid2(dre), 18.0f, uid3(dre));
-			pSuperCobraObject->SetScale(4.5f, 4.5f, 4.5f);
+			pSuperCobraObject->SetPosition(uid2(dre), 0.0f, uid3(dre));
+			pSuperCobraObject->SetScale(10.5f, 10.5f, 10.5f);
 			pSuperCobraObject->Rotate(0.0f, uid(dre), 0.0f);
 			pSuperCobraObject->ComputeCombinedAABB();
 			m_ppGameObjects[59 + i] = pSuperCobraObject;
 		}
 
+
+		// 장애물 3
+
 		for (int i = 0; i < 15; ++i) {
-			CGameObject* pSuperCobraModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/SuperCobra.bin");
+			CGameObject* pSuperCobraModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/log.bin");
 			CSuperCobraObject* pSuperCobraObject = NULL;
 			pSuperCobraObject = new CSuperCobraObject();
 			pSuperCobraObject->SetChild(pSuperCobraModel, true);
 			pSuperCobraObject->OnInitialize();
-			pSuperCobraObject->SetPosition(uid4(dre), 18.0f, uid2(dre));
-			pSuperCobraObject->SetScale(4.5f, 4.5f, 4.5f);
+			pSuperCobraObject->SetPosition(uid4(dre), 0.0f, uid2(dre));
+			pSuperCobraObject->SetScale(10.5f, 10.5f, 10.5f);
 			pSuperCobraObject->Rotate(0.0f, uid(dre), 0.0f);
 			pSuperCobraObject->ComputeCombinedAABB();
 			m_ppGameObjects[79 + i] = pSuperCobraObject;
 		}
 
+
+		// 장애물 4
+
 		for (int i = 0; i < 15; ++i) {
-			CGameObject* pSuperCobraModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/SuperCobra.bin");
+			CGameObject* pSuperCobraModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/log.bin");
 			CSuperCobraObject* pSuperCobraObject = NULL;
 			pSuperCobraObject = new CSuperCobraObject();
 			pSuperCobraObject->SetChild(pSuperCobraModel, true);
 			pSuperCobraObject->OnInitialize();
-			pSuperCobraObject->SetPosition(uid4(dre), 18.0f, uid1(dre));
-			pSuperCobraObject->SetScale(4.5f, 4.5f, 4.5f);
+			pSuperCobraObject->SetPosition(0.0f, 0.0f, uid1(dre));
+			pSuperCobraObject->SetScale(10.5f, 10.5f, 10.5f);
 			pSuperCobraObject->Rotate(0.0f, uid(dre), 0.0f);
 			pSuperCobraObject->ComputeCombinedAABB();
 			m_ppGameObjects[94 + i] = pSuperCobraObject;
