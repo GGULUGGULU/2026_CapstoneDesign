@@ -161,17 +161,25 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 
 	LoadTexture(pd3dDevice, pd3dCommandList);
 	
+	// 수정
 	m_nGameObjects = 1 + 1 + 12 + 12 + 12 +1 +20 +20 +15 +15 + 4;
 	m_ppGameObjects = new CGameObject * [m_nGameObjects];
+
+
+	// 적정 숫자 2200,, 
+	//
 
 	CGameObject* pGroundModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Ground.bin");
 	CGameObject* pGroundObject = new CGameObject();
 	pGroundObject->SetChild(pGroundModel);
-	pGroundObject->SetPosition(0.0f, -12.0f, 0.0f);
+	pGroundObject->SetPosition(-2200.0f, 0.0f, 0.0f);
 	pGroundObject->Rotate(0.0f, 0.0f, 0.0f);
-	pGroundObject->SetScale(100, 5, 100);
+	pGroundObject->SetScale(10, 5, 100);
 	pGroundObject->Rotate(0.0f, 0.f, 0.0f);
 	pGroundObject->ComputeCombinedAABB();
+
+
+
 
 	CMaterial* pTerrainMaterial = new CMaterial();
 	pTerrainMaterial->SetShader(m_pTerrainShader);
@@ -203,18 +211,26 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		CreateRockBillboard(pd3dDevice, pd3dCommandList);
 	}
 
+
+
+	// 가운데 장애물
+
+	// 임시로 장애물 스케일만 조정해서 장애물 지워둠
+	// 인덱스 관리가 아직 ...
+
 	CGameObject* pObstacleModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Cube.bin");
 	CGameObject* pObstacleObject = new CGameObject();
 	pObstacleObject->SetChild(pObstacleModel);
 	pObstacleObject->SetPosition(0.0f, 0.0f, 0.0f);
 	pObstacleObject->Rotate(0.0f, 0.0f, 0.0f);
-	pObstacleObject->SetScale(100, 100, 100);
+	pObstacleObject->SetScale(0, 0, 0);
 	pObstacleObject->Rotate(0.0f, 0.f, 0.0f);
 	pObstacleObject->ComputeCombinedAABB();
 	m_ppGameObjects[38] = pObstacleObject;
-	// 가운데 장애물
 
-	
+
+
+
 	{
 
 		// 장애물 1 - 통나무 

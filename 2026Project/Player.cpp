@@ -354,8 +354,23 @@ CCarPlayer::CCarPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3d
 
 	CGameObject* pGameObject = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/SuperCar.bin");
 
+	pGameObject->SetPosition(0.0f, 0.0f, 0.0f);
+
+
+	// 포지션 확인용 로그 -> 당분간 놔둘게요
+	// 근데 0.0 이 아니면 100정도하면 모델이 안불러와지는 버그가 있음
+	{
+		XMFLOAT3 pos = pGameObject->GetPosition();
+		char buffer[128];
+		sprintf_s(buffer, "Player Position : %.2f %.2f %.2f\n", pos.x, pos.y, pos.z);
+		OutputDebugStringA(buffer);
+
+	}
+	
+
 	pGameObject->Rotate(0.0f, 0.0f, 0.0f);
 	pGameObject->SetScale(1.0f, 1.0f, 1.0f); // 여기서 플레이어 스케일 조정 가능
+
 
 	SetChild(pGameObject, true);
 
