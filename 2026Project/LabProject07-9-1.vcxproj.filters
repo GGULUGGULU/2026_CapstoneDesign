@@ -69,6 +69,9 @@
     <ClInclude Include="EffectLibrary.h">
       <Filter>EffectLibrary</Filter>
     </ClInclude>
+    <ClInclude Include="MeshEffect.h">
+      <Filter>EffectLibrary</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -111,6 +114,9 @@
       <Filter>EffectLibrary</Filter>
     </ClCompile>
     <ClCompile Include="EffectLibrary.cpp">
+      <Filter>EffectLibrary</Filter>
+    </ClCompile>
+    <ClCompile Include="MeshEffect.cpp">
       <Filter>EffectLibrary</Filter>
     </ClCompile>
   </ItemGroup>

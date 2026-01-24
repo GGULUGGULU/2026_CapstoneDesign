@@ -26,11 +26,13 @@ public:
 	CParticleSystem(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, int nMaxParticles = 1000);
 	virtual ~CParticleSystem();
 
-	void Animate(float fTimeElapsed);
+	void CollisionAnimate(float fTimeElapsed);
+	void DustAnimate(float fTimeElapse);
+	void BoosterAnimate(float fTimeElapsed);
 
 	void Render(ID3D12GraphicsCommandList* pd3dCommandList);
 
-	void ResetParticles();
+	void ResetParticles(const XMFLOAT2& size);
 
 	void SetPosition(const XMFLOAT3& pos) { m_xmf3Position = pos; }
 

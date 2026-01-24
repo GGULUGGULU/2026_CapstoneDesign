@@ -144,6 +144,7 @@
     <ClInclude Include="GameFramework.h" />
     <ClInclude Include="2026Project.h" />
     <ClInclude Include="Mesh.h" />
+    <ClInclude Include="MeshEffect.h" />
     <ClInclude Include="Object.h" />
     <ClInclude Include="ParticleSystem.h" />
     <ClInclude Include="Player.h" />
@@ -162,6 +163,7 @@
     <ClCompile Include="GameFramework.cpp" />
     <ClCompile Include="2026Project.cpp" />
     <ClCompile Include="Mesh.cpp" />
+    <ClCompile Include="MeshEffect.cpp" />
     <ClCompile Include="Object.cpp" />
     <ClCompile Include="ParticleSystem.cpp" />
     <ClCompile Include="Player.cpp" />

@@ -57,6 +57,18 @@ bool CGameFramework::OnCreate(HINSTANCE hInstance, HWND hMainWnd)
 
 	CreateDepthStencilView();
 
+	// 1. 명령 리스트 리셋 (초기화 명령 기록용)
+	m_pd3dCommandList->Reset(m_d3dCommandAllocators[0].Get(), NULL);
+
+	// 2. [추가] 이펙트 라이브러리 초기화 (여기서 딱 한 번만!)
+	CEffectLibrary::Instance()->Initialize(m_pd3dDevice, m_pd3dCommandList);
+
+	// 3. 명령 실행 및 대기
+	m_pd3dCommandList->Close();
+	ID3D12CommandList* ppd3dCommandLists[] = { m_pd3dCommandList };
+	m_pd3dCommandQueue->ExecuteCommandLists(1, ppd3dCommandLists);
+	WaitForGpuComplete();
+
 	BuildObjectGameStart();
 
 	CreateComputeRootSignature();
@@ -438,6 +450,8 @@ void CGameFramework::OnDestroy()
 {
     ReleaseObjects();
 
+	CEffectLibrary::Instance()->Release();//
+
 	::CloseHandle(m_hFenceEvent);
 
 	if (m_pd3dDepthStencilBuffer) m_pd3dDepthStencilBuffer->Release();
@@ -567,8 +581,20 @@ void CGameFramework::ProcessInputGameStage()
 					m_pPlayer->Rotate(0.0f, -1.0f, 0.0f);
 			}
 			else if (dwDirection) m_pPlayer->Move(dwDirection, m_nPlayerCurrentSpeed, true);
+
+			CEffectLibrary::Instance()->Play(EFFECT_TYPE::DUST, XMFLOAT3(m_pPlayer->GetPosition().x, m_pPlayer->GetPosition().y-50, m_pPlayer->GetPosition().z-20), XMFLOAT2(10,10));
 		}
 	}
+
+	if (::GetAsyncKeyState('Z') & 0x8000)
+	{
+		CEffectLibrary::Instance()->ToggleBooster(true);
+	}
+	else
+	{
+		CEffectLibrary::Instance()->ToggleBooster(false);
+	}///////////////////
+
 	m_pPlayer->Update(m_GameTimer.GetTimeElapsed());
 } // 게임 스테이지 입력방식 
 
@@ -580,7 +606,14 @@ void CGameFramework::AnimateObjects()
 
 	m_pPlayer->Animate(fTimeElapsed, NULL);
 
-	// [추가] 이펙트 라이브러리 업데이트 (시간 경과 전달)
+	if (m_pPlayer)
+	{
+		CEffectLibrary::Instance()->UpdateBoosterPosition(
+			m_pPlayer->GetPosition(),
+			m_pPlayer->GetLookVector()
+		);
+	}
+
 	CEffectLibrary::Instance()->Update(fTimeElapsed);
 }
 
@@ -688,6 +721,7 @@ void CGameFramework::BuildGameObjects()
 	m_pPlayer->m_xmCombinedLocalAABB.Extents.x = 1;
 	m_pPlayer->m_xmCombinedLocalAABB.Extents.y = 0.5;
 	m_pPlayer->m_xmCombinedLocalAABB.Extents.z = 2;
+	// AABB사이즈 
 
 	m_pPlayer->Rotate(0, 180, 0);
 	m_pPlayer->SetPosition(XMFLOAT3(-2250.0f, 8.f, 2250.0f));
@@ -708,8 +742,6 @@ void CGameFramework::BuildGameObjects()
 
 	m_GameTimer.Reset();
 }
-
-TCHAR playerPos[2048];
 
 void CGameFramework::CollisionProcess()
 {
@@ -737,7 +769,9 @@ void CGameFramework::CollisionProcess()
 
 			XMFLOAT3 vPos = pCollidedObject->GetPosition();
 			//m_pScene->m_pParticleEmitter->SpawnExplosion(XMFLOAT3(vPos.x, vPos.y + 10, vPos.z));
-			CEffectLibrary::Instance()->Play(EFFECT_TYPE::EXPLOSION, vPos);
+			CEffectLibrary::Instance()->Play(EFFECT_TYPE::COLLISION1, vPos, XMFLOAT2(50, 50));
+			CEffectLibrary::Instance()->Play(EFFECT_TYPE::COLLISION2, vPos, XMFLOAT2(50, 50));
+			CEffectLibrary::Instance()->Play(EFFECT_TYPE::COLLISION3, vPos, XMFLOAT2(50, 50));
 
 			pCollidedObject->Disable();
 
@@ -750,7 +784,9 @@ void CGameFramework::CollisionProcess()
 
 			XMFLOAT3 vPos = pCollidedObject->GetPosition();
 			//m_pScene->m_pParticleEmitter->SpawnExplosion(XMFLOAT3(vPos.x, vPos.y + 10, vPos.z));
-			CEffectLibrary::Instance()->Play(EFFECT_TYPE::EXPLOSION, XMFLOAT3(vPos.x, vPos.y+10, vPos.z));
+			CEffectLibrary::Instance()->Play(EFFECT_TYPE::COLLISION1, XMFLOAT3(vPos.x, vPos.y+10, vPos.z), XMFLOAT2(50, 50));
+			CEffectLibrary::Instance()->Play(EFFECT_TYPE::COLLISION2, XMFLOAT3(vPos.x, vPos.y+10, vPos.z), XMFLOAT2(50, 50));
+			CEffectLibrary::Instance()->Play(EFFECT_TYPE::COLLISION3, XMFLOAT3(vPos.x, vPos.y+10, vPos.z), XMFLOAT2(50, 50));
 
 			pCollidedObject->Disable();
 

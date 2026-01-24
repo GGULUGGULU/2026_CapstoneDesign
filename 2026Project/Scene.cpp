@@ -327,8 +327,6 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 	CreateAABBWireFrameBox(pd3dDevice, pd3dCommandList);
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
 
-	CEffectLibrary::Instance()->Initialize(pd3dDevice, pd3dCommandList);
-
 	m_pShadowShader = new CShadowShader();
 	m_pShadowShader->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature);
 }
@@ -559,9 +557,6 @@ void CScene::ReleaseObjects()
 	m_pRockTextureUploadBuffer = NULL;
 
 	m_pd3dCbvSrvHeap = NULL;
-
-	// [추가] 라이브러리 리소스 해제 호출
-	CEffectLibrary::Instance()->Release();
 
 	ReleaseShaderVariables();
 
