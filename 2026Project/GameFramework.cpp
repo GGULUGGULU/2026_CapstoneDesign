@@ -724,7 +724,7 @@ void CGameFramework::BuildGameObjects()
 	// AABB사이즈 
 
 	m_pPlayer->Rotate(0, 180, 0);
-	m_pPlayer->SetPosition(XMFLOAT3(-2250.0f, 8.f, 2250.0f));
+	m_pPlayer->SetPosition(XMFLOAT3(0.0f, 0.0f, 0.0f)); // 플레이어 위치 조정
 	m_pPlayer->SetGravity(XMFLOAT3(0, -1, 0));
 
 	m_pPlayer->OnPrepareRender();

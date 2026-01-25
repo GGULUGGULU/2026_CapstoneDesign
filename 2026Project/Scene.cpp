@@ -172,7 +172,7 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 	CGameObject* pGroundModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Ground.bin");
 	CGameObject* pGroundObject = new CGameObject();
 	pGroundObject->SetChild(pGroundModel);
-	pGroundObject->SetPosition(-2200.0f, 0.0f, 0.0f);
+	pGroundObject->SetPosition(0.0f, 0.0f, 0.0f);
 	pGroundObject->Rotate(0.0f, 0.0f, 0.0f);
 	pGroundObject->SetScale(10, 5, 100);
 	pGroundObject->Rotate(0.0f, 0.f, 0.0f);
