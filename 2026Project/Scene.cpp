@@ -165,28 +165,24 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 	m_nGameObjects = 1 + 1 + 12 + 12 + 12 +1 +20 +20 +15 +15 + 4;
 	m_ppGameObjects = new CGameObject * [m_nGameObjects];
 
-
 	CGameObject* pGroundModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/city_map_02.bin");
 	CGameObject* pGroundObject = new CGameObject();
 	pGroundObject->SetChild(pGroundModel);
 	pGroundObject->SetPosition(0.0f, 0.0f, 0.0f);
-	pGroundObject->Rotate(0.0f, 90.0f, 0.0f);
-	pGroundObject->SetScale(1, 1, 1);
+	pGroundObject->Rotate(0.0f, 0.0f, 0.0f);
+	pGroundObject->SetScale(50, 50, 50);
 	pGroundObject->Rotate(0.0f, 0.f, 0.0f);
 	pGroundObject->ComputeCombinedAABB();
 
+	//CMaterial* pTerrainMaterial = new CMaterial();
+	//pTerrainMaterial->SetShader(m_pTerrainShader);
 
+	//CMaterialColors* pTerrainColors = new CMaterialColors();
+	//pTerrainColors->m_xmf4Diffuse = XMFLOAT4(0.2f, 0.6f, 0.2f, 1.0f);
+	//pTerrainColors->m_xmf4Ambient = XMFLOAT4(0.1f, 0.3f, 0.1f, 1.0f);
+	//pTerrainMaterial->SetMaterialColors(pTerrainColors);
 
-
-	CMaterial* pTerrainMaterial = new CMaterial();
-	pTerrainMaterial->SetShader(m_pTerrainShader);
-
-	CMaterialColors* pTerrainColors = new CMaterialColors();
-	pTerrainColors->m_xmf4Diffuse = XMFLOAT4(0.2f, 0.6f, 0.2f, 1.0f);
-	pTerrainColors->m_xmf4Ambient = XMFLOAT4(0.1f, 0.3f, 0.1f, 1.0f);
-	pTerrainMaterial->SetMaterialColors(pTerrainColors);
-
-	SetTerrainRecursive(pGroundModel, D3D_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST, pTerrainMaterial);
+	//SetTerrainRecursive(pGroundModel, D3D_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST, pTerrainMaterial);
 
 	m_ppGameObjects[0] = pGroundObject;
 
