@@ -162,7 +162,7 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 	LoadTexture(pd3dDevice, pd3dCommandList);
 	
 	// ¼öÁ¤
-	m_nGameObjects = 1 + 1 + 12 + 12 + 12 +1 +20 +20 +15 +15 + 4;
+	m_nGameObjects = 1 + 1 + 12 + 12 + 12 +1 +20 +20 +15 +15 + 4  + 1 + 1;
 	m_ppGameObjects = new CGameObject * [m_nGameObjects];
 
 	CGameObject* pGroundModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/city_map_01.bin");
@@ -171,14 +171,11 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 	pGroundObject->SetPosition(0.0f, 0.0f, 0.0f);
 	pGroundObject->Rotate(0.0f, -90.0f, 0.0f);
 	pGroundObject->SetScale(100, 50, 100);
-	pGroundObject->Rotate(0.0f, 0.f, 0.0f);
 	pGroundObject->ComputeCombinedAABB();
-;
 	pGroundObject->m_xmCombinedLocalAABB.Extents.x *= 1.f;
 	pGroundObject->m_xmCombinedLocalAABB.Extents.y *= 0.05f;
 	pGroundObject->m_xmCombinedLocalAABB.Extents.z *= 1.f;
-
-
+	m_ppGameObjects[0] = pGroundObject;
 	//CMaterial* pTerrainMaterial = new CMaterial();
 	//pTerrainMaterial->SetShader(m_pTerrainShader);
 
@@ -189,7 +186,6 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 
 	//SetTerrainRecursive(pGroundModel, D3D_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST, pTerrainMaterial);
 
-	m_ppGameObjects[0] = pGroundObject;
 
 	CGameObject* pSuperCobraModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/log.bin");
 	CSuperCobraObject* pSuperCobraObject = NULL;
@@ -335,6 +331,24 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		pItemObject3->ComputeCombinedAABB();
 		m_ppGameObjects[112] = pItemObject3;
 	}
+
+	CGameObject* pGroundModel1 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/city_map_02.bin");
+	CGameObject* pGroundObject1 = new CGameObject();
+	pGroundObject1->SetChild(pGroundModel1);
+	pGroundObject1->SetPosition(0.0f, -5.0f, -12100.0f);
+	pGroundObject1->Rotate(0.0f, 0.0f, 0.0f);
+	pGroundObject1->SetScale(100, 100, 100);
+	pGroundObject1->ComputeCombinedAABB();
+	m_ppGameObjects[113] = pGroundObject1;
+
+	CGameObject* pGroundModel2 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/city_map_03.bin");
+	CGameObject* pGroundObject2 = new CGameObject();
+	pGroundObject2->SetChild(pGroundModel2);
+	pGroundObject2->SetPosition(0.0f, -5.0f, -12600.0f);
+	pGroundObject2->Rotate(0.0f, -90.0f, 0.0f);
+	pGroundObject2->SetScale(10, 10, 10);
+	pGroundObject2->ComputeCombinedAABB();
+	m_ppGameObjects[114] = pGroundObject2;
 
 	CreateMirror(pd3dDevice, pd3dCommandList);
 	CreateWireFrameBox(pd3dDevice, pd3dCommandList);

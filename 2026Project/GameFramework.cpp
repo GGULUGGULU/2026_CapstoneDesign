@@ -763,6 +763,9 @@ void CGameFramework::CollisionProcess()
 	{
 		CGameObject* pCollidedObject = m_pScene->m_pCollidedObject;
 
+		if (pCollidedObject == m_pScene->m_ppGameObjects[113] || pCollidedObject == m_pScene->m_ppGameObjects[114])
+			return;
+
 		if (pCollidedObject == m_pScene->m_ppGameObjects[109] || pCollidedObject == m_pScene->m_ppGameObjects[110] ||
 			pCollidedObject == m_pScene->m_ppGameObjects[111] || pCollidedObject == m_pScene->m_ppGameObjects[112])
 		{
