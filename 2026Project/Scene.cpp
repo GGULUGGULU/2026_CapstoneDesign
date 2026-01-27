@@ -168,15 +168,16 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 	CGameObject* pGroundModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/city_map_01.bin");
 	CGameObject* pGroundObject = new CGameObject();
 	pGroundObject->SetChild(pGroundModel);
-	pGroundObject->SetPosition(0.0f, -10.0f, 0.0f);
+	pGroundObject->SetPosition(0.0f, 0.0f, 0.0f);
 	pGroundObject->Rotate(0.0f, 90.0f, 0.0f);
 	pGroundObject->SetScale(10, 10, 10);
 	pGroundObject->Rotate(0.0f, 0.f, 0.0f);
 	pGroundObject->ComputeCombinedAABB();
 
-	pGroundObject->m_xmCombinedLocalAABB.Extents.x *= 1.f;
-	pGroundObject->m_xmCombinedLocalAABB.Extents.y *= 2.f;
-	pGroundObject->m_xmCombinedLocalAABB.Extents.z *= 1.f;
+	pGroundObject->m_xmCombinedLocalAABB.Extents.x *= 1.0f;
+	pGroundObject->m_xmCombinedLocalAABB.Extents.y *= 0.5f;
+	pGroundObject->m_xmCombinedLocalAABB.Extents.z *= 1.0f;
+
 
 	m_ppGameObjects[0] = pGroundObject;
 
@@ -197,14 +198,14 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 	CGameObject* pGroundModel1 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/city_map_02.bin");
 	CGameObject* pGroundObject1 = new CGameObject();
 	pGroundObject1->SetChild(pGroundModel1);
-	pGroundObject1->SetPosition(20000.0f, -10.0f, 0.0f);
+	pGroundObject1->SetPosition(0.0f, 0.0f, 0.0f);
 	pGroundObject1->Rotate(0.0f, 90.0f, 0.0f);
 	pGroundObject1->SetScale(10, 10, 10);
 	pGroundObject1->ComputeCombinedAABB();
 
-	pGroundObject->m_xmCombinedLocalAABB.Extents.x *= 0.1f;
-	pGroundObject->m_xmCombinedLocalAABB.Extents.y *= 0.1f;
-	pGroundObject->m_xmCombinedLocalAABB.Extents.z *= 0.1f;
+	pGroundObject1->m_xmCombinedLocalAABB.Extents.x *= 1.f;
+	pGroundObject1->m_xmCombinedLocalAABB.Extents.y *= 0.1f;
+	pGroundObject1->m_xmCombinedLocalAABB.Extents.z *= 1.f;
 
 	m_ppGameObjects[113] = pGroundObject1;
 
@@ -217,13 +218,14 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 	CGameObject* pGroundObject2 = new CGameObject();
 	pGroundObject2->SetChild(pGroundModel2);
 	// pGroundObject2->SetPosition(0.0f, -5.0f, -12600.0f);
-	pGroundObject2->SetPosition(20000.0f, -10.0f, 0.0f);
+	pGroundObject2->SetPosition(0.0f, 0.0f, 0.0f);
 	pGroundObject2->Rotate(0.0f, 90.0f, 0.0f);
 	pGroundObject2->SetScale(10, 10, 10);
 	pGroundObject2->ComputeCombinedAABB();
-	pGroundObject->m_xmCombinedLocalAABB.Extents.x *= 0.1f;
-	pGroundObject->m_xmCombinedLocalAABB.Extents.y *= 0.1f;
-	pGroundObject->m_xmCombinedLocalAABB.Extents.z *= 0.1f;
+
+	pGroundObject2->m_xmCombinedLocalAABB.Extents.x *= 1.f;
+	pGroundObject2->m_xmCombinedLocalAABB.Extents.y *= 0.1f;
+	pGroundObject2->m_xmCombinedLocalAABB.Extents.z *= 1.f;
 
 	m_ppGameObjects[114] = pGroundObject2;
 
