@@ -378,15 +378,15 @@ ActiveEffect* CEffectLibrary::Play(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT2
 		// 파티클 시스템
 		pEffectData->pParticleSys->SetPosition(position);
 
-		float fSpread = 10.0f; // 기본값
+		float fSpread = 1.0f; // 기본값, 흙먼지 파티클 퍼짐정도
 
 		if (type >= EFFECT_TYPE::ITEM1 && type <= EFFECT_TYPE::ITEM9)
 		{
-			fSpread = 50.0f;
+			fSpread = 50.0f; // 아이템 획득 파티클 퍼짐정도
 		}
 		else if (type >= EFFECT_TYPE::COLLISION1 && type <= EFFECT_TYPE::COLLISION3)
 		{
-			fSpread = 20.0f;
+			fSpread = 20.0f; // 충돌 파티클 퍼짐정도
 		}
 
 		pEffectData->pParticleSys->ResetParticles(size, fSpread);

@@ -264,6 +264,7 @@ void CGameFramework::CreateDepthStencilView()
 	m_pd3dDevice->CreateDepthStencilView(m_pd3dDepthStencilBuffer, &d3dDepthStencilViewDesc, d3dDsvCPUDescriptorHandle);
 }
 
+
 void CGameFramework::ChangeSwapChainState()
 {
 	WaitForGpuComplete();
@@ -292,6 +293,7 @@ void CGameFramework::ChangeSwapChainState()
 
 	CreateRenderTargetView();
 }
+
 
 void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
@@ -1086,8 +1088,8 @@ void CGameFramework::CreateShadowMap()
 	D3D12_RESOURCE_DESC d3dShadowMapDesc = {};
 	d3dShadowMapDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 	d3dShadowMapDesc.Alignment = 0;
-	d3dShadowMapDesc.Width = 8192;
-	d3dShadowMapDesc.Height = 8192;
+	d3dShadowMapDesc.Width = 16384;
+	d3dShadowMapDesc.Height = 16384;
 	d3dShadowMapDesc.DepthOrArraySize = 1;
 	d3dShadowMapDesc.MipLevels = 1;
 	d3dShadowMapDesc.Format = DXGI_FORMAT_R24G8_TYPELESS;

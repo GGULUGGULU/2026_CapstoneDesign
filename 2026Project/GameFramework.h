@@ -168,7 +168,7 @@ public:
 	bool m_bIsStun{ false };
 	bool m_bJump{ false };
 	int m_nScore{ 0 };
-	
+
 
 	// jump
 	int   m_nJumpCount = 0;

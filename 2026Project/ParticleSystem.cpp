@@ -72,6 +72,7 @@ void CParticleSystem::ResetParticles(const XMFLOAT2& size, float fSpreadRange)
     }
     CollisionAnimate(0.0);
     DustAnimate(0.0);
+    ItemAnimate(0.0);
 }
 
 void CParticleSystem::Render(ID3D12GraphicsCommandList* pd3dCommandList)

@@ -52,6 +52,9 @@ public:
 
 	ActiveEffect* Play(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT2 size);
 
+	//void PlayCollisionParticle();
+	//void PlayItemParticle();
+
 	void ToggleBooster(bool flag);
 	void UpdateBoosterPosition(const XMFLOAT3&, const XMFLOAT3&);
 

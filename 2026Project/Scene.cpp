@@ -169,7 +169,7 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 	pGroundObject->SetPosition(0.0f, 0.0f, 0.0f);
 	pGroundObject->Rotate(0.0f, 90.0f, 0.0f);
 	pGroundObject->SetScale(10, 10, 10);
-	pGroundObject->ComputeCombinedAABB();
+	pGroundObject->ComputeNewLocalAABB();
 
 	pGroundObject->m_xmCombinedLocalAABB.Extents.x *= 1.0f;
 	pGroundObject->m_xmCombinedLocalAABB.Extents.y *= 0.5f;
@@ -198,11 +198,11 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 	pGroundObject1->SetPosition(0.0f, 0.0f, 0.0f);
 	pGroundObject1->Rotate(0.0f, 90.0f, 0.0f);
 	pGroundObject1->SetScale(10, 10, 10);
-	pGroundObject1->ComputeCombinedAABB();
+	pGroundObject1->ComputeNewLocalAABB();
 
-	pGroundObject1->m_xmCombinedLocalAABB.Extents.x *= 1.f;
-	pGroundObject1->m_xmCombinedLocalAABB.Extents.y *= 0.1f;
-	pGroundObject1->m_xmCombinedLocalAABB.Extents.z *= 1.f;
+	//pGroundObject1->m_xmCombinedLocalAABB.Extents.x *= 1.f;
+	//pGroundObject1->m_xmCombinedLocalAABB.Extents.y *= 0.1f;
+	//pGroundObject1->m_xmCombinedLocalAABB.Extents.z *= 1.f;
 
 	m_ppGameObjects[113] = pGroundObject1;
 
@@ -218,11 +218,11 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 	pGroundObject2->SetPosition(0.0f, 0.0f, 0.0f);
 	pGroundObject2->Rotate(0.0f, 90.0f, 0.0f);
 	pGroundObject2->SetScale(10, 10, 10);
-	pGroundObject2->ComputeCombinedAABB();
+	pGroundObject2->ComputeNewLocalAABB();
 
-	pGroundObject2->m_xmCombinedLocalAABB.Extents.x *= 1.f;
-	pGroundObject2->m_xmCombinedLocalAABB.Extents.y *= 0.1f;
-	pGroundObject2->m_xmCombinedLocalAABB.Extents.z *= 1.f;
+	//pGroundObject2->m_xmCombinedLocalAABB.Extents.x *= 1.f;
+	//pGroundObject2->m_xmCombinedLocalAABB.Extents.y *= 0.1f;
+	//pGroundObject2->m_xmCombinedLocalAABB.Extents.z *= 1.f;
 
 	m_ppGameObjects[114] = pGroundObject2;
 
@@ -243,7 +243,7 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 	pSuperCobraObject->SetPosition(20.0f, 8.0f, 100.0f);
 	pSuperCobraObject->SetScale(4.5f, 4.5f, 4.5f);
 	pSuperCobraObject->Rotate(0.0f, -90.0f, 0.0f);
-	pSuperCobraObject->ComputeCombinedAABB();
+	pSuperCobraObject->ComputeNewLocalAABB();
 	m_ppGameObjects[1] = pSuperCobraObject;
 
 	{
@@ -266,7 +266,7 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 	pObstacleObject->Rotate(0.0f, 0.0f, 0.0f);
 	pObstacleObject->SetScale(0, 0, 0);
 	pObstacleObject->Rotate(0.0f, 0.f, 0.0f);
-	pObstacleObject->ComputeCombinedAABB();
+	pObstacleObject->ComputeNewLocalAABB();
 	m_ppGameObjects[38] = pObstacleObject;
 
 
@@ -285,7 +285,7 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 			pSuperCobraObject->SetPosition(uid1(dre), 0.0f, uid3(dre));
 			pSuperCobraObject->SetScale(10.5f, 10.5f, 10.5f);
 			pSuperCobraObject->Rotate(0.0f, uid(dre), 0.0f);
-			pSuperCobraObject->ComputeCombinedAABB();
+			pSuperCobraObject->ComputeNewLocalAABB();
 			m_ppGameObjects[39+i] = pSuperCobraObject;
 		}
 
@@ -301,7 +301,7 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 			pSuperCobraObject->SetPosition(uid2(dre), 0.0f, uid3(dre));
 			pSuperCobraObject->SetScale(10.5f, 10.5f, 10.5f);
 			pSuperCobraObject->Rotate(0.0f, uid(dre), 0.0f);
-			pSuperCobraObject->ComputeCombinedAABB();
+			pSuperCobraObject->ComputeNewLocalAABB();
 			m_ppGameObjects[59 + i] = pSuperCobraObject;
 		}
 
@@ -317,7 +317,7 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 			pSuperCobraObject->SetPosition(uid4(dre), 0.0f, uid2(dre));
 			pSuperCobraObject->SetScale(10.5f, 10.5f, 10.5f);
 			pSuperCobraObject->Rotate(0.0f, uid(dre), 0.0f);
-			pSuperCobraObject->ComputeCombinedAABB();
+			pSuperCobraObject->ComputeNewLocalAABB();
 			m_ppGameObjects[79 + i] = pSuperCobraObject;
 		}
 
@@ -333,7 +333,7 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 			pSuperCobraObject->SetPosition(0.0f, 0.0f, uid1(dre));
 			pSuperCobraObject->SetScale(10.5f, 10.5f, 10.5f);
 			pSuperCobraObject->Rotate(0.0f, uid(dre), 0.0f);
-			pSuperCobraObject->ComputeCombinedAABB();
+			pSuperCobraObject->ComputeNewLocalAABB();
 			m_ppGameObjects[94 + i] = pSuperCobraObject;
 		}
 
@@ -344,7 +344,7 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		pItemObject->SetPosition(-2300.0f, 50.0f, 2300.0f);
 		pItemObject->Rotate(0.0f, 0.0f, 0.0f);
 		pItemObject->SetScale(10, 10, 10);
-		//pItemObject->ComputeCombinedAABB();
+		//pItemObject->ComputeNewLocalAABB();
 		pItemObject->ComputeNewLocalAABB();
 		m_ppGameObjects[109] = pItemObject;
 
@@ -354,7 +354,7 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		pItemObject1->SetPosition(-2200.0f, 20.0f, -2300.0f);
 		pItemObject1->Rotate(0.0f, 0.0f, 0.0f);
 		pItemObject1->SetScale(10, 10, 10);
-		//pItemObject1->ComputeCombinedAABB();
+		//pItemObject1->ComputeNewLocalAABB();
 		pItemObject1->ComputeNewLocalAABB();
 		m_ppGameObjects[110] = pItemObject1;
 
@@ -364,7 +364,7 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		pItemObject2->SetPosition(2300.0f, 40.0f, -2300.0f);
 		pItemObject2->Rotate(0.0f, 0.0f, 0.0f);
 		pItemObject2->SetScale(10, 10, 10);
-		//pItemObject2->ComputeCombinedAABB();
+		//pItemObject2->ComputeNewLocalAABB();
 		pItemObject2->ComputeNewLocalAABB();
 		m_ppGameObjects[111] = pItemObject2;
 
@@ -374,7 +374,7 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		pItemObject3->SetPosition(2200.0f, 50.0f, 2300.0f);
 		pItemObject3->Rotate(0.0f, 0.0f, 0.0f);
 		pItemObject3->SetScale(10, 10, 10);
-		//pItemObject3->ComputeCombinedAABB();
+		//pItemObject3->ComputeNewLocalAABB();
 		pItemObject3->ComputeNewLocalAABB();
 		m_ppGameObjects[112] = pItemObject3;
 
@@ -1011,8 +1011,8 @@ void CScene::RenderShadowMap(ID3D12GraphicsCommandList* pd3dCommandList, D3D12_C
 	if (m_pd3dGraphicsRootSignature)
 		pd3dCommandList->SetGraphicsRootSignature(m_pd3dGraphicsRootSignature);
 
-	D3D12_VIEWPORT viewport = { 0.0f, 0.0f, 8192.0f, 8192.0f, 0.0f, 1.0f };
-	D3D12_RECT scissorRect = { 0, 0, 8192, 8192 };
+	D3D12_VIEWPORT viewport = { 0.0f, 0.0f, 16384.0f, 16384.0f, 0.0f, 1.0f };
+	D3D12_RECT scissorRect = { 0, 0, 16384, 16384 };
 	pd3dCommandList->RSSetViewports(1, &viewport);
 	pd3dCommandList->RSSetScissorRects(1, &scissorRect);
 
