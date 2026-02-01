@@ -717,11 +717,8 @@ void CGameFramework::BuildGameObjects()
 	pCarPlayer->SetScale(10.2f, 10.2f, 10.2f);
 	m_pScene->m_pPlayer = m_pPlayer = pCarPlayer;
 
-	m_pPlayer->ComputeCombinedAABB();
-	m_pPlayer->m_xmCombinedLocalAABB.Extents.x = 1;
-	m_pPlayer->m_xmCombinedLocalAABB.Extents.y = 0.5;
-	m_pPlayer->m_xmCombinedLocalAABB.Extents.z = 2;
-	// AABB사이즈 
+	m_pPlayer->ComputeNewLocalAABB();
+
 
 	m_pPlayer->Rotate(0, 180, 0);
 	m_pPlayer->SetPosition(XMFLOAT3(0.0f, 10.0f, 0.0f)); // 플레이어 위치 조정
@@ -773,7 +770,15 @@ void CGameFramework::CollisionProcess()
 
 			XMFLOAT3 vPos = pCollidedObject->GetPosition();
 			//m_pScene->m_pParticleEmitter->SpawnExplosion(XMFLOAT3(vPos.x, vPos.y + 10, vPos.z));
-			
+			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM1, vPos, XMFLOAT2(50, 50));
+			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM2, vPos, XMFLOAT2(50, 50));
+			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM3, vPos, XMFLOAT2(50, 50));
+			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM4, vPos, XMFLOAT2(25, 25));
+			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM5, vPos, XMFLOAT2(50, 50));
+			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM6, vPos, XMFLOAT2(50, 50));
+			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM7, vPos, XMFLOAT2(50, 50));
+			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM8, vPos, XMFLOAT2(25, 25));
+			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM9, vPos, XMFLOAT2(50, 50));
 
 			pCollidedObject->Disable();
 
@@ -786,19 +791,9 @@ void CGameFramework::CollisionProcess()
 
 			XMFLOAT3 vPos = pCollidedObject->GetPosition();
 			//m_pScene->m_pParticleEmitter->SpawnExplosion(XMFLOAT3(vPos.x, vPos.y + 10, vPos.z));
-			//CEffectLibrary::Instance()->Play(EFFECT_TYPE::COLLISION1, XMFLOAT3(vPos.x, vPos.y+10, vPos.z), XMFLOAT2(50, 50));
-			//CEffectLibrary::Instance()->Play(EFFECT_TYPE::COLLISION2, XMFLOAT3(vPos.x, vPos.y+10, vPos.z), XMFLOAT2(50, 50));
-			//CEffectLibrary::Instance()->Play(EFFECT_TYPE::COLLISION3, XMFLOAT3(vPos.x, vPos.y+10, vPos.z), XMFLOAT2(50, 50));
-
-			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM1, vPos, XMFLOAT2(50, 50));
-			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM2, vPos, XMFLOAT2(50, 50));
-			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM3, vPos, XMFLOAT2(50, 50));
-			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM4, vPos, XMFLOAT2(25, 25));
-			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM5, vPos, XMFLOAT2(50, 50));
-			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM6, vPos, XMFLOAT2(50, 50));
-			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM7, vPos, XMFLOAT2(50, 50));
-			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM8, vPos, XMFLOAT2(25, 25));
-			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM9, vPos, XMFLOAT2(50, 50));
+			CEffectLibrary::Instance()->Play(EFFECT_TYPE::COLLISION1, XMFLOAT3(vPos.x, vPos.y+10, vPos.z), XMFLOAT2(50, 50));
+			CEffectLibrary::Instance()->Play(EFFECT_TYPE::COLLISION2, XMFLOAT3(vPos.x, vPos.y+10, vPos.z), XMFLOAT2(50, 50));
+			CEffectLibrary::Instance()->Play(EFFECT_TYPE::COLLISION3, XMFLOAT3(vPos.x, vPos.y+10, vPos.z), XMFLOAT2(50, 50));
 
 			pCollidedObject->Disable();
 

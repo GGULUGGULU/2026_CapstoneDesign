@@ -1,7 +1,7 @@
 //-----------------------------------------------------------------------------
 // File: CGameObject.cpp
 //-----------------------------------------------------------------------------
-
+#include <vector>
 #include "stdafx.h"
 #include "Object.h"
 #include "Shader.h"
@@ -614,6 +614,87 @@ CMeshLoadInfo *CGameObject::LoadMeshInfoFromFile(FILE *pInFile)
 	return(pMeshInfo);
 }
 
+void CGameObject::CollectChildCorners(CGameObject* pGameObj, CXMMATRIX matParentRelative, std::vector<XMFLOAT3>& outCorners)
+{
+	if (!pGameObj) return;
+
+	XMMATRIX matCurLoacl = XMLoadFloat4x4(&pGameObj->m_xmf4x4Transform);
+	XMMATRIX matCurRelative = matCurLoacl * matParentRelative;
+
+	if (pGameObj->m_pMesh)
+	{
+		BoundingBox meshAABB = pGameObj->m_pMesh->GetBoundingBox();
+
+		XMFLOAT3 corners[8];
+		meshAABB.GetCorners(corners);
+
+		for (int i = 0; i < 8; ++i)
+		{
+			XMVECTOR vCorner = XMLoadFloat3(&corners[i]);
+			vCorner = XMVector3Transform(vCorner, matCurRelative);
+
+			XMFLOAT3 finCorner;
+			XMStoreFloat3(&finCorner, vCorner);
+			outCorners.push_back(finCorner);
+		}
+	}
+
+	if (pGameObj->m_pChild)
+	{
+		CollectChildCorners(pGameObj->m_pChild, matCurRelative, outCorners);
+	}
+
+	if (pGameObj->m_pSibling)
+	{
+		CollectChildCorners(pGameObj->m_pSibling, matParentRelative, outCorners);
+	}
+}
+
+void CGameObject::ComputeNewLocalAABB()
+{
+	std::vector<XMFLOAT3> allCorners;
+
+	if (m_pMesh)
+	{
+		BoundingBox meshAABB = m_pMesh->GetBoundingBox();
+		XMFLOAT3 corners[8];
+		meshAABB.GetCorners(corners);
+		for (int i = 0; i < 8; ++i)
+		{
+			allCorners.push_back(corners[i]);
+		}
+	}
+
+	XMMATRIX matIden = XMMatrixIdentity();
+
+	if (m_pChild)
+	{
+		CollectChildCorners(m_pChild, matIden, allCorners);
+
+	}
+
+	if (!allCorners.empty())
+	{
+		BoundingBox::CreateFromPoints(m_xmCombinedLocalAABB, allCorners.size(), allCorners.data(), sizeof(XMFLOAT3));
+	}
+	else
+	{
+		m_xmCombinedLocalAABB = BoundingBox();
+	}
+}
+
+BoundingOrientedBox CGameObject::GetWorldOBB()
+{
+	BoundingOrientedBox obb;
+
+	BoundingOrientedBox localOBB;
+	BoundingOrientedBox::CreateFromBoundingBox(localOBB, m_xmCombinedLocalAABB);
+
+	localOBB.Transform(obb, XMLoadFloat4x4(&m_xmf4x4World));
+
+	return obb;
+}
+
 MATERIALSLOADINFO *CGameObject::LoadMaterialsInfoFromFile(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *pd3dCommandList, FILE *pInFile)
 {
 	char pstrToken[64] = { '\0' };
@@ -819,6 +900,8 @@ CGameObject *CGameObject::LoadGeometryFromFile(ID3D12Device *pd3dDevice, ID3D12G
 
 	return(pGameObject);
 }
+
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 //

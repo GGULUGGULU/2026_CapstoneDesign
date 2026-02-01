@@ -37,11 +37,11 @@ CParticleSystem::~CParticleSystem()
 
 void CParticleSystem::ResetParticles(const XMFLOAT2& size, float fSpreadRange)
 {
-    static std::mt19937 gen(std::random_device{}());
-    std::uniform_real_distribution<float> distDir(-1.0f, 1.0f);
-    std::uniform_real_distribution<float> distSpeed(10.0f, 50.0f);
-    std::uniform_real_distribution<float> distLife(0.5f, 1.5f);   
-    std::uniform_real_distribution<float> distPos(-fSpreadRange, fSpreadRange); // ÁÂ¿ì ·£´ý ºÐÆ÷
+    static std::mt19937 dre(std::random_device{}());
+    std::uniform_real_distribution<float> urdDir(-1.0f, 1.0f);
+    std::uniform_real_distribution<float> urdSpeed(10.0f, 50.0f);
+    std::uniform_real_distribution<float> urdLife(0.5f, 1.5f);
+    std::uniform_real_distribution<float> urdPos(-fSpreadRange, fSpreadRange); // ÁÂ¿ì ·£´ý ºÐÆ÷
 
     m_nActiveParticles = 0;
 
@@ -50,23 +50,23 @@ void CParticleSystem::ResetParticles(const XMFLOAT2& size, float fSpreadRange)
         m_vCpuParticles[i].m_bIsActive = true;
 
         m_vCpuParticles[i].m_fAge = 0.0f;
-        m_vCpuParticles[i].m_fLifeTime = distLife(gen);
+        m_vCpuParticles[i].m_fLifeTime = urdLife(dre);
 
         //m_vCpuParticles[i].m_xmf3Position = XMFLOAT3(0.0f, 0.0f, 0.0f);
 
         m_vCpuParticles[i].m_xmf3Position = XMFLOAT3(
-            distPos(gen),        
-            distPos(gen) * 0.5f, 
-            distPos(gen)         
+            urdPos(dre),        
+            urdPos(dre) * 0.5f, 
+            urdPos(dre)         
         );
 
         m_vCpuParticles[i].m_xmf2MaxSize = XMFLOAT2(size); // Å©±â
 
-        XMFLOAT3 randomDir = XMFLOAT3(distDir(gen), distDir(gen), distDir(gen));
+        XMFLOAT3 randomDir = XMFLOAT3(urdDir(dre), urdDir(dre), urdDir(dre));
 
         XMVECTOR vDir = XMLoadFloat3(&randomDir);
         vDir = XMVector3Normalize(vDir);
-        vDir *= distSpeed(gen);
+        vDir *= urdSpeed(dre);
 
         XMStoreFloat3(&m_vCpuParticles[i].m_xmf3Velocity, vDir);
     }

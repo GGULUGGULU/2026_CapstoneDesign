@@ -84,7 +84,7 @@ private:
 		L"Asset/DDS_File/ShortPinkRibbon.dds",
 		L"Asset/DDS_File/ShortYellowRibbon.dds",
 		L"Asset/DDS_File/YellowCircle.dds",
-		L"Asset/DDS_File/YellowTriangle.dds"
+		L"Asset/DDS_File/YellowTriangle.dds",
 		/////////////////////////////////////////////////
 		L"Asset/DDS_File/Booster.dds",
 		L"Asset/DDS_File/WindShield.dds",
@@ -95,7 +95,6 @@ private:
 	ID3D12RootSignature* m_pRootSignature = nullptr;
 	ID3D12PipelineState* m_pPipelineState = nullptr;
 	ID3D12PipelineState* m_pMeshEffectPSO = nullptr;
-
 
 	void BuildRootSignature(ID3D12Device* pd3dDevice);
 	void BuildPipelineState(ID3D12Device* pd3dDevice);

@@ -203,6 +203,12 @@ public:
 	bool m_bIsActive{ true };
 
 	virtual void Disable() { m_bIsActive = false; if (m_pChild) m_pChild->Disable(); }
+	
+	//
+	void ComputeNewLocalAABB();
+	BoundingOrientedBox GetWorldOBB();
+	void CollectChildCorners(CGameObject* pGameObj, CXMMATRIX matParentRelative, std::vector<XMFLOAT3>& outCorners);
+
 	//
 public:
 	static MATERIALSLOADINFO *LoadMaterialsInfoFromFile(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *pd3dCommandList, FILE *pInFile);
