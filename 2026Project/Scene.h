@@ -78,7 +78,10 @@ public:
 	void CreateTreeBillboard(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 	void CreateShadowMapSRV(ID3D12Device* pd3dDevice, ID3D12Resource* pShadowMapResource);
 	void RenderShadowMap(ID3D12GraphicsCommandList* pd3dCommandList, D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle); 
-	XMMATRIX GetShadowLightViewProj(); 
+	XMMATRIX GetShadowLightViewProj();
+	void CreateSkybox(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+	void RenderSkybox(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
+
 
 	CGameObject* m_pSelectedObject = NULL; // 클릭된 객체 저장용 
 	CGameObject* m_pCollidedObject = NULL;
@@ -121,6 +124,14 @@ public:
 	UINT m_nDescriptorIncrementSize;
 
 	CTerrainShader* m_pTerrainShader = NULL;
+
+	CGameObject* m_pSkyboxObject = NULL;
+	ID3D12Resource* m_pSkyboxTexture = NULL;
+	ID3D12Resource* m_pSkyboxTextureUploadBuffer = NULL;
+
+	D3D12_GPU_DESCRIPTOR_HANDLE m_d3dGpuSkyboxSrvHandle;
+
+	CSkyboxShader* m_pSkyboxShader = NULL;
 	//
 public:
 	ID3D12RootSignature			*m_pd3dGraphicsRootSignature = NULL;

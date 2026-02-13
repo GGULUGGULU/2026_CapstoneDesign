@@ -170,27 +170,7 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 	pGroundObject->Rotate(0.0f, 90.0f, 0.0f);
 	pGroundObject->SetScale(10, 10, 10);
 	pGroundObject->ComputeNewLocalAABB();
-
-	pGroundObject->m_xmCombinedLocalAABB.Extents.x *= 1.0f;
-	pGroundObject->m_xmCombinedLocalAABB.Extents.y *= 0.5f;
-	pGroundObject->m_xmCombinedLocalAABB.Extents.z *= 1.0f;
-
-
 	m_ppGameObjects[0] = pGroundObject;
-
-	//CMaterial* pTerrainMaterial = new CMaterial();
-	//pTerrainMaterial->SetShader(m_pTerrainShader);
-
-	//CMaterialColors* pTerrainColors = new CMaterialColors();
-	//pTerrainColors->m_xmf4Diffuse = XMFLOAT4(0.2f, 0.6f, 0.2f, 1.0f);
-	//pTerrainColors->m_xmf4Ambient = XMFLOAT4(0.1f, 0.3f, 0.1f, 1.0f);
-	//pTerrainMaterial->SetMaterialColors(pTerrainColors);
-
-	//SetTerrainRecursive(pGroundModel, D3D_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST, pTerrainMaterial);
-
-	m_ppGameObjects[0] = pGroundObject;
-
-
 
 	CGameObject* pGroundModel1 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/city_map_02.bin");
 	CGameObject* pGroundObject1 = new CGameObject();
@@ -199,40 +179,18 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 	pGroundObject1->Rotate(0.0f, 90.0f, 0.0f);
 	pGroundObject1->SetScale(10, 10, 10);
 	pGroundObject1->ComputeNewLocalAABB();
-
-	//pGroundObject1->m_xmCombinedLocalAABB.Extents.x *= 1.f;
-	//pGroundObject1->m_xmCombinedLocalAABB.Extents.y *= 0.1f;
-	//pGroundObject1->m_xmCombinedLocalAABB.Extents.z *= 1.f;
-
 	m_ppGameObjects[113] = pGroundObject1;
-
-
-
-
-
 
 	CGameObject* pGroundModel2 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/city_map_03.bin");
 	CGameObject* pGroundObject2 = new CGameObject();
 	pGroundObject2->SetChild(pGroundModel2);
-	// pGroundObject2->SetPosition(0.0f, -5.0f, -12600.0f);
 	pGroundObject2->SetPosition(0.0f, 0.0f, 0.0f);
 	pGroundObject2->Rotate(0.0f, 90.0f, 0.0f);
 	pGroundObject2->SetScale(10, 10, 10);
 	pGroundObject2->ComputeNewLocalAABB();
-
-	//pGroundObject2->m_xmCombinedLocalAABB.Extents.x *= 1.f;
-	//pGroundObject2->m_xmCombinedLocalAABB.Extents.y *= 0.1f;
-	//pGroundObject2->m_xmCombinedLocalAABB.Extents.z *= 1.f;
-
 	m_ppGameObjects[114] = pGroundObject2;
 
-
-
-
-
-	//
-
-
+	///////////////////////////////////////////////////
 
 	CGameObject* pSuperCobraModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/log.bin");
 	CSuperCobraObject* pSuperCobraObject = NULL;
@@ -245,14 +203,11 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 	pSuperCobraObject->Rotate(0.0f, -90.0f, 0.0f);
 	pSuperCobraObject->ComputeNewLocalAABB();
 	m_ppGameObjects[1] = pSuperCobraObject;
-
 	{
 		CreateTreeBillboard(pd3dDevice, pd3dCommandList);
 		CreateFlowerBillboard(pd3dDevice, pd3dCommandList);
 		CreateRockBillboard(pd3dDevice, pd3dCommandList);
 	}
-
-
 
 	// 가운데 장애물
 
@@ -268,9 +223,6 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 	pObstacleObject->Rotate(0.0f, 0.f, 0.0f);
 	pObstacleObject->ComputeNewLocalAABB();
 	m_ppGameObjects[38] = pObstacleObject;
-
-
-
 
 	{
 
@@ -344,7 +296,6 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		pItemObject->SetPosition(-2300.0f, 50.0f, 2300.0f);
 		pItemObject->Rotate(0.0f, 0.0f, 0.0f);
 		pItemObject->SetScale(10, 10, 10);
-		//pItemObject->ComputeNewLocalAABB();
 		pItemObject->ComputeNewLocalAABB();
 		m_ppGameObjects[109] = pItemObject;
 
@@ -354,7 +305,6 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		pItemObject1->SetPosition(-2200.0f, 20.0f, -2300.0f);
 		pItemObject1->Rotate(0.0f, 0.0f, 0.0f);
 		pItemObject1->SetScale(10, 10, 10);
-		//pItemObject1->ComputeNewLocalAABB();
 		pItemObject1->ComputeNewLocalAABB();
 		m_ppGameObjects[110] = pItemObject1;
 
@@ -364,7 +314,6 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		pItemObject2->SetPosition(2300.0f, 40.0f, -2300.0f);
 		pItemObject2->Rotate(0.0f, 0.0f, 0.0f);
 		pItemObject2->SetScale(10, 10, 10);
-		//pItemObject2->ComputeNewLocalAABB();
 		pItemObject2->ComputeNewLocalAABB();
 		m_ppGameObjects[111] = pItemObject2;
 
@@ -374,11 +323,8 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		pItemObject3->SetPosition(2200.0f, 50.0f, 2300.0f);
 		pItemObject3->Rotate(0.0f, 0.0f, 0.0f);
 		pItemObject3->SetScale(10, 10, 10);
-		//pItemObject3->ComputeNewLocalAABB();
 		pItemObject3->ComputeNewLocalAABB();
 		m_ppGameObjects[112] = pItemObject3;
-
-
 	}
 
 
@@ -386,6 +332,8 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 	CreateWireFrameBox(pd3dDevice, pd3dCommandList);
 	CreateAABBWireFrameBox(pd3dDevice, pd3dCommandList);
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
+
+	CreateSkybox(pd3dDevice, pd3dCommandList);
 
 	m_pShadowShader = new CShadowShader();
 	m_pShadowShader->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature);
@@ -1074,6 +1022,79 @@ XMMATRIX CScene::GetShadowLightViewProj()
 	return mLightView * mLightProj;
 }
 
+void CScene::CreateSkybox(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	D3D12_CPU_DESCRIPTOR_HANDLE d3dCpuSrvHandle = m_pd3dCbvSrvHeap->GetCPUDescriptorHandleForHeapStart();
+	D3D12_GPU_DESCRIPTOR_HANDLE d3dGpuSrvHandle = m_pd3dCbvSrvHeap->GetGPUDescriptorHandleForHeapStart();
+
+	int nSkyboxIndex = 5;
+
+	d3dCpuSrvHandle.ptr += (m_nDescriptorIncrementSize * nSkyboxIndex);
+	m_d3dGpuSkyboxSrvHandle = d3dGpuSrvHandle;
+	m_d3dGpuSkyboxSrvHandle.ptr += (m_nDescriptorIncrementSize * nSkyboxIndex);
+
+	std::unique_ptr<uint8_t[]> ddsData;
+	std::vector<D3D12_SUBRESOURCE_DATA> subresources;
+
+	DirectX::LoadDDSTextureFromFile(pd3dDevice, L"Asset/DDS_File/SkyBox_0.dds", &m_pSkyboxTexture, ddsData, subresources);
+
+	UINT64 nUploadBufferSize = GetRequiredIntermediateSize(m_pSkyboxTexture, 0, (UINT)subresources.size());
+	pd3dDevice->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD), D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer(nUploadBufferSize),
+		D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
+		__uuidof(ID3D12Resource), (void**)&m_pSkyboxTextureUploadBuffer);
+
+	UpdateSubresources(pd3dCommandList, m_pSkyboxTexture, m_pSkyboxTextureUploadBuffer, 0, 0, (UINT)subresources.size(), subresources.data());
+	pd3dCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_pSkyboxTexture, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
+
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	srvDesc.Format = m_pSkyboxTexture->GetDesc().Format;
+	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE; // *핵심: Texture2D가 아님*
+	srvDesc.TextureCube.MipLevels = m_pSkyboxTexture->GetDesc().MipLevels;
+	srvDesc.TextureCube.MostDetailedMip = 0;
+	srvDesc.TextureCube.ResourceMinLODClamp = 0.0f;
+
+	pd3dDevice->CreateShaderResourceView(m_pSkyboxTexture, &srvDesc, d3dCpuSrvHandle);
+
+	CGameObject* pSkyboxModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Cube.bin");
+
+	CMaterial* pSkyboxMaterial = new CMaterial();
+	CSkyboxShader* pSkyboxShader = new CSkyboxShader();
+	pSkyboxShader->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature);
+
+	pSkyboxMaterial->SetShader(pSkyboxShader);
+	pSkyboxMaterial->SetTexture(m_d3dGpuSkyboxSrvHandle);
+
+	if (pSkyboxModel->m_pMesh)
+	{
+		if (pSkyboxModel->m_ppMaterials) delete[] pSkyboxModel->m_ppMaterials;
+		pSkyboxModel->m_nMaterials = 1;
+		pSkyboxModel->m_ppMaterials = new CMaterial * [1];
+		pSkyboxModel->SetMaterial(0, pSkyboxMaterial);
+	}
+	else if (pSkyboxModel->m_pChild)
+	{
+		CGameObject* pChild = pSkyboxModel->m_pChild;
+		if (pChild->m_ppMaterials) delete[] pChild->m_ppMaterials;
+		pChild->m_nMaterials = 1;
+		pChild->m_ppMaterials = new CMaterial * [1];
+		pChild->SetMaterial(0, pSkyboxMaterial);
+	}
+
+	m_pSkyboxObject = new CGameObject();
+	m_pSkyboxObject->SetChild(pSkyboxModel);
+	m_pSkyboxObject->SetScale(5000.0f, 5000.0f, 5000.0f); 
+}
+
+void CScene::RenderSkybox(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
+{
+	if (!m_pSkyboxObject) return;
+
+	m_pSkyboxObject->Render(pd3dCommandList, NULL, pCamera);
+}
+
 void RenderReflectedObject(ID3D12GraphicsCommandList* pd3dCommandList, CGameObject* pObject, XMMATRIX matReflect)
 {
 	if (!pObject || !pObject->m_bIsActive) return;
@@ -1158,6 +1179,10 @@ void CScene::Render(ID3D12GraphicsCommandList *pd3dCommandList, CCamera *pCamera
 			m_ppGameObjects[i]->Render(pd3dCommandList, pDebugBoxToRender, pCamera);
 		}
 	}
+
+	// [추가] 스카이박스 렌더링 호출
+	// 불투명 객체를 다 그린 뒤, 반사체나 UI를 그리기 전에 호출하는 것이 좋습니다.
+	RenderSkybox(pd3dCommandList, pCamera); // <--- 여기 추가!
 
 	if (m_pReflectedShader) m_pReflectedShader->UpdateShaderVariables(pd3dCommandList);
 

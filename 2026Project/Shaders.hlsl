@@ -556,3 +556,43 @@ float4 PS_WindShield(VS_SHIELD_OUTPUT input) : SV_TARGET
     
     return float4(color.rgb, color.a * 0.7f);
 }
+
+///////////////////////////////////////////////////////////////
+TextureCube gCubeMap : register(t0); 
+
+struct VS_SKYBOX_INPUT
+{
+    float3 position : POSITION;
+};
+
+struct VS_SKYBOX_OUTPUT
+{
+    float4 position : SV_POSITION;
+    float3 localPos : POSITION;
+};
+
+VS_SKYBOX_OUTPUT VS_Skybox(VS_SKYBOX_INPUT input)
+{
+    VS_SKYBOX_OUTPUT output;
+    
+    output.localPos = input.position;
+    
+    matrix viewNoTranslate = gmtxView;
+    viewNoTranslate._41 = 0.0f;
+    viewNoTranslate._42 = 0.0f;
+    viewNoTranslate._43 = 0.0f;
+    
+    float4 posW = mul(float4(input.position, 1.0f), gmtxGameObject);
+    
+    float4 posV = mul(posW, viewNoTranslate);
+    float4 posH = mul(posV, gmtxProjection);
+    
+    output.position = posH.xyww;
+
+    return output;
+}
+
+float4 PS_Skybox(VS_SKYBOX_OUTPUT input) : SV_TARGET
+{
+    return gCubeMap.Sample(gSampler, input.localPos);
+}
