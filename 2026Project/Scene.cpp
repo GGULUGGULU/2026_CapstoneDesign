@@ -1072,6 +1072,7 @@ void CScene::CreateSkybox(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 		if (pSkyboxModel->m_ppMaterials) delete[] pSkyboxModel->m_ppMaterials;
 		pSkyboxModel->m_nMaterials = 1;
 		pSkyboxModel->m_ppMaterials = new CMaterial * [1];
+		pSkyboxModel->m_ppMaterials[0] = NULL;
 		pSkyboxModel->SetMaterial(0, pSkyboxMaterial);
 	}
 	else if (pSkyboxModel->m_pChild)
@@ -1080,6 +1081,7 @@ void CScene::CreateSkybox(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 		if (pChild->m_ppMaterials) delete[] pChild->m_ppMaterials;
 		pChild->m_nMaterials = 1;
 		pChild->m_ppMaterials = new CMaterial * [1];
+		pChild->m_ppMaterials[0] = NULL;
 		pChild->SetMaterial(0, pSkyboxMaterial);
 	}
 
