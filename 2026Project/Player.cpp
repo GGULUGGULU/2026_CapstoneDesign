@@ -295,6 +295,18 @@ void CAirplanePlayer::OnPrepareRender()
 CCamera *CAirplanePlayer::ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed)
 {
 	DWORD nCurrentCameraMode = (m_pCamera) ? m_pCamera->GetMode() : 0x00;
+
+	HWND hWnd = GetActiveWindow();
+	RECT rcClient = { 0, 0, 640, 480 }; 
+	if (hWnd) GetClientRect(hWnd, &rcClient);
+
+	int nWidth = rcClient.right - rcClient.left;
+	int nHeight = rcClient.bottom - rcClient.top;
+
+	if (nWidth <= 0) nWidth = 1;
+	if (nHeight <= 0) nHeight = 1;
+	float fAspectRatio = (float)nWidth / (float)nHeight;
+
 	if (nCurrentCameraMode == nNewCameraMode) return(m_pCamera);
 	switch (nNewCameraMode)
 	{
@@ -306,9 +318,9 @@ CCamera *CAirplanePlayer::ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed)
 			m_pCamera = OnChangeCamera(FIRST_PERSON_CAMERA, nCurrentCameraMode);
 			m_pCamera->SetTimeLag(0.0f);
 			m_pCamera->SetOffset(XMFLOAT3(0.0f, 20.0f, 0.0f));
-			m_pCamera->GenerateProjectionMatrix(1.01f, 5000.0f, ASPECT_RATIO, 60.0f);
-			m_pCamera->SetViewport(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, 0.0f, 1.0f);
-			m_pCamera->SetScissorRect(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT);
+			m_pCamera->GenerateProjectionMatrix(1.01f, 50000.0f, fAspectRatio, 60.0f);
+			m_pCamera->SetViewport(0, 0, nWidth, nHeight, 0.0f, 1.0f);
+			m_pCamera->SetScissorRect(0, 0, nWidth, nHeight);
 			break;
 		case SPACESHIP_CAMERA:
 			SetFriction(100.5f);
@@ -318,9 +330,9 @@ CCamera *CAirplanePlayer::ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed)
 			m_pCamera = OnChangeCamera(SPACESHIP_CAMERA, nCurrentCameraMode);
 			m_pCamera->SetTimeLag(0.0f);
 			m_pCamera->SetOffset(XMFLOAT3(0.0f, 0.0f, 0.0f));
-			m_pCamera->GenerateProjectionMatrix(1.01f, 5000.0f, ASPECT_RATIO, 60.0f);
-			m_pCamera->SetViewport(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, 0.0f, 1.0f);
-			m_pCamera->SetScissorRect(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT);
+			m_pCamera->GenerateProjectionMatrix(1.01f, 50000.0f, fAspectRatio, 60.0f);
+			m_pCamera->SetViewport(0, 0, nWidth, nHeight, 0.0f, 1.0f);
+			m_pCamera->SetScissorRect(0, 0, nWidth, nHeight);
 			break;
 		case THIRD_PERSON_CAMERA:
 			SetFriction(20.5f);
@@ -330,9 +342,9 @@ CCamera *CAirplanePlayer::ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed)
 			m_pCamera = OnChangeCamera(THIRD_PERSON_CAMERA, nCurrentCameraMode);
 			m_pCamera->SetTimeLag(0.25f);
 			m_pCamera->SetOffset(XMFLOAT3(0.0f, 105.0f, -140.0f));
-			m_pCamera->GenerateProjectionMatrix(1.01f, 5000.0f, ASPECT_RATIO, 60.0f);
-			m_pCamera->SetViewport(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, 0.0f, 1.0f);
-			m_pCamera->SetScissorRect(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT);
+			m_pCamera->GenerateProjectionMatrix(1.01f, 50000.0f, fAspectRatio, 60.0f);
+			m_pCamera->SetViewport(0, 0, nWidth, nHeight, 0.0f, 1.0f);
+			m_pCamera->SetScissorRect(0, 0, nWidth, nHeight);
 			break;
 		default:
 			break;
@@ -415,6 +427,18 @@ void CCarPlayer::OnPrepareRender()
 CCamera* CCarPlayer::ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed)
 {
 	DWORD nCurrentCameraMode = (m_pCamera) ? m_pCamera->GetMode() : 0x00;
+	
+	HWND hWnd = GetActiveWindow();
+	RECT rcClient = { 0, 0, 640, 480 };
+	if (hWnd) GetClientRect(hWnd, &rcClient);
+
+	int nWidth = rcClient.right - rcClient.left;
+	int nHeight = rcClient.bottom - rcClient.top;
+
+	if (nWidth <= 0) nWidth = 1;
+	if (nHeight <= 0) nHeight = 1;
+	float fAspectRatio = (float)nWidth / (float)nHeight;
+	
 	if (nCurrentCameraMode == nNewCameraMode) return(m_pCamera);
 	switch (nNewCameraMode)
 	{
@@ -426,9 +450,9 @@ CCamera* CCarPlayer::ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed)
 		m_pCamera = OnChangeCamera(FIRST_PERSON_CAMERA, nCurrentCameraMode);
 		m_pCamera->SetTimeLag(0.0f);
 		m_pCamera->SetOffset(XMFLOAT3(0.0f, 20.0f, 0.0f));
-		m_pCamera->GenerateProjectionMatrix(1.01f, 5000.0f, ASPECT_RATIO, 60.0f);
-		m_pCamera->SetViewport(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, 0.0f, 1.0f);
-		m_pCamera->SetScissorRect(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT);
+		m_pCamera->GenerateProjectionMatrix(1.01f, 50000.0f, fAspectRatio, 60.0f);
+		m_pCamera->SetViewport(0, 0, nWidth, nHeight, 0.0f, 1.0f);
+		m_pCamera->SetScissorRect(0, 0, nWidth, nHeight);
 		break;
 	case SPACESHIP_CAMERA:
 		SetFriction(100.5f);
@@ -438,10 +462,9 @@ CCamera* CCarPlayer::ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed)
 		m_pCamera = OnChangeCamera(SPACESHIP_CAMERA, nCurrentCameraMode);
 		m_pCamera->SetTimeLag(0.0f);
 		m_pCamera->SetOffset(XMFLOAT3(0.0f, 0.0f, 0.0f));
-		m_pCamera->GenerateProjectionMatrix(1.01f, 5000.0f, ASPECT_RATIO, 60.0f);
-		m_pCamera->SetViewport(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, 0.0f, 1.0f);
-		m_pCamera->SetScissorRect(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT);
-		break;
+		m_pCamera->GenerateProjectionMatrix(1.01f, 50000.0f, fAspectRatio, 60.0f);
+		m_pCamera->SetViewport(0, 0, nWidth, nHeight, 0.0f, 1.0f);
+		m_pCamera->SetScissorRect(0, 0, nWidth, nHeight);
 	case THIRD_PERSON_CAMERA:
 		SetFriction(100.0f);
 		SetGravity(XMFLOAT3(0.0f, 0.0f, 0.0f));
@@ -450,9 +473,9 @@ CCamera* CCarPlayer::ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed)
 		m_pCamera = OnChangeCamera(THIRD_PERSON_CAMERA, nCurrentCameraMode);
 		m_pCamera->SetTimeLag(0.25f);
 		m_pCamera->SetOffset(XMFLOAT3(0.0f, 50.0f, -140.0f));
-		m_pCamera->GenerateProjectionMatrix(1.01f, 5000.0f, ASPECT_RATIO, 60.0f);
-		m_pCamera->SetViewport(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, 0.0f, 1.0f);
-		m_pCamera->SetScissorRect(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT);
+		m_pCamera->GenerateProjectionMatrix(1.01f, 50000.0f, fAspectRatio, 60.0f);
+		m_pCamera->SetViewport(0, 0, nWidth, nHeight, 0.0f, 1.0f);
+		m_pCamera->SetScissorRect(0, 0, nWidth, nHeight); 
 		break;
 	default:
 		break;

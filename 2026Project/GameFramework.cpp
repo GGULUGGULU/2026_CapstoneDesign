@@ -80,6 +80,7 @@ bool CGameFramework::OnCreate(HINSTANCE hInstance, HWND hMainWnd)
 	return(true);
 }
 
+//#define _WITH_CREATE_SWAPCHAIN_FOR_HWND
 void CGameFramework::CreateSwapChain()
 {
 	RECT rcClient;
@@ -97,7 +98,7 @@ void CGameFramework::CreateSwapChain()
 	dxgiSwapChainDesc.SampleDesc.Quality = (m_bMsaa4xEnable) ? (m_nMsaa4xQualityLevels - 1) : 0;
 	dxgiSwapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 	dxgiSwapChainDesc.BufferCount = m_nSwapChainBuffers;
-	dxgiSwapChainDesc.Scaling = DXGI_SCALING_NONE;
+	dxgiSwapChainDesc.Scaling = DXGI_SCALING_STRETCH;
 	dxgiSwapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 	dxgiSwapChainDesc.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
 	dxgiSwapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
@@ -264,36 +265,91 @@ void CGameFramework::CreateDepthStencilView()
 	m_pd3dDevice->CreateDepthStencilView(m_pd3dDepthStencilBuffer, &d3dDepthStencilViewDesc, d3dDsvCPUDescriptorHandle);
 }
 
-
 void CGameFramework::ChangeSwapChainState()
 {
 	WaitForGpuComplete();
 
-	BOOL bFullScreenState = FALSE;
-	m_pdxgiSwapChain->GetFullscreenState(&bFullScreenState, NULL);
-	m_pdxgiSwapChain->SetFullscreenState(!bFullScreenState, NULL);
+	if (m_d2dDeviceContext) m_d2dDeviceContext->SetTarget(nullptr);
+	if (m_d3d11DeviceContext) {
+		m_d3d11DeviceContext->ClearState();
+		m_d3d11DeviceContext->Flush();
+	}
 
-	DXGI_MODE_DESC dxgiTargetParameters;
-	dxgiTargetParameters.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	dxgiTargetParameters.Width = m_nWndClientWidth;
-	dxgiTargetParameters.Height = m_nWndClientHeight;
-	dxgiTargetParameters.RefreshRate.Numerator = 60;
-	dxgiTargetParameters.RefreshRate.Denominator = 1;
-	dxgiTargetParameters.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
-	dxgiTargetParameters.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
-	m_pdxgiSwapChain->ResizeTarget(&dxgiTargetParameters);
+	static bool bIsFullScreen = false;
+	static RECT rcWindowed; 
 
-	for (int i = 0; i < m_nSwapChainBuffers; i++) if (m_d3dSwapChainBackBuffers[i]) m_d3dSwapChainBackBuffers[i]->Release();
+	bIsFullScreen = !bIsFullScreen;
+
+	if (bIsFullScreen) 
+	{
+		GetWindowRect(m_hWnd, &rcWindowed);
+
+		HMONITOR hMonitor = MonitorFromWindow(m_hWnd, MONITOR_DEFAULTTOPRIMARY);
+		MONITORINFO mi = { sizeof(mi) };
+		GetMonitorInfo(hMonitor, &mi);
+
+		SetWindowLong(m_hWnd, GWL_STYLE, WS_POPUP | WS_VISIBLE);
+		SetWindowPos(m_hWnd, HWND_TOP,
+			mi.rcMonitor.left, mi.rcMonitor.top,
+			mi.rcMonitor.right - mi.rcMonitor.left, mi.rcMonitor.bottom - mi.rcMonitor.top,
+			SWP_NOZORDER | SWP_FRAMECHANGED);
+	}
+	else 
+	{
+		SetWindowLong(m_hWnd, GWL_STYLE, WS_OVERLAPPED | WS_CAPTION | WS_MINIMIZEBOX | WS_SYSMENU | WS_BORDER | WS_VISIBLE);
+
+		SetWindowPos(m_hWnd, HWND_TOP,
+			rcWindowed.left, rcWindowed.top,
+			rcWindowed.right - rcWindowed.left, rcWindowed.bottom - rcWindowed.top,
+			SWP_NOZORDER | SWP_FRAMECHANGED);
+	}
+	// 테두리없는 창모드
+
+	for (int i = 0; i < m_nSwapChainBuffers; i++)
+	{
+		m_d2dRenderTargets[i].Reset();
+		m_wrappedBackBuffers[i].Reset();
+		m_d3dSwapChainBackBuffers[i].Reset();
+	}
+	if (m_pd3dDepthStencilBuffer) { m_pd3dDepthStencilBuffer->Release(); m_pd3dDepthStencilBuffer = NULL; }
+	if (m_pSceneRenderTexture) { m_pSceneRenderTexture->Release(); m_pSceneRenderTexture = NULL; }
+	if (m_pBlurTexture) { m_pBlurTexture->Release(); m_pBlurTexture = NULL; }
+	if (m_pd3dPostProcessRtvHeap) { m_pd3dPostProcessRtvHeap->Release(); m_pd3dPostProcessRtvHeap = NULL; }
+	if (m_pd3dCbvSrvUavHeap) { m_pd3dCbvSrvUavHeap->Release(); m_pd3dCbvSrvUavHeap = NULL; }
+
+	if (m_d3d11DeviceContext) m_d3d11DeviceContext->Flush();
 
 	DXGI_SWAP_CHAIN_DESC dxgiSwapChainDesc;
 	m_pdxgiSwapChain->GetDesc(&dxgiSwapChainDesc);
-	m_pdxgiSwapChain->ResizeBuffers(m_nSwapChainBuffers, m_nWndClientWidth, m_nWndClientHeight, dxgiSwapChainDesc.BufferDesc.Format, dxgiSwapChainDesc.Flags);
+	HRESULT hr = m_pdxgiSwapChain->ResizeBuffers(m_nSwapChainBuffers, 0, 0, dxgiSwapChainDesc.BufferDesc.Format, dxgiSwapChainDesc.Flags);
 
 	m_nSwapChainBufferIndex = m_pdxgiSwapChain->GetCurrentBackBufferIndex();
 
-	CreateRenderTargetView();
-}
+	m_pdxgiSwapChain->GetDesc(&dxgiSwapChainDesc);
+	m_nWndClientWidth = dxgiSwapChainDesc.BufferDesc.Width;
+	m_nWndClientHeight = dxgiSwapChainDesc.BufferDesc.Height;
 
+	CreateRenderTargetView();
+	CreateDepthStencilView();
+	CreatePostProcessResource();
+
+	float fAspectRatio = (float)m_nWndClientWidth / (float)m_nWndClientHeight;
+
+	if (m_pCamera)
+	{
+		m_pCamera->SetViewport(0, 0, m_nWndClientWidth, m_nWndClientHeight, 0.0f, 1.0f);
+		m_pCamera->SetScissorRect(0, 0, m_nWndClientWidth, m_nWndClientHeight);
+		m_pCamera->GenerateProjectionMatrix(1.01f, 50000.0f, fAspectRatio, 60.0f);
+	}
+
+	if (m_pPlayer && m_pPlayer->GetCamera())
+	{
+		CCamera* pPlayerCamera = m_pPlayer->GetCamera();
+		pPlayerCamera->SetViewport(0, 0, m_nWndClientWidth, m_nWndClientHeight, 0.0f, 1.0f);
+		pPlayerCamera->SetScissorRect(0, 0, m_nWndClientWidth, m_nWndClientHeight);
+		pPlayerCamera->GenerateProjectionMatrix(1.01f, 50000.0f, fAspectRatio, 60.0f);
+	}
+}
 
 void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
@@ -927,7 +983,7 @@ void CGameFramework::CreateRenderTargetView()
 
 		rtvHandle.Offset(m_nRtvDescriptorIncrementSize);
 
-		if( i > 0)
+		if (i > 0 && m_d3dCommandAllocators[i] == nullptr)
 			m_pd3dDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(m_d3dCommandAllocators[i].GetAddressOf()));
 	}
 }
@@ -1005,7 +1061,9 @@ void CGameFramework::RenderUI()
 	int seconds = static_cast<int>(m_fTotalTime) % 60;
 	int milliseconds = static_cast<int>((m_fTotalTime - (minutes * 60 + seconds)) * 100);
 	swprintf_s(m_timeBuffer, 1024, L"%02d:%02d:%02d", minutes, seconds, milliseconds);
-	swprintf_s(m_speedBuffer, 1024, L"%d Km/h", m_nPlayerCurrentSpeed);
+
+	//swprintf_s(m_speedBuffer, 1024, L"%d Km/h", m_nPlayerCurrentSpeed);
+	swprintf_s(m_speedBuffer, 1024, L"%d Km/h  [Res: %d x %d]", m_nPlayerCurrentSpeed, m_nWndClientWidth, m_nWndClientHeight);
 	if (4 != m_nScore && 2 == m_nStage)
 	{
 		m_d2dDeviceContext->DrawTextW(
