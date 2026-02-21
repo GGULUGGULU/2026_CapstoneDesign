@@ -959,7 +959,7 @@ void CScene::RenderShadowMap(ID3D12GraphicsCommandList* pd3dCommandList, D3D12_C
 	if (m_pd3dGraphicsRootSignature)
 		pd3dCommandList->SetGraphicsRootSignature(m_pd3dGraphicsRootSignature);
 
-	D3D12_VIEWPORT viewport = { 0.0f, 0.0f, 16384.0f, 16384.0f, 0.0f, 1.0f };
+	D3D12_VIEWPORT viewport = { 0.0f, 0.0f, 16384.f, 16384.f, 0.0f, 1.0f };
 	D3D12_RECT scissorRect = { 0, 0, 16384, 16384 };
 	pd3dCommandList->RSSetViewports(1, &viewport);
 	pd3dCommandList->RSSetScissorRects(1, &scissorRect);
@@ -1008,7 +1008,7 @@ XMMATRIX CScene::GetShadowLightViewProj()
 		XMVECTOR vLightDir = XMLoadFloat3(&lightDir);
 		XMVECTOR vPlayerPos = XMLoadFloat3(&playerPos);
 
-		XMVECTOR vLightPos = vPlayerPos - (vLightDir * 6000.0f);
+		XMVECTOR vLightPos = vPlayerPos - (vLightDir * 3000.0f);
 		XMStoreFloat3(&lightPos, vLightPos);
 	}
 
@@ -1017,7 +1017,7 @@ XMMATRIX CScene::GetShadowLightViewProj()
 	XMVECTOR vUp = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
 	XMMATRIX mLightView = XMMatrixLookAtLH(vEye, vAt, vUp);
 
-	XMMATRIX mLightProj = XMMatrixOrthographicLH(8000.0f, 8000.0f, 1.0f, 18000.f);
+	XMMATRIX mLightProj = XMMatrixOrthographicLH(2500.0f, 2500.0f, 1.0f, 6000.f);
 
 	return mLightView * mLightProj;
 }
@@ -1182,9 +1182,7 @@ void CScene::Render(ID3D12GraphicsCommandList *pd3dCommandList, CCamera *pCamera
 		}
 	}
 
-	// [추가] 스카이박스 렌더링 호출
-	// 불투명 객체를 다 그린 뒤, 반사체나 UI를 그리기 전에 호출하는 것이 좋습니다.
-	RenderSkybox(pd3dCommandList, pCamera); // <--- 여기 추가!
+	RenderSkybox(pd3dCommandList, pCamera); 
 
 	if (m_pReflectedShader) m_pReflectedShader->UpdateShaderVariables(pd3dCommandList);
 
@@ -1284,4 +1282,3 @@ void CScene::Render(ID3D12GraphicsCommandList *pd3dCommandList, CCamera *pCamera
 		}
 	}
 }
-
