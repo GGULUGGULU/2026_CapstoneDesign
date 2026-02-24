@@ -1,3 +1,7 @@
+
+Texture2D gAlbedoTexture : register(t2); // t1 -> t2¼öÁ¤
+
+
 struct MATERIAL
 {
 	float4					m_cAmbient;
@@ -41,6 +45,7 @@ struct VS_LIGHTING_INPUT
 {
 	float3 position : POSITION;
 	float3 normal : NORMAL;
+    float2 uv : TEXCOORD0;
 };
 
 struct VS_LIGHTING_OUTPUT
@@ -48,8 +53,12 @@ struct VS_LIGHTING_OUTPUT
 	float4 position : SV_POSITION;
 	float3 positionW : POSITION;
 	float3 normalW : NORMAL;
+        
+    
+    float2 uv : TEXCOORD0;
     
     float4 positionLight : TEXCOORD1;
+    
 };
 
 struct VS_SHADOW_INPUT
@@ -80,6 +89,8 @@ VS_LIGHTING_OUTPUT VSLighting(VS_LIGHTING_INPUT input)
 	output.normalW = mul(input.normal, (float3x3)gmtxGameObject);
 	output.positionW = (float3)mul(float4(input.position, 1.0f), gmtxGameObject);
 	output.position = mul(mul(float4(output.positionW, 1.0f), gmtxView), gmtxProjection);
+    output.uv = input.uv;
+        
 #ifdef _WITH_VERTEX_LIGHTING
 	output.normalW = normalize(output.normalW);
 	output.color = Lighting(output.positionW, output.normalW);
@@ -115,8 +126,14 @@ float4 PSLighting(VS_LIGHTING_OUTPUT input) : SV_TARGET
             shadowFactor = 0.4f;
         }
     }
-    return float4(color.rgb * shadowFactor, color.a);
-}
+    float4 lightingColor = Lighting(input.positionW, input.normalW);
+
+
+    float4 texColor = gAlbedoTexture.Sample(gSampler, input.uv);
+    float4 finalColor = lightingColor * texColor;
+
+    return float4(finalColor.rgb * shadowFactor, finalColor.a);
+    }
 
 struct VS_DIFFUSED_INPUT
 {
@@ -438,7 +455,7 @@ cbuffer cbParticleWorld : register(b7)
     matrix gmtxParticleWorld;
 };
 
-Texture2D gParticleTexture : register(t0);
+Texture2D gParticleTexture : register(t6);
 
 SamplerState gParticleSampler : register(s0);
 
@@ -558,7 +575,7 @@ float4 PS_WindShield(VS_SHIELD_OUTPUT input) : SV_TARGET
 }
 
 ///////////////////////////////////////////////////////////////
-TextureCube gCubeMap : register(t0); 
+TextureCube gCubeMap : register(t5); 
 
 struct VS_SKYBOX_INPUT
 {

@@ -14,7 +14,7 @@ CMeshLoadInfo::~CMeshLoadInfo()
 	if (m_pxmf3Normals) delete[] m_pxmf3Normals;
 
 	if (m_pnIndices) delete[] m_pnIndices;
-	
+
 	if (m_pnSubSetIndices) delete[] m_pnSubSetIndices;
 
 	for (int i = 0; i < m_nSubMeshes; i++) if (m_ppnSubSetIndices[i]) delete[] m_ppnSubSetIndices[i];
@@ -80,14 +80,14 @@ CMeshFromFile::CMeshFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 				}
 				else
 				{
-					m_pnSubSetIndices[i] = 0; 
+					m_pnSubSetIndices[i] = 0;
 					m_pd3dSubSetIndexBufferViews[i] = {};
 				}
 			}
 			else
 			{
-				m_ppd3dSubSetIndexBuffers[i] = NULL; 
-				m_pd3dSubSetIndexBufferViews[i] = {}; 
+				m_ppd3dSubSetIndexBuffers[i] = NULL;
+				m_pd3dSubSetIndexBufferViews[i] = {};
 			}
 		}
 	}
@@ -128,7 +128,7 @@ void CMeshFromFile::ReleaseUploadBuffers()
 	}
 }
 
-void CMeshFromFile::Render(ID3D12GraphicsCommandList *pd3dCommandList, int nSubSet)
+void CMeshFromFile::Render(ID3D12GraphicsCommandList* pd3dCommandList, int nSubSet)
 {
 	pd3dCommandList->IASetPrimitiveTopology(m_d3dPrimitiveTopology);
 	pd3dCommandList->IASetVertexBuffers(m_nSlot, 1, &m_d3dPositionBufferView);
@@ -151,7 +151,15 @@ int CMeshFromFile::CheckRayIntersection(XMFLOAT3& xmRayPosition, XMFLOAT3& xmRay
 	float fHitDistance;
 	if (!m_xmBoundingBox.Intersects(rayOrigin, rayDir, fHitDistance))
 	{
-		return false; 
+		return false;
+	}
+
+
+	// If the mesh has no indices, use the bounding-box hit as a pick hit (fallback).
+	if (m_vIndices.empty())
+	{
+		if (pfNearHitDistance) *pfNearHitDistance = fHitDistance;
+		return true;
 	}
 
 	int nIntersections = 0;
@@ -179,27 +187,52 @@ int CMeshFromFile::CheckRayIntersection(XMFLOAT3& xmRayPosition, XMFLOAT3& xmRay
 
 	if (nIntersections > 0)
 	{
-		*pfNearHitDistance = fMinHitDistance; 
-		return true; 
+		*pfNearHitDistance = fMinHitDistance;
+		return true;
 	}
 
-	return false; 
+	return false;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 //
-CMeshIlluminatedFromFile::CMeshIlluminatedFromFile(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *pd3dCommandList, CMeshLoadInfo *pMeshInfo) : CMeshFromFile::CMeshFromFile(pd3dDevice, pd3dCommandList, pMeshInfo)
+CMeshIlluminatedFromFile::CMeshIlluminatedFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CMeshLoadInfo* pMeshInfo) : CMeshFromFile::CMeshFromFile(pd3dDevice, pd3dCommandList, pMeshInfo)
 {
+	m_pd3dTexcoordBuffer = NULL;
+	m_pd3dTexcoordUploadBuffer = NULL;
+	m_d3dTexcoordBufferView = {};
+
 	m_pd3dNormalBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, pMeshInfo->m_pxmf3Normals, sizeof(XMFLOAT3) * m_nVertices, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, &m_pd3dNormalUploadBuffer);
 
 	m_d3dNormalBufferView.BufferLocation = m_pd3dNormalBuffer->GetGPUVirtualAddress();
 	m_d3dNormalBufferView.StrideInBytes = sizeof(XMFLOAT3);
 	m_d3dNormalBufferView.SizeInBytes = sizeof(XMFLOAT3) * m_nVertices;
+
+
+	if (pMeshInfo->m_nType & VERTEXT_TEXCOORD0)
+	{
+		m_pd3dTexcoordBuffer =
+			::CreateBufferResource(
+				pd3dDevice,
+				pd3dCommandList,
+				pMeshInfo->m_pxmf2Texcoords,
+				sizeof(XMFLOAT2) * m_nVertices,
+				D3D12_HEAP_TYPE_DEFAULT,
+				D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER,
+				&m_pd3dTexcoordUploadBuffer);
+
+		m_d3dTexcoordBufferView.BufferLocation =
+			m_pd3dTexcoordBuffer->GetGPUVirtualAddress();
+		m_d3dTexcoordBufferView.StrideInBytes = sizeof(XMFLOAT2);
+		m_d3dTexcoordBufferView.SizeInBytes =
+			sizeof(XMFLOAT2) * m_nVertices;
+	}
 }
 
 CMeshIlluminatedFromFile::~CMeshIlluminatedFromFile()
 {
 	if (m_pd3dNormalBuffer) m_pd3dNormalBuffer->Release();
+	if (m_pd3dTexcoordBuffer) m_pd3dTexcoordBuffer->Release();
 }
 
 void CMeshIlluminatedFromFile::ReleaseUploadBuffers()
@@ -208,13 +241,24 @@ void CMeshIlluminatedFromFile::ReleaseUploadBuffers()
 
 	if (m_pd3dNormalUploadBuffer) m_pd3dNormalUploadBuffer->Release();
 	m_pd3dNormalUploadBuffer = NULL;
+
+	if (m_pd3dTexcoordUploadBuffer) m_pd3dTexcoordUploadBuffer->Release();
+	m_pd3dTexcoordUploadBuffer = NULL;
 }
 
-void CMeshIlluminatedFromFile::Render(ID3D12GraphicsCommandList *pd3dCommandList, int nSubSet)
+void CMeshIlluminatedFromFile::Render(ID3D12GraphicsCommandList* pd3dCommandList, int nSubSet)
 {
 	pd3dCommandList->IASetPrimitiveTopology(m_d3dPrimitiveTopology);
-	D3D12_VERTEX_BUFFER_VIEW pVertexBufferViews[2] = { m_d3dPositionBufferView, m_d3dNormalBufferView };
-	pd3dCommandList->IASetVertexBuffers(m_nSlot, 2, pVertexBufferViews);
+
+	D3D12_VERTEX_BUFFER_VIEW pVertexBufferViews[3] =
+	{
+		m_d3dPositionBufferView,
+		m_d3dNormalBufferView,
+		m_d3dTexcoordBufferView    // slot 2 
+	};
+
+	pd3dCommandList->IASetVertexBuffers(m_nSlot, 3, pVertexBufferViews);
+
 	if ((m_nSubMeshes > 0) && (nSubSet < m_nSubMeshes))
 	{
 		pd3dCommandList->IASetIndexBuffer(&(m_pd3dSubSetIndexBufferViews[nSubSet]));
@@ -234,7 +278,7 @@ CBillboardVertex::CBillboardVertex(ID3D12Device* pd3dDevice, ID3D12GraphicsComma
 
 	BillboardVertexData* pBillboardVertices = new BillboardVertexData[m_nVertices];
 
-	XMFLOAT3 xmf3Position; 
+	XMFLOAT3 xmf3Position;
 	for (int i = 0; i < 100; ++i) {
 		float xPos = (rand() % 500) - 250.0f;
 		float zPos = (rand() % 500) - 250.0f;
@@ -260,7 +304,7 @@ CBillboardVertex::CBillboardVertex(ID3D12Device* pd3dDevice, ID3D12GraphicsComma
 
 	BillboardVertexData* pBillboardVertices = new BillboardVertexData[m_nVertices];
 
-	XMFLOAT3 xmf3Position; 
+	XMFLOAT3 xmf3Position;
 	for (int i = 0; i < 100; ++i) {
 		float xPos = (rand() % 500) - 250.0f;
 		float zPos = (rand() % 500) - 250.0f;

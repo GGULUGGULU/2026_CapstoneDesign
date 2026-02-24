@@ -49,6 +49,7 @@ public:
 #define VERTEXT_POSITION			0x01
 #define VERTEXT_COLOR				0x02
 #define VERTEXT_NORMAL				0x04
+#define VERTEXT_TEXCOORD0  0x08
 
 class CMeshLoadInfo
 {
@@ -75,6 +76,11 @@ public:
 	int								m_nSubMeshes = 0;
 	int								*m_pnSubSetIndices = NULL;
 	UINT							**m_ppnSubSetIndices = NULL;
+
+
+	
+	XMFLOAT2* m_pxmf2Texcoords = nullptr;
+
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -121,6 +127,10 @@ public:
 	virtual ~CMeshIlluminatedFromFile();
 
 	virtual void ReleaseUploadBuffers();
+
+	ID3D12Resource* m_pd3dTexcoordBuffer = NULL;
+	ID3D12Resource* m_pd3dTexcoordUploadBuffer = NULL;
+	D3D12_VERTEX_BUFFER_VIEW     m_d3dTexcoordBufferView;
 
 protected:
 	ID3D12Resource					*m_pd3dNormalBuffer = NULL;

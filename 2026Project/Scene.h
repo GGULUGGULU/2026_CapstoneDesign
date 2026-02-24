@@ -150,4 +150,8 @@ public:
 	float						m_fElapsedTime = 0.0f;
 
 	int m_nGFStage{};
+
+	void ApplyMeshTextures(ID3D12Device* pd3dDevice,
+		ID3D12GraphicsCommandList* pd3dCommandList,
+		CGameObject* pObject);
 };

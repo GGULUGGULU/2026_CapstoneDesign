@@ -42,6 +42,7 @@ struct MATERIALLOADINFO
 
 	UINT							m_nType = 0x00;
 
+	char m_pstrAlbedoTexture[64] = "null";
 	//char							m_pstrAlbedoMapName[64] = { '\0' };
 	//char							m_pstrSpecularMapName[64] = { '\0' };
 	//char							m_pstrMetallicMapName[64] = { '\0' };
@@ -112,6 +113,8 @@ public:
 	static void CMaterial::PrepareShaders(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *pd3dCommandList, ID3D12RootSignature *pd3dGraphicsRootSignature);
 
 	void SetTexture(D3D12_GPU_DESCRIPTOR_HANDLE d3dGpuSrvHandle) { m_d3dGpuSrvHandle = d3dGpuSrvHandle; }
+	char m_pstrAlbedoTexture[64] = { '\0' };
+
 };
 
 class CGameObject

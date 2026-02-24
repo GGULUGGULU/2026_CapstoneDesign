@@ -53,11 +53,16 @@ void CEffectLibrary::Initialize(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandL
 	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	srvHeapDesc.NodeMask = 0;
 
-	pd3dDevice->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&m_pd3dSrvHeap));
-	
+	HRESULT hr = pd3dDevice->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&m_pd3dSrvHeap));
+	if (FAILED(hr) || (m_pd3dSrvHeap == nullptr))
+	{
+		OutputDebugStringA("[EffectLibrary] CreateDescriptorHeap failed.\n");
+		return;
+	}
+
 	m_d3dSrvCpuHandleStart = m_pd3dSrvHeap->GetCPUDescriptorHandleForHeapStart();
 	m_d3dSrvGpuHandleStart = m_pd3dSrvHeap->GetGPUDescriptorHandleForHeapStart();
-	
+
 	m_nSrvDescriptorIncrementSize = pd3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 	LoadAssets(pd3dDevice, pd3dCommandList);
@@ -69,7 +74,7 @@ void CEffectLibrary::Initialize(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandL
 		{
 			CMeshEffect* pShield = new CMeshEffect(pd3dDevice, pd3dCommandList);
 			pShield->CreateMesh(pd3dDevice, pd3dCommandList, 15.0f, 20, 20);
-			pShield->CreateProceduralTexture(pd3dDevice, pd3dCommandList); 
+			pShield->CreateProceduralTexture(pd3dDevice, pd3dCommandList);
 			//pShield->CreateTexture(pd3dDevice, pd3dCommandList, L"Asset/DDS_File/WindShield.dds");
 
 			ActiveEffect* pEffect = new ActiveEffect;
@@ -130,7 +135,9 @@ void CEffectLibrary::BuildRootSignature(ID3D12Device* pd3dDevice)
 
 	CD3DX12_DESCRIPTOR_RANGE ranges[1];
 
-	ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
+	// Shaders.hlsl uses gParticleTexture : register(t6)
+	// RootSignature must expose SRV at t6.
+	ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 6);
 	rootParameters[0].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_PIXEL);
 
 	rootParameters[1].InitAsConstants(32, 6, 0, D3D12_SHADER_VISIBILITY_ALL);
@@ -150,8 +157,20 @@ void CEffectLibrary::BuildRootSignature(ID3D12Device* pd3dDevice)
 	ID3DBlob* signature = nullptr;
 	ID3DBlob* error = nullptr;
 
-	D3D12SerializeRootSignature(&rootSigDesc, D3D_ROOT_SIGNATURE_VERSION_1, &signature, &error);
-	pd3dDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pRootSignature));
+	HRESULT hr = D3D12SerializeRootSignature(&rootSigDesc, D3D_ROOT_SIGNATURE_VERSION_1, &signature, &error);
+	if (FAILED(hr))
+	{
+		if (error) OutputDebugStringA((char*)error->GetBufferPointer());
+		OutputDebugStringA("[EffectLibrary] D3D12SerializeRootSignature failed.\n");
+		if (signature) signature->Release();
+		if (error) error->Release();
+		return;
+	}
+	hr = pd3dDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pRootSignature));
+	if (FAILED(hr) || (m_pRootSignature == nullptr))
+	{
+		OutputDebugStringA("[EffectLibrary] CreateRootSignature failed.\n");
+	}
 
 	if (signature) signature->Release();
 	if (error) error->Release();
@@ -179,8 +198,8 @@ void CEffectLibrary::LoadAssets(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandL
 
 		HRESULT hr = LoadDDSTextureFromFile(
 			pd3dDevice,
-			m_TextureFileNames[i].c_str(), 
-			&m_vTextures[i],              
+			m_TextureFileNames[i].c_str(),
+			&m_vTextures[i],
 			ddsData,
 			subresources
 		);
@@ -203,7 +222,7 @@ void CEffectLibrary::LoadAssets(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandL
 			&bufferDesc,
 			D3D12_RESOURCE_STATE_GENERIC_READ,
 			nullptr,
-			IID_PPV_ARGS(&m_vUploadBuffers[i]) 
+			IID_PPV_ARGS(&m_vUploadBuffers[i])
 		);
 
 		UpdateSubresources(pd3dCommandList, m_vTextures[i], m_vUploadBuffers[i], 0, 0, static_cast<UINT>(subresources.size()), subresources.data());
@@ -231,7 +250,9 @@ void CEffectLibrary::LoadAssets(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandL
 
 void CEffectLibrary::Render(ID3D12GraphicsCommandList* pd3dCommandList, const XMFLOAT4X4& view, const XMFLOAT4X4& proj)
 {
+	if (!pd3dCommandList) return;
 	if (m_vActiveEffects.empty() || m_pd3dSrvHeap == nullptr) return;
+	if (m_pRootSignature == nullptr) return;
 
 	pd3dCommandList->SetGraphicsRootSignature(m_pRootSignature);
 
@@ -250,6 +271,7 @@ void CEffectLibrary::Render(ID3D12GraphicsCommandList* pd3dCommandList, const XM
 	{
 		if (eff->pParticleSys)
 		{
+			if (m_pPipelineState == nullptr) continue;
 			// 파티클 PSO로 변경이 필요한 경우
 			if (currentPsoType != 1)
 			{
@@ -270,6 +292,7 @@ void CEffectLibrary::Render(ID3D12GraphicsCommandList* pd3dCommandList, const XM
 		}
 		else if (eff->pMeshEffect)
 		{
+			if (m_pMeshEffectPSO == nullptr) continue;
 			if (currentPsoType != 2)
 			{
 				pd3dCommandList->SetPipelineState(m_pMeshEffectPSO); // 바람저항효과 PSO
@@ -311,24 +334,38 @@ void CEffectLibrary::BuildPipelineState(ID3D12Device* pd3dDevice)
 	psoDesc.DepthStencilState = depthDesc;
 
 	psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-	psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE; 
-	psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT; 
+	psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+	psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
 	psoDesc.NumRenderTargets = 1;
 	psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 	psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 	psoDesc.SampleDesc.Count = 1;
 	psoDesc.SampleMask = UINT_MAX;
 
-	pd3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pPipelineState));
+	HRESULT hr = pd3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pPipelineState));
+	if (FAILED(hr) || (m_pPipelineState == nullptr))
+	{
+		OutputDebugStringA("[EffectLibrary] CreateGraphicsPipelineState(Particle) failed.\n");
+	}
 
 	// 바람저항효과 PSO 생성
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC meshPsoDesc = {};
 
+
+
 	D3D12_INPUT_ELEMENT_DESC meshInputLayout[] =
 	{
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		{ "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,
+		  D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+
+
+		  { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 1, 0,
+			D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+
+
+			{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 2, 0,
+			  D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
 	};
 	meshPsoDesc.InputLayout = { meshInputLayout, _countof(meshInputLayout) };
 
@@ -346,7 +383,7 @@ void CEffectLibrary::BuildPipelineState(ID3D12Device* pd3dDevice)
 	meshPsoDesc.BlendState = meshBlendDesc;
 
 	D3D12_DEPTH_STENCIL_DESC meshDepthDesc = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
-	meshDepthDesc.DepthEnable = TRUE; 
+	meshDepthDesc.DepthEnable = TRUE;
 	meshDepthDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
 	meshPsoDesc.DepthStencilState = meshDepthDesc;
 
@@ -359,7 +396,11 @@ void CEffectLibrary::BuildPipelineState(ID3D12Device* pd3dDevice)
 	meshPsoDesc.SampleDesc.Count = 1;
 	meshPsoDesc.SampleMask = UINT_MAX;
 
-	pd3dDevice->CreateGraphicsPipelineState(&meshPsoDesc, IID_PPV_ARGS(&m_pMeshEffectPSO));
+	hr = pd3dDevice->CreateGraphicsPipelineState(&meshPsoDesc, IID_PPV_ARGS(&m_pMeshEffectPSO));
+	if (FAILED(hr) || (m_pMeshEffectPSO == nullptr))
+	{
+		OutputDebugStringA("[EffectLibrary] CreateGraphicsPipelineState(MeshEffect) failed.\n");
+	}
 }
 
 ActiveEffect* CEffectLibrary::Play(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT2 size)
@@ -371,7 +412,7 @@ ActiveEffect* CEffectLibrary::Play(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT2
 
 	pEffectData->bActive = true;
 	pEffectData->fAge = 0.0f;
-	pEffectData->type = type; 
+	pEffectData->type = type;
 
 	if (pEffectData->pParticleSys)
 	{
@@ -413,6 +454,7 @@ void CEffectLibrary::Update(float fTimeElapsed)
 
 		if (eff->pParticleSys)
 		{
+			if (m_pPipelineState == nullptr) continue;
 			if (eff->type == EFFECT_TYPE::BOOSTER)
 			{
 				if (eff->bActive) eff->pParticleSys->BoosterAnimate(fTimeElapsed);
@@ -448,7 +490,7 @@ void CEffectLibrary::Update(float fTimeElapsed)
 
 		if (bIsDead)
 		{
-			eff->bActive = false; 
+			eff->bActive = false;
 
 			m_vEffectPool[(int)eff->type].push_back(eff);
 
@@ -477,11 +519,12 @@ void CEffectLibrary::Release()
 
 	if (m_pd3dSrvHeap) {
 		m_pd3dSrvHeap->Release();
-		m_pd3dSrvHeap = nullptr; 
+		m_pd3dSrvHeap = nullptr;
 	}
 
 	if (m_pRootSignature) m_pRootSignature->Release();
 	if (m_pPipelineState) m_pPipelineState->Release();
+	if (m_pMeshEffectPSO) m_pMeshEffectPSO->Release();
 
 	m_pRootSignature = nullptr;
 	m_pPipelineState = nullptr;
@@ -490,7 +533,7 @@ void CEffectLibrary::Release()
 	for (auto eff : m_vActiveEffects)
 	{
 		if (eff->pParticleSys) delete eff->pParticleSys;
-		if (eff->pMeshEffect) delete eff->pMeshEffect; 
+		if (eff->pMeshEffect) delete eff->pMeshEffect;
 		delete eff;
 	}
 	m_vActiveEffects.clear();
@@ -500,7 +543,7 @@ void CEffectLibrary::Release()
 		for (auto eff : m_vEffectPool[i])
 		{
 			if (eff->pParticleSys) delete eff->pParticleSys;
-			if (eff->pMeshEffect) delete eff->pMeshEffect; 
+			if (eff->pMeshEffect) delete eff->pMeshEffect;
 			delete eff;
 		}
 		m_vEffectPool[i].clear();
@@ -541,7 +584,7 @@ void CEffectLibrary::UpdateBoosterPosition(const XMFLOAT3& pos, const XMFLOAT3& 
 
 	if (m_pBoosterEffect && m_pBoosterEffect->pParticleSys)
 	{
-		XMVECTOR vRearPos = XMLoadFloat3(&pos) - (vLook * 12.0f); 
+		XMVECTOR vRearPos = XMLoadFloat3(&pos) - (vLook * 12.0f);
 		XMFLOAT3 fRearPos;
 		XMStoreFloat3(&fRearPos, vRearPos);
 

@@ -10,6 +10,9 @@
 #define _WITH_THETA_PHI_CONES
 //#define _WITH_REFLECT
 
+
+
+
 struct LIGHT
 {
 	float4					m_cAmbient;
