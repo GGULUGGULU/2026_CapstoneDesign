@@ -9,33 +9,27 @@ public class ExtractMeshByBinaryWithNormal : MonoBehaviour
     private BinaryWriter binaryWriter = null;
     private int m_nFrames = 0;
 
-
     string GetAlbedoTextureFileName(Material mat)
     {
         if (!mat) return "null";
 
         Texture tex = null;
 
-      
         if (mat.HasProperty("_BaseMap"))
             tex = mat.GetTexture("_BaseMap");
-       
         else if (mat.HasProperty("_MainTex"))
             tex = mat.GetTexture("_MainTex");
 
         if (!tex) return "null";
 
 #if UNITY_EDITOR
-        string assetPath = AssetDatabase.GetAssetPath(tex);
-        if (string.IsNullOrEmpty(assetPath)) return "null";
+    string assetPath = AssetDatabase.GetAssetPath(tex);
+    if (string.IsNullOrEmpty(assetPath)) return "null";
 
-        // 파일명만 추출 (경로 제외)
-        string fileName = Path.GetFileName(assetPath);
-
-        // 공백 제거
-        fileName = fileName.Replace(" ", "_");
-
-        return fileName; // ex) brick.png or brick.dds
+    // "banana.png" -> "banana.dds"
+    string baseName = Path.GetFileNameWithoutExtension(assetPath);
+    baseName = baseName.Replace(" ", "_");
+    return baseName + ".dds";
 #else
         return "null";
 #endif
@@ -175,7 +169,7 @@ public class ExtractMeshByBinaryWithNormal : MonoBehaviour
         WriteColors("<Colors>:", mesh.colors);
         WriteVectors("<Normals>:", mesh.normals);
 
-      
+
         WriteVectors("<UV0>:", mesh.uv);
 
         binaryWriter.Write("<SubMeshes>:");
@@ -193,7 +187,7 @@ public class ExtractMeshByBinaryWithNormal : MonoBehaviour
         binaryWriter.Write("</Mesh>");
     }
 
-  
+
     void WriteMaterials(Material[] materials)
     {
         WriteInteger("<Materials>:", materials.Length);
@@ -214,7 +208,7 @@ public class ExtractMeshByBinaryWithNormal : MonoBehaviour
             if (materials[i].HasProperty("_Glossiness"))
                 WriteFloat("<Glossiness>:", materials[i].GetFloat("_Glossiness"));
 
-           
+
             string texFile = GetAlbedoTextureFileName(materials[i]);
             WriteString("<AlbedoTexture>:", texFile);
         }
