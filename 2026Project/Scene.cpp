@@ -127,7 +127,7 @@ void CScene::BuildObjectsGameStart(ID3D12Device* pd3dDevice, ID3D12GraphicsComma
 
 	LoadTexture(pd3dDevice, pd3dCommandList);
 
-	m_nGameObjects = 1;
+	m_nGameObjects = 1 + 1;
 	m_ppGameObjects = new CGameObject * [m_nGameObjects];
 
 	CGameObject* pGameStartModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/GameStart.bin");
@@ -141,6 +141,16 @@ void CScene::BuildObjectsGameStart(ID3D12Device* pd3dDevice, ID3D12GraphicsComma
 
 	//  (=material only) (white)   
 	ApplyMeshTextures(pd3dDevice, pd3dCommandList, pGameStartObject);
+
+	CGameObject* pNewPropModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/SSC_TUATARA.bin");
+	CGameObject* pGamePropObject = new CGameObject();
+	pGamePropObject->SetChild(pNewPropModel);
+	pGamePropObject->SetPosition(-100.0f, 0.0f, 50.0f);
+	pGamePropObject->Rotate(-90.0f, 0.0f, 0.0f);
+	pGamePropObject->SetScale(15, 15, 15);
+	m_ppGameObjects[1] = pGamePropObject;
+
+	ApplyMeshTextures(pd3dDevice, pd3dCommandList, pGamePropObject);
 
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
 }//
@@ -158,9 +168,7 @@ void CScene::BuildObjectsGameEnd(ID3D12Device* pd3dDevice, ID3D12GraphicsCommand
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
 }
 
-void CScene::ApplyMeshTextures(ID3D12Device* pd3dDevice,
-	ID3D12GraphicsCommandList* pd3dCommandList,
-	CGameObject* pObject)
+void CScene::ApplyMeshTextures(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CGameObject* pObject)
 {
 	if (!pObject) return;
 

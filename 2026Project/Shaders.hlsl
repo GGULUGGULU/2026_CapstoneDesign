@@ -132,8 +132,11 @@ float4 PSLighting(VS_LIGHTING_OUTPUT input) : SV_TARGET
     float4 texColor = gAlbedoTexture.Sample(gSampler, input.uv);
     float4 finalColor = lightingColor * texColor;
 
-    return float4(finalColor.rgb * shadowFactor, finalColor.a);
-    }
+    //return float4(finalColor.rgb * shadowFactor, finalColor.a);
+    float3 resultRGB = finalColor.rgb * shadowFactor;
+    return float4(pow(resultRGB, 1.0f / 2.2f), finalColor.a);
+    // 감마보정
+}
 
 struct VS_DIFFUSED_INPUT
 {
