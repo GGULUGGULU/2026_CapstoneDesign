@@ -38,6 +38,65 @@ namespace
 		if (pstr[0] == '\0') return true;
 		return (_stricmp(pstr, "null") == 0);
 	}
+
+
+
+	inline bool RaycastClosestRecursive(CGameObject* pObject, FXMVECTOR vWorldRayOrigin, FXMVECTOR vWorldRayDir, float fMaxDistance,
+		float& inoutMinWorldDist, XMFLOAT3& outWorldHitPos)
+	{
+		if (!pObject) return false;
+
+		bool bHitAny = false;
+
+		// 1) Test mesh
+		if (pObject->m_pMesh)
+		{
+			const XMMATRIX mtxWorld = XMLoadFloat4x4(&pObject->GetWorldMatrix());
+			const XMMATRIX mtxInvWorld = XMMatrixInverse(nullptr, mtxWorld);
+
+			const XMVECTOR vWorldRayTarget = vWorldRayOrigin + vWorldRayDir * fMaxDistance;
+
+			const XMVECTOR vLocalOrigin = XMVector3TransformCoord(vWorldRayOrigin, mtxInvWorld);
+			const XMVECTOR vLocalTarget = XMVector3TransformCoord(vWorldRayTarget, mtxInvWorld);
+			const XMVECTOR vLocalDir = XMVector3Normalize(vLocalTarget - vLocalOrigin);
+
+			XMFLOAT3 xmf3LocalOrigin, xmf3LocalDir;
+			XMStoreFloat3(&xmf3LocalOrigin, vLocalOrigin);
+			XMStoreFloat3(&xmf3LocalDir, vLocalDir);
+
+			float fLocalHitDistance = 0.0f;
+			if (pObject->m_pMesh->CheckRayIntersection(xmf3LocalOrigin, xmf3LocalDir, &fLocalHitDistance))
+			{
+				const XMVECTOR vLocalHit = vLocalOrigin + vLocalDir * fLocalHitDistance;
+				const XMVECTOR vWorldHit = XMVector3TransformCoord(vLocalHit, mtxWorld);
+
+				const float fWorldDist = XMVectorGetX(XMVector3Length(vWorldHit - vWorldRayOrigin));
+
+				if (fWorldDist < inoutMinWorldDist)
+				{
+					inoutMinWorldDist = fWorldDist;
+					XMStoreFloat3(&outWorldHitPos, vWorldHit);
+				}
+
+				bHitAny = true;
+			}
+		}
+
+		// 2) 
+		if (pObject->m_pChild)
+		{
+			if (RaycastClosestRecursive(pObject->m_pChild, vWorldRayOrigin, vWorldRayDir, fMaxDistance, inoutMinWorldDist, outWorldHitPos))
+				bHitAny = true;
+		}
+		if (pObject->m_pSibling)
+		{
+			if (RaycastClosestRecursive(pObject->m_pSibling, vWorldRayOrigin, vWorldRayDir, fMaxDistance, inoutMinWorldDist, outWorldHitPos))
+				bHitAny = true;
+		}
+
+		return bHitAny;
+	}
+
 }
 
 
@@ -146,7 +205,7 @@ void CScene::BuildObjectsGameStart(ID3D12Device* pd3dDevice, ID3D12GraphicsComma
 	CGameObject* pGamePropObject = new CGameObject();
 	pGamePropObject->SetChild(pNewPropModel);
 	pGamePropObject->SetPosition(-100.0f, 0.0f, 50.0f);
-	pGamePropObject->Rotate(-90.0f, 90.0f, 0.0f);
+	pGamePropObject->Rotate(-90.0f, 0.0f, 0.0f);
 	pGamePropObject->SetScale(15, 15, 15);
 	m_ppGameObjects[1] = pGamePropObject;
 
@@ -1022,18 +1081,66 @@ bool CScene::CheckGroundCollision()
 //   
 {
 	if (!m_pPlayer) return false;
+	if (!m_ppGameObjects || m_nGameObjects <= 0) return false;
 
+	CGameObject* pGroundRoot = m_ppGameObjects[0];
+	if (!pGroundRoot) return false;
+
+	// Player world AABB (feet position)
 	BoundingBox localPlayerAABB = m_pPlayer->GetCombinedAABB();
 
 	BoundingBox worldPlayerAABB;
 	localPlayerAABB.Transform(worldPlayerAABB, XMLoadFloat4x4(&m_pPlayer->GetWorldMatrix()));
 
-	CGameObject* pObject = m_ppGameObjects[0];
+	const float fPlayerBottomY = worldPlayerAABB.Center.y - worldPlayerAABB.Extents.y;
 
-	BoundingBox localObjectAABB = pObject->GetCombinedAABB();
+	// Raycast down from around the player's center height.
+	// - Starting too high can accidentally hit "overpass/roof" geometry and snap upward.
+	// - Starting around the player avoids that in most map setups.
+	const XMFLOAT3 xmf3PlayerPos = m_pPlayer->GetPosition();
+
+	const float kRayStartOffsetY = 50.0f;
+	const float kRayMaxDistance = 200000.0f;
+
+	const XMVECTOR vRayOrigin = XMVectorSet(xmf3PlayerPos.x, xmf3PlayerPos.y + kRayStartOffsetY, xmf3PlayerPos.z, 1.0f);
+	const XMVECTOR vRayDir = XMVectorSet(0.0f, -1.0f, 0.0f, 0.0f);
+
+	float fMinDist = FLT_MAX;
+	XMFLOAT3 xmf3HitPos = {};
+	const bool bHit = RaycastClosestRecursive(pGroundRoot, vRayOrigin, vRayDir, kRayMaxDistance, fMinDist, xmf3HitPos);
+
+	if (bHit)
+	{
+		const float fGroundY = xmf3HitPos.y;
+
+		// Consider grounded if the feet are within epsilon above the surface (or penetrating).
+		const float kGroundEpsilon = 2.0f;
+
+		if (fPlayerBottomY <= (fGroundY + kGroundEpsilon))
+		{
+			// Snap the player so the AABB bottom sits on the terrain.
+			const float fDeltaY = (fGroundY - fPlayerBottomY);
+			if (fabsf(fDeltaY) > 0.0001f)
+			{
+				XMFLOAT3 xmf3NewPos = m_pPlayer->GetPosition();
+				xmf3NewPos.y += fDeltaY;
+				m_pPlayer->SetPosition(xmf3NewPos);
+
+				// Keep transforms in sync for the rest of the frame.
+				m_pPlayer->OnPrepareRender();
+			}
+
+			return true;
+		}
+
+		return false;
+	}
+
+	// Fallback: old AABB vs AABB (in case terrain mesh has no triangles/indices).
+	BoundingBox localObjectAABB = pGroundRoot->GetCombinedAABB();
 
 	BoundingBox worldObjectAABB;
-	localObjectAABB.Transform(worldObjectAABB, XMLoadFloat4x4(&pObject->GetWorldMatrix()));
+	localObjectAABB.Transform(worldObjectAABB, XMLoadFloat4x4(&pGroundRoot->GetWorldMatrix()));
 
 	if (worldPlayerAABB.Intersects(worldObjectAABB))
 	{
@@ -1041,6 +1148,7 @@ bool CScene::CheckGroundCollision()
 	}
 	return false;
 }
+
 
 void CScene::LoadTexture(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {

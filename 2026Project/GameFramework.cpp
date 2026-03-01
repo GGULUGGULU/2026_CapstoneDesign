@@ -33,7 +33,7 @@ CGameFramework::CGameFramework()
 	m_pScene = NULL;
 	m_pPlayer = NULL;
 
-	// Initialize game state (prevents random stage values after code/layout changes)
+	// Initialize game state 
 	m_nStage = 0;
 	m_nScore = 0;
 	m_nPlayerCurrentSpeed = 0;
@@ -60,7 +60,7 @@ bool CGameFramework::OnCreate(HINSTANCE hInstance, HWND hMainWnd)
 
 	CreateD3D11On12Device();
 	CreateD2DDevice();
-	CreateTextResources(); 
+	CreateTextResources();
 	CreateRenderTargetView();
 
 	CreateDepthStencilView();
@@ -71,7 +71,7 @@ bool CGameFramework::OnCreate(HINSTANCE hInstance, HWND hMainWnd)
 
 	CEffectLibrary::Instance()->Initialize(m_pd3dDevice, m_pd3dCommandList);
 
-	  
+
 	m_pd3dCommandList->Close();
 	ID3D12CommandList* ppd3dCommandLists[] = { m_pd3dCommandList };
 	m_pd3dCommandQueue->ExecuteCommandLists(1, ppd3dCommandLists);
@@ -311,7 +311,6 @@ void CGameFramework::ChangeSwapChainState()
 			rcWindowed.right - rcWindowed.left, rcWindowed.bottom - rcWindowed.top,
 			SWP_NOZORDER | SWP_FRAMECHANGED);
 	}
-	// ׵θ â
 
 	for (int i = 0; i < m_nSwapChainBuffers; i++)
 	{
@@ -395,7 +394,7 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 		{
 			m_pScene->PickObject(fWorldRayOrigin, fWorldRayDirection);
 
-			// Only advance from the title stage (0). This avoids undefined/uninitialized stage values.
+			// 
 			if (m_pScene->m_pSelectedObject != NULL && m_nStage == 0)
 				m_nStage = 1;
 		}
@@ -664,7 +663,7 @@ void CGameFramework::ProcessInputGameStage()
 	}///////////////////
 
 	m_pPlayer->Update(m_GameTimer.GetTimeElapsed());
-} //   Է¹ 
+}
 
 void CGameFramework::AnimateObjects()
 {
@@ -784,13 +783,17 @@ void CGameFramework::BuildGameObjects()
 	CCarPlayer* pCarPlayer = new CCarPlayer(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature());
 	pCarPlayer->SetScale(10.2f, 10.2f, 10.2f);
 	m_pScene->ApplyMeshTextures(m_pd3dDevice, m_pd3dCommandList, pCarPlayer);
+
 	m_pScene->m_pPlayer = m_pPlayer = pCarPlayer;
 
-	//m_pPlayer->Rotate(-90, 180, 0);
-	m_pPlayer->SetPosition(XMFLOAT3(0.0f, 10.0f, 0.0f)); // ÷̾ ġ 
-	m_pPlayer->SetGravity(XMFLOAT3(0, -1, 0));
-
 	m_pPlayer->ComputeNewLocalAABB();
+
+
+	m_pPlayer->Rotate(0, 180, 0);
+	m_pPlayer->SetPosition(XMFLOAT3(0.0f, 10.0f, 0.0f)); 
+	m_pPlayer->SetGravity(XMFLOAT3(0, -1, 0));
+	m_pPlayer->ComputeNewLocalAABB();
+
 	m_pPlayer->OnPrepareRender();
 
 	m_pCamera = m_pPlayer->GetCamera();
@@ -813,14 +816,22 @@ void CGameFramework::CollisionProcess()
 
 	XMFLOAT3 colDirection;
 
-	if (2 == m_nStage && m_pScene->CheckGroundCollision() && !m_bJump)
+	const bool bOnGround = (2 == m_nStage) && (m_pScene != NULL) && (!m_bJump) && m_pScene->CheckGroundCollision();
+	if (bOnGround)
 	{
 		m_pPlayer->SetGravity(XMFLOAT3(0, 0, 0));
 		XMFLOAT3 currentVel = m_pPlayer->GetVelocity();
 		m_pPlayer->SetVelocity(XMFLOAT3(currentVel.x, 0.0f, currentVel.z));
 
 		m_nJumpCount = 0;
+	}
+	else
+	{
 
+		if (2 == m_nStage && !m_bJump)
+		{
+			m_pPlayer->SetGravity(XMFLOAT3(0, -1.5f, 0));
+		}
 	}
 
 	if (2 == m_nStage && m_pScene->CheckCollision() && !m_bIsStun)
@@ -906,7 +917,7 @@ void CGameFramework::CollisionProcess()
 
 void CGameFramework::CreateD3D11On12Device()
 {
-	// Create an 11 device wrapped around the 12 device and share 12's command queue.
+	// 
 	ComPtr<ID3D11Device> d3d11Device;
 	D3D11On12CreateDevice(
 		m_pd3dDevice,
@@ -966,12 +977,7 @@ void CGameFramework::CreateRenderTargetView()
 		m_pdxgiSwapChain->GetBuffer(i, IID_PPV_ARGS(&m_d3dSwapChainBackBuffers[i]));
 		m_pd3dDevice->CreateRenderTargetView(m_d3dSwapChainBackBuffers[i].Get(), NULL, rtvHandle);
 
-		// Create a wrapped 11On12 resource of this back buffer. Since we are 
-		// rendering all D3D12 content first and then all D2D content, we specify 
-		// the In resource state as RENDER_TARGET - because D3D12 will have last 
-		// used it in this state - and the Out resource state as PRESENT. When 
-		// ReleaseWrappedResources() is called on the 11On12 device, the resource 
-		// will be transitioned to the PRESENT state.
+
 		D3D11_RESOURCE_FLAGS d3d11Flags = { D3D11_BIND_RENDER_TARGET };
 		m_d3d11On12Device->CreateWrappedResource(
 			m_d3dSwapChainBackBuffers[i].Get(),
@@ -1421,11 +1427,11 @@ void CGameFramework::FrameAdvance()
 {
 	m_GameTimer.Tick(0.0f);
 
-	
+
 	if (1 == m_nStage)
 	{
 		m_pScene->m_nGFStage = m_nStage = 2;
-	
+
 		BuildGameObjects();
 	} // 
 
@@ -1450,7 +1456,7 @@ void CGameFramework::FrameAdvance()
 
 	if (4 == m_nScore)
 	{
-		
+
 		BuildObjectEnd();
 		m_nStage = 100;
 		++m_nScore;
@@ -1508,7 +1514,7 @@ void CGameFramework::FrameAdvance()
 	ID3D12CommandList* ppd3dCommandLists[] = { m_pd3dCommandList };
 	m_pd3dCommandQueue->ExecuteCommandLists(1, ppd3dCommandLists);
 
-	
+
 	if (0 != m_nStage)
 	{
 		RenderUI();
