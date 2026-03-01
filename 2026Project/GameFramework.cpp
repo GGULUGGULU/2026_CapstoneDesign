@@ -695,7 +695,7 @@ void CGameFramework::AnimateObjects()
 	if (m_pPlayer)
 	{
 		CEffectLibrary::Instance()->UpdateBoosterPosition(
-			m_pPlayer->GetPosition(),
+			XMFLOAT3(m_pPlayer->GetPosition().x, m_pPlayer->GetPosition().y, m_pPlayer->GetPosition().z+60),
 			m_pPlayer->GetLookVector()
 		);
 	}

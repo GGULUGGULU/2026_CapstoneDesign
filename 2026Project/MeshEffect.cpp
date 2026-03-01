@@ -271,7 +271,7 @@ void CMeshEffect::Render(ID3D12GraphicsCommandList* pd3dCommandList)
     CB_EFFECT_DATA cbData;
     XMStoreFloat4x4(&cbData.m_xmf4x4World, XMMatrixTranspose(XMLoadFloat4x4(&m_xmf4x4World)));
     cbData.m_fTime = m_fCurrentTime;
-    cbData.m_fScrollSpeed = XMFLOAT3(0.0f, 5.0f, 0.0f); 
+    cbData.m_fScrollSpeed = XMFLOAT3(1.0f, 0.0f, 0.0f); 
 
     pd3dCommandList->SetGraphicsRoot32BitConstants(2, sizeof(CB_EFFECT_DATA) / 4, &cbData, 0);
 

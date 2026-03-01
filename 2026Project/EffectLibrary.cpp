@@ -74,8 +74,11 @@ void CEffectLibrary::Initialize(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandL
 		{
 			CMeshEffect* pShield = new CMeshEffect(pd3dDevice, pd3dCommandList);
 			pShield->CreateMesh(pd3dDevice, pd3dCommandList, 15.0f, 20, 20);
-			pShield->CreateProceduralTexture(pd3dDevice, pd3dCommandList);
+			//pShield->CreateProceduralTexture(pd3dDevice, pd3dCommandList);
 			//pShield->CreateTexture(pd3dDevice, pd3dCommandList, L"Asset/DDS_File/WindShield.dds");
+			pShield->CreateTexture(pd3dDevice, pd3dCommandList, L"Asset/DDS_File/wind.dds");
+			pShield->SetScale(XMFLOAT3(1.5f, 5.5f, 1.5f));
+			//pShield->SetPosition(XMFLOAT3(0, 0, -30));
 
 			ActiveEffect* pEffect = new ActiveEffect;
 			pEffect->type = (EFFECT_TYPE)typeIndex;
@@ -355,8 +358,8 @@ void CEffectLibrary::BuildPipelineState(ID3D12Device* pd3dDevice)
 	D3D12_INPUT_ELEMENT_DESC meshInputLayout[] =
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 1, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 2, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
 	};
 
 	meshPsoDesc.InputLayout = { meshInputLayout, _countof(meshInputLayout) };
@@ -604,6 +607,11 @@ void CEffectLibrary::UpdateBoosterPosition(const XMFLOAT3& pos, const XMFLOAT3& 
 		XMStoreFloat3(&fFrontPos, vFrontPos);
 
 		m_pWindShieldEffect->pMeshEffect->SetPosition(fFrontPos);
+
+		float yaw = XMConvertToDegrees(atan2(lookDir.x, lookDir.z));
+
+		XMFLOAT3 rot = XMFLOAT3(90.0f, yaw, 0.0f);
+		m_pWindShieldEffect->pMeshEffect->SetRotation(rot);
 	}
 
 	if (m_pBoosterEffect && m_pBoosterEffect->pParticleSys)
