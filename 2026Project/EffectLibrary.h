@@ -12,9 +12,7 @@ class CMeshEffect;
 
 enum class EFFECT_TYPE
 {
-	COLLISION1, // √Êµπ
-	COLLISION2, // √Êµπ
-	COLLISION3, // √Êµπ
+	COLLISION, // √Êµπ
 	DUST, // »Î∏’¡ˆ
 	ITEM1, // æ∆¿Ã≈€ »πµÊ
 	ITEM2, // æ∆¿Ã≈€ »πµÊ
@@ -50,7 +48,7 @@ public:
 	void Update(float fTimeElapsed);
 	void Render(ID3D12GraphicsCommandList* pd3dCommandList, const XMFLOAT4X4& view, const XMFLOAT4X4& proj);
 
-	ActiveEffect* Play(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT2 size);
+	ActiveEffect* Play(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT2 size, XMFLOAT3 color = XMFLOAT3(1.0f, 1.0f, 1.0f));
 
 	//void PlayCollisionParticle();
 	//void PlayItemParticle();
@@ -73,9 +71,7 @@ private:
 	std::vector<ID3D12Resource*> m_vUploadBuffers;
 
 	const std::wstring m_TextureFileNames[(int)EFFECT_TYPE::COUNT] = {
-		L"Asset/DDS_File/GreenStar.dds",
-		L"Asset/DDS_File/RedStar.dds",
-		L"Asset/DDS_File/PurpleStar.dds",
+		L"Asset/DDS_File/WhiteStar.dds",
 		/////////////////////////////////////////////////
 		L"Asset/DDS_File/Dust.dds",
 		/////////////////////////////////////////////////

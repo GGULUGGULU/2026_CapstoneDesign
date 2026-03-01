@@ -35,7 +35,7 @@ CParticleSystem::~CParticleSystem()
 	}
 }
 
-void CParticleSystem::ResetParticles(const XMFLOAT2& size, float fSpreadRange)
+void CParticleSystem::ResetParticles(const XMFLOAT2& size, float fSpreadRange, const XMFLOAT3& color)
 {
     static std::mt19937 dre(std::random_device{}());
     std::uniform_real_distribution<float> urdDir(-1.0f, 1.0f);
@@ -45,10 +45,12 @@ void CParticleSystem::ResetParticles(const XMFLOAT2& size, float fSpreadRange)
 
     m_nActiveParticles = 0;
 
+    m_xmf3BaseColor = color;
+
     for (int i = 0; i < m_nMaxParticles; ++i)
     {
         m_vCpuParticles[i].m_bIsActive = true;
-
+        m_vCpuParticles[i].m_xmf3Color = color;
         m_vCpuParticles[i].m_fAge = 0.0f;
         m_vCpuParticles[i].m_fLifeTime = urdLife(dre);
 
@@ -127,6 +129,7 @@ void CParticleSystem::CollisionAnimate(float fTimeElapsed)
 
             m_pMappedParticles[m_nActiveParticles].m_xmf3Position = m_vCpuParticles[i].m_xmf3Position;
             m_pMappedParticles[m_nActiveParticles].m_xmf2Size = currentSize;
+            m_pMappedParticles[m_nActiveParticles].m_xmf3Color = m_vCpuParticles[i].m_xmf3Color;
 
             m_nActiveParticles++;
     }
@@ -171,6 +174,7 @@ void CParticleSystem::DustAnimate(float fTimeElapsed)
 
         m_pMappedParticles[m_nActiveParticles].m_xmf3Position = m_vCpuParticles[i].m_xmf3Position;
         m_pMappedParticles[m_nActiveParticles].m_xmf2Size = currentSize;
+        m_pMappedParticles[m_nActiveParticles].m_xmf3Color = m_vCpuParticles[i].m_xmf3Color;
 
         m_nActiveParticles++;
     }
@@ -209,7 +213,8 @@ void CParticleSystem::ItemAnimate(float fTimeElapsed)
         // GPU ╦егн
         m_pMappedParticles[m_nActiveParticles].m_xmf3Position = m_vCpuParticles[i].m_xmf3Position;
         m_pMappedParticles[m_nActiveParticles].m_xmf2Size = currentSize;
-       
+        m_pMappedParticles[m_nActiveParticles].m_xmf3Color = m_vCpuParticles[i].m_xmf3Color;
+
         m_nActiveParticles++;
     }
 }
@@ -264,6 +269,7 @@ void CParticleSystem::BoosterAnimate(float fTimeElapsed)
             m_pMappedParticles[m_nActiveParticles].m_xmf3Position = m_vCpuParticles[i].m_xmf3Position;
             m_pMappedParticles[m_nActiveParticles].m_xmf2Size.x = m_vCpuParticles[i].m_xmf2MaxSize.x * fScale;
             m_pMappedParticles[m_nActiveParticles].m_xmf2Size.y = m_vCpuParticles[i].m_xmf2MaxSize.y * fScale;
+            //m_pMappedParticles[m_nActiveParticles].m_xmf3Color = m_vCpuParticles[i].m_xmf3Color;
 
             m_nActiveParticles++;
         }

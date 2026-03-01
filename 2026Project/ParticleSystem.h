@@ -9,6 +9,7 @@ struct VS_VB_INSTANCE_PARTICLE
 {
 	XMFLOAT3 m_xmf3Position;
 	XMFLOAT2 m_xmf2Size;
+	XMFLOAT3 m_xmf3Color;
 };
 
 struct ParticleCPUData
@@ -16,6 +17,7 @@ struct ParticleCPUData
 	XMFLOAT3 m_xmf3Position;
 	XMFLOAT3 m_xmf3Velocity;
 	XMFLOAT2 m_xmf2MaxSize;
+	XMFLOAT3 m_xmf3Color;
 	float m_fAge;
 	float m_fLifeTime;
 	bool m_bIsActive;
@@ -33,7 +35,7 @@ public:
 
 	void Render(ID3D12GraphicsCommandList* pd3dCommandList);
 
-	void ResetParticles(const XMFLOAT2& size, float fSpreadRange = 10.f);
+	void ResetParticles(const XMFLOAT2& size, float fSpreadRange = 10.f, const XMFLOAT3& color = XMFLOAT3(1,1,1));
 
 	void SetPosition(const XMFLOAT3& pos) { m_xmf3Position = pos; }
 
@@ -42,6 +44,7 @@ public:
 private:
 	XMFLOAT3 m_xmf3Position;
 	XMFLOAT4X4 m_xmf4x4World;
+	XMFLOAT3 m_xmf3BaseColor = XMFLOAT3(1, 1, 1);
 
 	int m_nMaxParticles;
 	int m_nActiveParticles;

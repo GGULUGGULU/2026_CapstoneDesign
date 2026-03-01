@@ -311,7 +311,8 @@ void CEffectLibrary::BuildPipelineState(ID3D12Device* pd3dDevice)
 	D3D12_INPUT_ELEMENT_DESC inputElementDescs[] =
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		{ "COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 20, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
 	};
 	psoDesc.InputLayout = { inputElementDescs, _countof(inputElementDescs) };
 
@@ -396,7 +397,7 @@ void CEffectLibrary::BuildPipelineState(ID3D12Device* pd3dDevice)
 	}
 }
 
-ActiveEffect* CEffectLibrary::Play(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT2 size)
+ActiveEffect* CEffectLibrary::Play(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT2 size, XMFLOAT3 color)
 {
 	if (m_vEffectPool[(int)type].empty()) return nullptr;
 
@@ -418,12 +419,12 @@ ActiveEffect* CEffectLibrary::Play(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT2
 		{
 			fSpread = 50.0f; // ¾ÆÀÌÅÛ È¹µæ ÆÄÆ¼Å¬ ÆÛÁüÁ¤µµ
 		}
-		else if (type >= EFFECT_TYPE::COLLISION1 && type <= EFFECT_TYPE::COLLISION3)
+		else if (type == EFFECT_TYPE::COLLISION)
 		{
 			fSpread = 20.0f; // Ãæµ¹ ÆÄÆ¼Å¬ ÆÛÁüÁ¤µµ
 		}
 
-		pEffectData->pParticleSys->ResetParticles(size, fSpread);
+		pEffectData->pParticleSys->ResetParticles(size, fSpread, color);
 	}
 	else if (pEffectData->pMeshEffect)
 	{

@@ -466,12 +466,14 @@ struct VS_PARTICLE_INPUT
 {
     float3 position : POSITION;
     float2 size : TEXCOORD;
+    float3 color : COLOR;
 };
 
 struct VS_PARTICLE_OUTPUT
 {
     float3 positionW : POSITION;
     float2 size : TEXCOORD;
+    float3 color : COLOR;
 };
 
 struct GS_PARTICLE_OUTPUT
@@ -479,6 +481,7 @@ struct GS_PARTICLE_OUTPUT
     float4 positionH : SV_POSITION;
     float2 uv : TEXCOORD;
     uint primID : SV_PrimitiveID;
+    float3 color : COLOR;
 };
 
 VS_PARTICLE_OUTPUT VS_Particle(VS_PARTICLE_INPUT input)
@@ -487,6 +490,7 @@ VS_PARTICLE_OUTPUT VS_Particle(VS_PARTICLE_INPUT input)
     
     output.positionW = mul(float4(input.position, 1.0f), gmtxParticleWorld).xyz;
     output.size = input.size;
+    output.color = input.color;
     
     return output;
 }
@@ -520,6 +524,7 @@ void GS_Particle(point VS_PARTICLE_OUTPUT input[1], inout TriangleStream<GS_PART
         output.positionH = mul(posV, gmtxParticleProjection);
         output.uv = uv[i];
         output.primID = (uint) i;
+        output.color = input[0].color;
         
         outStream.Append(output);
     }
@@ -527,9 +532,9 @@ void GS_Particle(point VS_PARTICLE_OUTPUT input[1], inout TriangleStream<GS_PART
 
 float4 PS_Particle(GS_PARTICLE_OUTPUT input) : SV_TARGET
 {
-    float4 color = gParticleTexture.Sample(gParticleSampler, input.uv);
+    float4 texColor = gParticleTexture.Sample(gParticleSampler, input.uv);
 
-    return color;
+    return float4(texColor.rgb * input.color, texColor.a);
 }
 
 // ================================================================================
