@@ -29,13 +29,13 @@ public:
 	virtual ~CParticleSystem();
 
 	void CollisionAnimate(float fTimeElapsed);
-	void DustAnimate(float fTimeElapsed);
+	void DustAnimate(float fTimeElapsed, bool flag);
 	void ItemAnimate(float fTimeElapsed);
 	void BoosterAnimate(float fTimeElapsed);
 
 	void Render(ID3D12GraphicsCommandList* pd3dCommandList);
 
-	void ResetParticles(const XMFLOAT2& size, float fSpreadRange = 10.f, const XMFLOAT3& color = XMFLOAT3(1,1,1));
+	void ResetParticles(const XMFLOAT2& size, float fSpreadRange = 10.f, bool flag = false, const XMFLOAT3& color = XMFLOAT3(1,1,1));
 
 	void SetPosition(const XMFLOAT3& pos) { m_xmf3Position = pos; }
 

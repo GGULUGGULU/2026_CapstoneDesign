@@ -109,7 +109,7 @@ void CEffectLibrary::Initialize(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandL
 
 		// 흙먼지
 		if ((EFFECT_TYPE)typeIndex == EFFECT_TYPE::DUST) {
-			nPoolSize = 400;
+			nPoolSize = 2000;
 			nParticleCount = 1;
 		}
 
@@ -135,8 +135,6 @@ void CEffectLibrary::BuildRootSignature(ID3D12Device* pd3dDevice)
 
 	CD3DX12_DESCRIPTOR_RANGE ranges[1];
 
-	// Shaders.hlsl uses gParticleTexture : register(t6)
-	// RootSignature must expose SRV at t6.
 	ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 6);
 	rootParameters[0].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_PIXEL);
 
@@ -413,7 +411,7 @@ ActiveEffect* CEffectLibrary::Play(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT2
 		// 파티클 시스템
 		pEffectData->pParticleSys->SetPosition(position);
 
-		float fSpread = 1.0f; // 기본값, 흙먼지 파티클 퍼짐정도
+		float fSpread = 0.0f; // 기본값, 흙먼지 파티클 퍼짐정도, 0.f일때 일자로 나오게 수정
 
 		if (type >= EFFECT_TYPE::ITEM1 && type <= EFFECT_TYPE::ITEM9)
 		{
@@ -424,7 +422,17 @@ ActiveEffect* CEffectLibrary::Play(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT2
 			fSpread = 20.0f; // 충돌 파티클 퍼짐정도
 		}
 
-		pEffectData->pParticleSys->ResetParticles(size, fSpread, color);
+		if (IsZero(fSpread))
+		{
+			m_bSpreadZero = false;
+		}
+		else
+		{
+			m_bSpreadZero = true;
+		}
+
+		pEffectData->pParticleSys->ResetParticles(size, fSpread, m_bSpreadZero, color);
+
 	}
 	else if (pEffectData->pMeshEffect)
 	{
@@ -435,6 +443,28 @@ ActiveEffect* CEffectLibrary::Play(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT2
 
 	m_vActiveEffects.push_back(pEffectData);
 	return pEffectData;
+}
+
+void CEffectLibrary::PlayCarDustParticle(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT3 right, XMFLOAT3 look, XMFLOAT2 size, XMFLOAT2 offset, XMFLOAT3 color)
+{
+	XMVECTOR vPos = XMLoadFloat3(&position);
+	XMVECTOR vRight = XMVector3Normalize(XMLoadFloat3(&right));
+	XMVECTOR vLook = XMVector3Normalize(XMLoadFloat3(&look));
+
+	XMVECTOR vOffsetX = vRight * offset.x;
+	XMVECTOR vOffsetZ = vLook * offset.y;
+
+	XMFLOAT3 fl, fr, bl, br;
+
+	XMStoreFloat3(&fl, vPos - vOffsetX + vOffsetZ); // 좌상 
+	XMStoreFloat3(&fr, vPos + vOffsetX + vOffsetZ); // 우상 
+	XMStoreFloat3(&bl, vPos - vOffsetX - vOffsetZ); // 좌하 
+	XMStoreFloat3(&br, vPos + vOffsetX - vOffsetZ); // 우하 
+
+	Play(type, fl, size, color); // 좌상
+	Play(type, fr, size, color); // 우상
+	Play(type, bl, size, color); // 좌하
+	Play(type, br, size, color); // 우하
 }
 
 void CEffectLibrary::Update(float fTimeElapsed)
@@ -455,7 +485,7 @@ void CEffectLibrary::Update(float fTimeElapsed)
 			}
 			else if (eff->type == EFFECT_TYPE::DUST)
 			{
-				eff->pParticleSys->DustAnimate(fTimeElapsed);
+				eff->pParticleSys->DustAnimate(fTimeElapsed, m_bSpreadZero);
 			}
 			else if (eff->type >= EFFECT_TYPE::ITEM1 && eff->type <= EFFECT_TYPE::ITEM9)
 			{

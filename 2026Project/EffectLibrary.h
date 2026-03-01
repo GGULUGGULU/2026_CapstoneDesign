@@ -49,9 +49,7 @@ public:
 	void Render(ID3D12GraphicsCommandList* pd3dCommandList, const XMFLOAT4X4& view, const XMFLOAT4X4& proj);
 
 	ActiveEffect* Play(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT2 size, XMFLOAT3 color = XMFLOAT3(1.0f, 1.0f, 1.0f));
-
-	//void PlayCollisionParticle();
-	//void PlayItemParticle();
+	void PlayCarDustParticle(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT3 right, XMFLOAT3 look, XMFLOAT2 size, XMFLOAT2 offset, XMFLOAT3 color = XMFLOAT3(1.0f, 1.0f, 1.0f));
 
 	void ToggleBooster(bool flag);
 	void UpdateBoosterPosition(const XMFLOAT3&, const XMFLOAT3&);
@@ -101,5 +99,7 @@ private:
 
 	ActiveEffect* m_pBoosterEffect = nullptr;
 	ActiveEffect* m_pWindShieldEffect = nullptr;
+
+	bool m_bSpreadZero = false;
 };
 

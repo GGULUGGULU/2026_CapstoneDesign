@@ -35,7 +35,7 @@ CParticleSystem::~CParticleSystem()
 	}
 }
 
-void CParticleSystem::ResetParticles(const XMFLOAT2& size, float fSpreadRange, const XMFLOAT3& color)
+void CParticleSystem::ResetParticles(const XMFLOAT2& size, float fSpreadRange, bool flag, const XMFLOAT3& color)
 {
     static std::mt19937 dre(std::random_device{}());
     std::uniform_real_distribution<float> urdDir(-1.0f, 1.0f);
@@ -54,8 +54,6 @@ void CParticleSystem::ResetParticles(const XMFLOAT2& size, float fSpreadRange, c
         m_vCpuParticles[i].m_fAge = 0.0f;
         m_vCpuParticles[i].m_fLifeTime = urdLife(dre);
 
-        //m_vCpuParticles[i].m_xmf3Position = XMFLOAT3(0.0f, 0.0f, 0.0f);
-
         m_vCpuParticles[i].m_xmf3Position = XMFLOAT3(
             urdPos(dre),        
             urdPos(dre) * 0.5f, 
@@ -73,7 +71,7 @@ void CParticleSystem::ResetParticles(const XMFLOAT2& size, float fSpreadRange, c
         XMStoreFloat3(&m_vCpuParticles[i].m_xmf3Velocity, vDir);
     }
     CollisionAnimate(0.0);
-    DustAnimate(0.0);
+    DustAnimate(0.0, flag);
     ItemAnimate(0.0);
 }
 
@@ -136,7 +134,7 @@ void CParticleSystem::CollisionAnimate(float fTimeElapsed)
 
 }
 
-void CParticleSystem::DustAnimate(float fTimeElapsed)
+void CParticleSystem::DustAnimate(float fTimeElapsed, bool flag)
 {
     XMMATRIX mWorld = XMMatrixTranslation(m_xmf3Position.x, m_xmf3Position.y, m_xmf3Position.z);
     XMStoreFloat4x4(&m_xmf4x4World, XMMatrixTranspose(mWorld)); 
@@ -158,10 +156,15 @@ void CParticleSystem::DustAnimate(float fTimeElapsed)
         const float GRAVITY = 9.8f;
         m_vCpuParticles[i].m_xmf3Velocity.y += GRAVITY * fTimeElapsed;
 
-        m_vCpuParticles[i].m_xmf3Position.x += m_vCpuParticles[i].m_xmf3Velocity.x * fTimeElapsed;
-        m_vCpuParticles[i].m_xmf3Position.y += m_vCpuParticles[i].m_xmf3Velocity.y * fTimeElapsed;
-        m_vCpuParticles[i].m_xmf3Position.z += m_vCpuParticles[i].m_xmf3Velocity.z * fTimeElapsed;
-
+        if (flag)
+        {
+            m_vCpuParticles[i].m_xmf3Position.x += m_vCpuParticles[i].m_xmf3Velocity.x * fTimeElapsed;
+            m_vCpuParticles[i].m_xmf3Position.y += m_vCpuParticles[i].m_xmf3Velocity.y * fTimeElapsed;
+        }
+        else
+        {
+            m_vCpuParticles[i].m_xmf3Position.y += m_vCpuParticles[i].m_xmf3Velocity.y * fTimeElapsed;
+        }
 
         float fLifeRatio = m_vCpuParticles[i].m_fAge / m_vCpuParticles[i].m_fLifeTime;
         float fScale = 1.0f - fLifeRatio; 

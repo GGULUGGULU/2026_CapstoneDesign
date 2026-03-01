@@ -174,6 +174,6 @@ public:
 	int   m_nJumpCount = 0;
 	float m_fSecondJumpWindow = 0.35f;   // 2´Ü ¹üÀ§
 	float m_fFirstJumpTime = 0.0f;    
-
+	unsigned m_cnt{ 0 };
 };
 

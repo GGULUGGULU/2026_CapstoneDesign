@@ -33,7 +33,6 @@ CGameFramework::CGameFramework()
 	m_pScene = NULL;
 	m_pPlayer = NULL;
 
-	// Initialize game state (prevents random stage values after code/layout changes)
 	m_nStage = 0;
 	m_nScore = 0;
 	m_nPlayerCurrentSpeed = 0;
@@ -311,7 +310,6 @@ void CGameFramework::ChangeSwapChainState()
 			rcWindowed.right - rcWindowed.left, rcWindowed.bottom - rcWindowed.top,
 			SWP_NOZORDER | SWP_FRAMECHANGED);
 	}
-	// ׵θ â
 
 	for (int i = 0; i < m_nSwapChainBuffers; i++)
 	{
@@ -395,7 +393,6 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 		{
 			m_pScene->PickObject(fWorldRayOrigin, fWorldRayDirection);
 
-			// Only advance from the title stage (0). This avoids undefined/uninitialized stage values.
 			if (m_pScene->m_pSelectedObject != NULL && m_nStage == 0)
 				m_nStage = 1;
 		}
@@ -475,6 +472,18 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 
 		case 'S':
 			m_pPlayer->SetVelocity(XMFLOAT3(0, 0, 0));
+			break;
+
+		case 'P':
+			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM1, m_pPlayer->GetPosition(), XMFLOAT2(50, 50));
+			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM2, m_pPlayer->GetPosition(), XMFLOAT2(50, 50));
+			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM3, m_pPlayer->GetPosition(), XMFLOAT2(50, 50));
+			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM4, m_pPlayer->GetPosition(), XMFLOAT2(25, 25));
+			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM5, m_pPlayer->GetPosition(), XMFLOAT2(50, 50));
+			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM6, m_pPlayer->GetPosition(), XMFLOAT2(50, 50));
+			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM7, m_pPlayer->GetPosition(), XMFLOAT2(50, 50));
+			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM8, m_pPlayer->GetPosition(), XMFLOAT2(25, 25));
+			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM9, m_pPlayer->GetPosition(), XMFLOAT2(50, 50));
 			break;
 		default:
 			break;
@@ -650,7 +659,16 @@ void CGameFramework::ProcessInputGameStage()
 			}
 			else if (dwDirection) m_pPlayer->Move(dwDirection, m_nPlayerCurrentSpeed, true);
 
-			CEffectLibrary::Instance()->Play(EFFECT_TYPE::DUST, XMFLOAT3(m_pPlayer->GetPosition().x, m_pPlayer->GetPosition().y, m_pPlayer->GetPosition().z), XMFLOAT2(5, 5));
+			//CEffectLibrary::Instance()->PlayCarDustParticle(EFFECT_TYPE::DUST, XMFLOAT3(m_pPlayer->GetPosition().x, m_pPlayer->GetPosition().y, m_pPlayer->GetPosition().z), XMFLOAT2(5, 5), XMFLOAT2(10,20));
+			if (2 < m_cnt)
+			{
+				CEffectLibrary::Instance()->PlayCarDustParticle(EFFECT_TYPE::DUST,m_pPlayer->GetPosition(),m_pPlayer->GetRightVector(), m_pPlayer->GetLookVector(), XMFLOAT2(5, 5), XMFLOAT2(10, 20));
+				m_cnt = 0;
+			}
+			else
+			{
+				++m_cnt;
+			}
 		}
 	}
 
@@ -664,7 +682,7 @@ void CGameFramework::ProcessInputGameStage()
 	}///////////////////
 
 	m_pPlayer->Update(m_GameTimer.GetTimeElapsed());
-} //   Է¹ 
+} 
 
 void CGameFramework::AnimateObjects()
 {
@@ -790,7 +808,7 @@ void CGameFramework::BuildGameObjects()
 
 
 	m_pPlayer->Rotate(0, 180, 0);
-	m_pPlayer->SetPosition(XMFLOAT3(0.0f, 10.0f, 0.0f)); // ÷̾ ġ 
+	m_pPlayer->SetPosition(XMFLOAT3(0.0f, 10.0f, 0.0f)); 
 	m_pPlayer->SetGravity(XMFLOAT3(0, -1, 0));
 
 	m_pPlayer->OnPrepareRender();
@@ -845,7 +863,7 @@ void CGameFramework::CollisionProcess()
 		{
 
 			XMFLOAT3 vPos = pCollidedObject->GetPosition();
-			//m_pScene->m_pParticleEmitter->SpawnExplosion(XMFLOAT3(vPos.x, vPos.y + 10, vPos.z));
+
 			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM1, vPos, XMFLOAT2(50, 50));
 			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM2, vPos, XMFLOAT2(50, 50));
 			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM3, vPos, XMFLOAT2(50, 50));
@@ -866,11 +884,11 @@ void CGameFramework::CollisionProcess()
 		{
 
 			XMFLOAT3 vPos = pCollidedObject->GetPosition();
-			// 임의로 수정함
-			//m_pScene->m_pParticleEmitter->SpawnExplosion(XMFLOAT3(vPos.x, vPos.y + 10, vPos.z));
-			CEffectLibrary::Instance()->Play(EFFECT_TYPE::COLLISION, XMFLOAT3(vPos.x, vPos.y + 10, vPos.z), XMFLOAT2(50, 50));
-			CEffectLibrary::Instance()->Play(EFFECT_TYPE::COLLISION, XMFLOAT3(vPos.x, vPos.y + 10, vPos.z), XMFLOAT2(50, 50));
-			CEffectLibrary::Instance()->Play(EFFECT_TYPE::COLLISION, XMFLOAT3(vPos.x, vPos.y + 10, vPos.z), XMFLOAT2(50, 50));
+
+			CEffectLibrary::Instance()->Play(EFFECT_TYPE::COLLISION, XMFLOAT3(vPos.x, vPos.y + 10, vPos.z), XMFLOAT2(50, 50), XMFLOAT3(1, 0, 0));
+			CEffectLibrary::Instance()->Play(EFFECT_TYPE::COLLISION, XMFLOAT3(vPos.x, vPos.y + 10, vPos.z), XMFLOAT2(50, 50), XMFLOAT3(0, 1, 0));
+			CEffectLibrary::Instance()->Play(EFFECT_TYPE::COLLISION, XMFLOAT3(vPos.x, vPos.y + 10, vPos.z), XMFLOAT2(50, 50), XMFLOAT3(0, 0, 1));
+			
 
 			pCollidedObject->Disable();
 
