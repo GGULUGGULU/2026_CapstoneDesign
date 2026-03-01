@@ -39,62 +39,40 @@ namespace
 		return (_stricmp(pstr, "null") == 0);
 	}
 
-
-
-	inline bool RaycastClosestRecursive(CGameObject* pObject, FXMVECTOR vWorldRayOrigin, FXMVECTOR vWorldRayDir, float fMaxDistance,
-		float& inoutMinWorldDist, XMFLOAT3& outWorldHitPos)
+	static void RaycastDownRecursive(CGameObject* pObject, FXMVECTOR vWorldRayOrigin, FXMVECTOR vWorldRayTarget, FXMVECTOR vWorldRayDir, float maxDistance, float& bestT, float& bestY)
 	{
-		if (!pObject) return false;
+		if (!pObject) return;
 
-		bool bHitAny = false;
-
-		// 1) Test mesh
 		if (pObject->m_pMesh)
 		{
-			const XMMATRIX mtxWorld = XMLoadFloat4x4(&pObject->GetWorldMatrix());
-			const XMMATRIX mtxInvWorld = XMMatrixInverse(nullptr, mtxWorld);
+			XMMATRIX matWorld = XMLoadFloat4x4(&pObject->GetWorldMatrix());
+			XMMATRIX matInvWorld = XMMatrixInverse(NULL, matWorld);
 
-			const XMVECTOR vWorldRayTarget = vWorldRayOrigin + vWorldRayDir * fMaxDistance;
+			XMVECTOR vLocalRayOrigin = XMVector3TransformCoord(vWorldRayOrigin, matInvWorld);
+			XMVECTOR vLocalRayTarget = XMVector3TransformCoord(vWorldRayTarget, matInvWorld);
+			XMVECTOR vLocalRayDirection = XMVector3Normalize(vLocalRayTarget - vLocalRayOrigin);
 
-			const XMVECTOR vLocalOrigin = XMVector3TransformCoord(vWorldRayOrigin, mtxInvWorld);
-			const XMVECTOR vLocalTarget = XMVector3TransformCoord(vWorldRayTarget, mtxInvWorld);
-			const XMVECTOR vLocalDir = XMVector3Normalize(vLocalTarget - vLocalOrigin);
+			XMFLOAT3 fLocalOrigin, fLocalDir;
+			XMStoreFloat3(&fLocalOrigin, vLocalRayOrigin);
+			XMStoreFloat3(&fLocalDir, vLocalRayDirection);
 
-			XMFLOAT3 xmf3LocalOrigin, xmf3LocalDir;
-			XMStoreFloat3(&xmf3LocalOrigin, vLocalOrigin);
-			XMStoreFloat3(&xmf3LocalDir, vLocalDir);
-
-			float fLocalHitDistance = 0.0f;
-			if (pObject->m_pMesh->CheckRayIntersection(xmf3LocalOrigin, xmf3LocalDir, &fLocalHitDistance))
+			float fHitDistance = 0.0f;
+			if (pObject->m_pMesh->CheckRayIntersection(fLocalOrigin, fLocalDir, &fHitDistance))
 			{
-				const XMVECTOR vLocalHit = vLocalOrigin + vLocalDir * fLocalHitDistance;
-				const XMVECTOR vWorldHit = XMVector3TransformCoord(vLocalHit, mtxWorld);
+				XMVECTOR vLocalHit = vLocalRayOrigin + vLocalRayDirection * fHitDistance;
+				XMVECTOR vWorldHit = XMVector3TransformCoord(vLocalHit, matWorld);
 
-				const float fWorldDist = XMVectorGetX(XMVector3Length(vWorldHit - vWorldRayOrigin));
-
-				if (fWorldDist < inoutMinWorldDist)
+				float t = XMVectorGetX(XMVector3Dot(vWorldHit - vWorldRayOrigin, vWorldRayDir));
+				if (t >= 0.0f && t <= maxDistance && t < bestT)
 				{
-					inoutMinWorldDist = fWorldDist;
-					XMStoreFloat3(&outWorldHitPos, vWorldHit);
+					bestT = t;
+					bestY = XMVectorGetY(vWorldHit);
 				}
-
-				bHitAny = true;
 			}
 		}
 
-		// 2) 
-		if (pObject->m_pChild)
-		{
-			if (RaycastClosestRecursive(pObject->m_pChild, vWorldRayOrigin, vWorldRayDir, fMaxDistance, inoutMinWorldDist, outWorldHitPos))
-				bHitAny = true;
-		}
-		if (pObject->m_pSibling)
-		{
-			if (RaycastClosestRecursive(pObject->m_pSibling, vWorldRayOrigin, vWorldRayDir, fMaxDistance, inoutMinWorldDist, outWorldHitPos))
-				bHitAny = true;
-		}
-
-		return bHitAny;
+		if (pObject->m_pChild) RaycastDownRecursive(pObject->m_pChild, vWorldRayOrigin, vWorldRayTarget, vWorldRayDir, maxDistance, bestT, bestY);
+		if (pObject->m_pSibling) RaycastDownRecursive(pObject->m_pSibling, vWorldRayOrigin, vWorldRayTarget, vWorldRayDir, maxDistance, bestT, bestY);
 	}
 
 }
@@ -428,6 +406,7 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 	pGroundObject->Rotate(0.0f, 90.0f, 0.0f);
 	pGroundObject->SetScale(10, 10, 10);
 	pGroundObject->ComputeNewLocalAABB();
+	pGroundObject->m_bIsGround = true;
 	m_ppGameObjects[0] = pGroundObject;
 
 	CGameObject* pGroundModel1 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/city_map_02.bin");
@@ -438,6 +417,7 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 	pGroundObject1->Rotate(0.0f, 90.0f, 0.0f);
 	pGroundObject1->SetScale(10, 10, 10);
 	pGroundObject1->ComputeNewLocalAABB();
+	pGroundObject1->m_bIsGround = true;
 	m_ppGameObjects[113] = pGroundObject1;
 
 	CGameObject* pGroundModel2 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/city_map_03.bin");
@@ -448,6 +428,7 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 	pGroundObject2->Rotate(0.0f, 90.0f, 0.0f);
 	pGroundObject2->SetScale(10, 10, 10);
 	pGroundObject2->ComputeNewLocalAABB();
+	pGroundObject2->m_bIsGround = true;
 	m_ppGameObjects[114] = pGroundObject2;
 
 	///////////////////////////////////////////////////
@@ -1059,6 +1040,7 @@ bool CScene::CheckCollision()
 	{
 		CGameObject* pObject = m_ppGameObjects[i];
 		if (!pObject || !pObject->m_bIsActive) continue;
+		if (pObject->m_bIsGround) continue;
 
 		BoundingBox localObjectAABB = pObject->GetCombinedAABB();
 
@@ -1078,74 +1060,66 @@ bool CScene::CheckCollision()
 }
 
 bool CScene::CheckGroundCollision()
-//   
 {
 	if (!m_pPlayer) return false;
-	if (!m_ppGameObjects || m_nGameObjects <= 0) return false;
 
-	CGameObject* pGroundRoot = m_ppGameObjects[0];
-	if (!pGroundRoot) return false;
-
-	// Player world AABB (feet position)
 	BoundingBox localPlayerAABB = m_pPlayer->GetCombinedAABB();
-
 	BoundingBox worldPlayerAABB;
 	localPlayerAABB.Transform(worldPlayerAABB, XMLoadFloat4x4(&m_pPlayer->GetWorldMatrix()));
 
-	const float fPlayerBottomY = worldPlayerAABB.Center.y - worldPlayerAABB.Extents.y;
+	float playerBottomY = worldPlayerAABB.Center.y - worldPlayerAABB.Extents.y;
+	XMFLOAT3 playerPos = m_pPlayer->GetPosition();
+	float rayX = worldPlayerAABB.Center.x;
+	float rayZ = worldPlayerAABB.Center.z;
 
-	// Raycast down from around the player's center height.
-	// - Starting too high can accidentally hit "overpass/roof" geometry and snap upward.
-	// - Starting around the player avoids that in most map setups.
-	const XMFLOAT3 xmf3PlayerPos = m_pPlayer->GetPosition();
 
-	const float kRayStartOffsetY = 50.0f;
-	const float kRayMaxDistance = 200000.0f;
+	const float rayMaxDistance = 100000.0f;
 
-	const XMVECTOR vRayOrigin = XMVectorSet(xmf3PlayerPos.x, xmf3PlayerPos.y + kRayStartOffsetY, xmf3PlayerPos.z, 1.0f);
-	const XMVECTOR vRayDir = XMVectorSet(0.0f, -1.0f, 0.0f, 0.0f);
+	float bestT = FLT_MAX;
+	float bestY = -FLT_MAX;
 
-	float fMinDist = FLT_MAX;
-	XMFLOAT3 xmf3HitPos = {};
-	const bool bHit = RaycastClosestRecursive(pGroundRoot, vRayOrigin, vRayDir, kRayMaxDistance, fMinDist, xmf3HitPos);
-
-	if (bHit)
 	{
-		const float fGroundY = xmf3HitPos.y;
+		XMVECTOR vRayOrigin = XMVectorSet(rayX, playerBottomY + 10.0f, rayZ, 1.0f);
+		XMVECTOR vRayDir = XMVectorSet(0.0f, -1.0f, 0.0f, 0.0f);
+		XMVECTOR vRayTarget = vRayOrigin + vRayDir * rayMaxDistance;
 
-		// Consider grounded if the feet are within epsilon above the surface (or penetrating).
-		const float kGroundEpsilon = 2.0f;
-
-		if (fPlayerBottomY <= (fGroundY + kGroundEpsilon))
+		for (int i = 0; i < m_nGameObjects; ++i)
 		{
-			// Snap the player so the AABB bottom sits on the terrain.
-			const float fDeltaY = (fGroundY - fPlayerBottomY);
-			if (fabsf(fDeltaY) > 0.0001f)
-			{
-				XMFLOAT3 xmf3NewPos = m_pPlayer->GetPosition();
-				xmf3NewPos.y += fDeltaY;
-				m_pPlayer->SetPosition(xmf3NewPos);
-
-				// Keep transforms in sync for the rest of the frame.
-				m_pPlayer->OnPrepareRender();
-			}
-
-			return true;
+			CGameObject* pObject = m_ppGameObjects[i];
+			if (!pObject) continue;
+			if (!pObject->m_bIsGround) continue;
+			RaycastDownRecursive(pObject, vRayOrigin, vRayTarget, vRayDir, rayMaxDistance, bestT, bestY);
 		}
-
-		return false;
 	}
 
-	// Fallback: old AABB vs AABB (in case terrain mesh has no triangles/indices).
-	BoundingBox localObjectAABB = pGroundRoot->GetCombinedAABB();
-
-	BoundingBox worldObjectAABB;
-	localObjectAABB.Transform(worldObjectAABB, XMLoadFloat4x4(&pGroundRoot->GetWorldMatrix()));
-
-	if (worldPlayerAABB.Intersects(worldObjectAABB))
+	if (bestT == FLT_MAX)
 	{
+		XMVECTOR vRayOrigin = XMVectorSet(rayX, playerBottomY + 200.0f, rayZ, 1.0f);
+		XMVECTOR vRayDir = XMVectorSet(0.0f, -1.0f, 0.0f, 0.0f);
+		XMVECTOR vRayTarget = vRayOrigin + vRayDir * rayMaxDistance;
+
+		for (int i = 0; i < m_nGameObjects; ++i)
+		{
+			CGameObject* pObject = m_ppGameObjects[i];
+			if (!pObject) continue;
+			if (!pObject->m_bIsGround) continue;
+			RaycastDownRecursive(pObject, vRayOrigin, vRayTarget, vRayDir, rayMaxDistance, bestT, bestY);
+		}
+	}
+
+	if (bestT == FLT_MAX) return false;
+
+	float distToGround = playerBottomY - bestY;
+	const float epsilon = 3.0f;
+
+	if (distToGround <= epsilon)
+	{
+		XMFLOAT3 newPos = playerPos;
+		newPos.y -= distToGround;
+		m_pPlayer->SetPosition(newPos);
 		return true;
 	}
+
 	return false;
 }
 
