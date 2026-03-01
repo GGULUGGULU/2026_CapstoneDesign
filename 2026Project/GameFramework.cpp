@@ -783,15 +783,14 @@ void CGameFramework::BuildGameObjects()
 
 	CCarPlayer* pCarPlayer = new CCarPlayer(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature());
 	pCarPlayer->SetScale(10.2f, 10.2f, 10.2f);
+	m_pScene->ApplyMeshTextures(m_pd3dDevice, m_pd3dCommandList, pCarPlayer);
 	m_pScene->m_pPlayer = m_pPlayer = pCarPlayer;
 
-	m_pPlayer->ComputeNewLocalAABB();
-
-
-	m_pPlayer->Rotate(0, 180, 0);
+	//m_pPlayer->Rotate(-90, 180, 0);
 	m_pPlayer->SetPosition(XMFLOAT3(0.0f, 10.0f, 0.0f)); // ÷̾ ġ 
 	m_pPlayer->SetGravity(XMFLOAT3(0, -1, 0));
 
+	m_pPlayer->ComputeNewLocalAABB();
 	m_pPlayer->OnPrepareRender();
 
 	m_pCamera = m_pPlayer->GetCamera();

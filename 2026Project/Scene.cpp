@@ -146,7 +146,7 @@ void CScene::BuildObjectsGameStart(ID3D12Device* pd3dDevice, ID3D12GraphicsComma
 	CGameObject* pGamePropObject = new CGameObject();
 	pGamePropObject->SetChild(pNewPropModel);
 	pGamePropObject->SetPosition(-100.0f, 0.0f, 50.0f);
-	pGamePropObject->Rotate(-90.0f, 0.0f, 0.0f);
+	pGamePropObject->Rotate(-90.0f, 90.0f, 0.0f);
 	pGamePropObject->SetScale(15, 15, 15);
 	m_ppGameObjects[1] = pGamePropObject;
 

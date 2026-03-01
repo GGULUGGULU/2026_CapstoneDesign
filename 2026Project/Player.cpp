@@ -364,12 +364,11 @@ CCarPlayer::CCarPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3d
 {
 	m_pCamera = ChangeCamera(/*SPACESHIP_CAMERA*/THIRD_PERSON_CAMERA, 0.0f);
 
-	CGameObject* pGameObject = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/SuperCar.bin");
+	CGameObject* pGameObject = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/SSC_TUATARA.bin");
 
 	pGameObject->SetPosition(0.0f, 0.0f, 0.0f);
-	pGameObject->Rotate(0.0f, 0.0f, 0.0f);
+	pGameObject->Rotate(-90.0f, 90.0f, 0.0f);
 	pGameObject->SetScale(1.0f, 1.0f, 1.0f);
-
 
 	SetChild(pGameObject, true);
 
