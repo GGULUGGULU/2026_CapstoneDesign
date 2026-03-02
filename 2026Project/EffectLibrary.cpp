@@ -76,8 +76,8 @@ void CEffectLibrary::Initialize(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandL
 			pShield->CreateMesh(pd3dDevice, pd3dCommandList, 15.0f, 20, 20);
 			//pShield->CreateProceduralTexture(pd3dDevice, pd3dCommandList);
 			//pShield->CreateTexture(pd3dDevice, pd3dCommandList, L"Asset/DDS_File/WindShield.dds");
-			pShield->CreateTexture(pd3dDevice, pd3dCommandList, L"Asset/DDS_File/wind.dds");
-			pShield->SetScale(XMFLOAT3(1.5f, 5.5f, 1.5f));
+			pShield->CreateTexture(pd3dDevice, pd3dCommandList, L"Asset/DDS_File/noise.dds");
+			pShield->SetScale(XMFLOAT3(1.5f, 15.5f, 1.5f));
 			//pShield->SetPosition(XMFLOAT3(0, 0, -30));
 
 			ActiveEffect* pEffect = new ActiveEffect;

@@ -60,7 +60,7 @@ public:
 	
 	void CreateShadowMap();
 	void RenderShadowPass();
-	void SetMainViewport(); // [추가] 메인 화면용 뷰포트 설정 함수
+	void SetMainViewport(); 
 	//
 private:
 	HINSTANCE					m_hInstance;

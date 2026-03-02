@@ -76,7 +76,7 @@ private:
 	std::vector<ID3D12Resource*> m_vUploadBuffers;
 
 	const std::wstring m_TextureFileNames[(int)EFFECT_TYPE::COUNT] = {
-		L"Asset/DDS_File/WhiteStar.dds",
+		L"Asset/DDS_File/WhiteStar1.dds",
 		/////////////////////////////////////////////////
 		L"Asset/DDS_File/Dust.dds",
 		/////////////////////////////////////////////////
@@ -121,7 +121,6 @@ private:
 
 	ID3D12RootSignature* m_pd3dComputeRootSignature = nullptr;
 
-	// [핵심 변경] CRadialBlurShader 객체 대신 순수 D3D12 PSO 객체를 사용합니다.
 	ID3D12PipelineState* m_pRadialBlurPSO = nullptr;
 
 	ID3D12Resource* m_pSceneRenderTexture = nullptr;
