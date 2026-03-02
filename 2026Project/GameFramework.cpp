@@ -1,4 +1,4 @@
-﻿//-----------------------------------------------------------------------------
+﻿﻿//-----------------------------------------------------------------------------
 // File: CGameFramework.cpp
 //-----------------------------------------------------------------------------
 
@@ -39,6 +39,11 @@ CGameFramework::CGameFramework()
 	m_nJumpCount = 0;
 	m_bJump = false;
 	m_bIsStun = false;
+
+	m_fTotalTime = 0.0f;
+	m_fFirstJumpTime = 0.0f;
+	m_fJumpCurrentTime = 0.0f;
+	m_fSecondJumpWindow = 0.35f; // seconds
 
 	_tcscpy_s(m_pszFrameRate, _T("2026Project ("));
 }
@@ -424,6 +429,52 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 	if (m_pScene) m_pScene->OnProcessingKeyboardMessage(hWnd, nMessageID, wParam, lParam);
 	switch (nMessageID)
 	{
+	case WM_KEYDOWN:
+		switch (wParam)
+		{
+		case VK_SPACE:
+		{
+			// Space를 계속 누르고 있을 때 발생하는 자동 반복 입력은 무시
+			if (lParam & 0x40000000) break;
+
+			// 1단 점프 + (지정 시간 내) 2단 점프
+			if (m_nStage != 2 || !m_pPlayer || !m_pScene) break;
+
+			const float fFirstJumpVelocity = 100.0f;
+			const float fSecondJumpVelocity = 90.0f;
+			const float fNow = m_GameTimer.GetTotalTime();
+
+			// 1단 점프는 '지면에 있을 때'만 허용
+			const bool bOnGround = m_pScene->CheckGroundCollision();
+
+			if (m_nJumpCount == 0)
+			{
+				if (!bOnGround) break;
+
+				m_nJumpCount = 1;
+				m_fFirstJumpTime = fNow;
+
+				XMFLOAT3 v = m_pPlayer->GetVelocity();
+				v.y = fFirstJumpVelocity;
+				m_pPlayer->SetVelocity(v);
+			}
+			else if (m_nJumpCount == 1)
+			{
+				if ((fNow - m_fFirstJumpTime) <= m_fSecondJumpWindow)
+				{
+					m_nJumpCount = 2;
+
+					XMFLOAT3 v = m_pPlayer->GetVelocity();
+					v.y = fSecondJumpVelocity;
+					m_pPlayer->SetVelocity(v);
+				}
+			}
+		}
+		break;
+		default:
+			break;
+		}
+		break;
 	case WM_KEYUP:
 		switch (wParam)
 		{
@@ -440,36 +491,6 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 		case VK_F9:
 			ChangeSwapChainState();
 			break;
-		case VK_SPACE:
-		{
-			// 1 
-			if (m_nJumpCount == 0)
-			{
-				m_nJumpCount = 1;
-				m_fFirstJumpTime = m_fTotalTime;
-
-				m_fJumpCurrentTime = m_fTotalTime;
-				m_pPlayer->SetGravity(XMFLOAT3(0, 2.0f, 0));
-				m_bJump = true;
-			}
-			// 2 
-			else if (m_nJumpCount == 1)
-			{
-				float dt = m_fTotalTime - m_fFirstJumpTime;
-				if (dt <= m_fSecondJumpWindow)
-				{
-					m_nJumpCount = 2;
-
-					m_fJumpCurrentTime = m_fTotalTime;
-
-					m_pPlayer->SetGravity(XMFLOAT3(0, 2.0f, 0));
-					m_bJump = true;
-				}
-			}
-
-		}
-		break;
-
 		case 'S':
 			m_pPlayer->SetVelocity(XMFLOAT3(0, 0, 0));
 			break;
@@ -662,7 +683,7 @@ void CGameFramework::ProcessInputGameStage()
 			//CEffectLibrary::Instance()->PlayCarDustParticle(EFFECT_TYPE::DUST, XMFLOAT3(m_pPlayer->GetPosition().x, m_pPlayer->GetPosition().y, m_pPlayer->GetPosition().z), XMFLOAT2(5, 5), XMFLOAT2(10,20));
 			if (2 < m_cnt)
 			{
-				CEffectLibrary::Instance()->PlayCarDustParticle(EFFECT_TYPE::DUST,m_pPlayer->GetPosition(),m_pPlayer->GetRightVector(), m_pPlayer->GetLookVector(), XMFLOAT2(5, 5), XMFLOAT2(10, 20));
+				CEffectLibrary::Instance()->PlayCarDustParticle(EFFECT_TYPE::DUST, m_pPlayer->GetPosition(), m_pPlayer->GetRightVector(), m_pPlayer->GetLookVector(), XMFLOAT2(5, 5), XMFLOAT2(10, 20));
 				m_cnt = 0;
 			}
 			else
@@ -682,7 +703,7 @@ void CGameFramework::ProcessInputGameStage()
 	}///////////////////
 
 	m_pPlayer->Update(m_GameTimer.GetTimeElapsed());
-} 
+}
 
 void CGameFramework::AnimateObjects()
 {
@@ -695,7 +716,7 @@ void CGameFramework::AnimateObjects()
 	if (m_pPlayer)
 	{
 		CEffectLibrary::Instance()->UpdateBoosterPosition(
-			XMFLOAT3(m_pPlayer->GetPosition().x, m_pPlayer->GetPosition().y, m_pPlayer->GetPosition().z+60),
+			XMFLOAT3(m_pPlayer->GetPosition().x, m_pPlayer->GetPosition().y, m_pPlayer->GetPosition().z + 60),
 			m_pPlayer->GetLookVector()
 		);
 	}
@@ -808,7 +829,7 @@ void CGameFramework::BuildGameObjects()
 
 
 	m_pPlayer->Rotate(0, 180, 0);
-	m_pPlayer->SetPosition(XMFLOAT3(0.0f, 10.0f, 0.0f)); 
+	m_pPlayer->SetPosition(XMFLOAT3(0.0f, 10.0f, 0.0f));
 	m_pPlayer->SetGravity(XMFLOAT3(0, -1, 0));
 
 	m_pPlayer->OnPrepareRender();
@@ -835,20 +856,25 @@ void CGameFramework::CollisionProcess()
 
 	bool bOnGround = false;
 
-	if (2 == m_nStage && !m_bJump)
+	if (2 == m_nStage)
 	{
 		bOnGround = m_pScene->CheckGroundCollision();
 
 		if (bOnGround)
 		{
+			
 			m_pPlayer->SetGravity(XMFLOAT3(0, 0, 0));
+
 			XMFLOAT3 currentVel = m_pPlayer->GetVelocity();
-			m_pPlayer->SetVelocity(XMFLOAT3(currentVel.x, 0.0f, currentVel.z));
+			if (currentVel.y != 0.0f) m_pPlayer->SetVelocity(XMFLOAT3(currentVel.x, 0.0f, currentVel.z));
 
 			m_nJumpCount = 0;
+			m_bJump = false;
 		}
 		else
 		{
+			// 점프 조정
+			// 근데 숫자 바꾸면 2단이 잘 안될 때가 있음.
 			m_pPlayer->SetGravity(XMFLOAT3(0, -1.5f, 0));
 		}
 	}
@@ -888,7 +914,7 @@ void CGameFramework::CollisionProcess()
 			CEffectLibrary::Instance()->Play(EFFECT_TYPE::COLLISION, XMFLOAT3(vPos.x, vPos.y + 10, vPos.z), XMFLOAT2(50, 50), XMFLOAT3(1, 0, 0));
 			CEffectLibrary::Instance()->Play(EFFECT_TYPE::COLLISION, XMFLOAT3(vPos.x, vPos.y + 10, vPos.z), XMFLOAT2(50, 50), XMFLOAT3(0, 1, 0));
 			CEffectLibrary::Instance()->Play(EFFECT_TYPE::COLLISION, XMFLOAT3(vPos.x, vPos.y + 10, vPos.z), XMFLOAT2(50, 50), XMFLOAT3(0, 0, 1));
-			
+
 
 			pCollidedObject->Disable();
 
@@ -925,11 +951,6 @@ void CGameFramework::CollisionProcess()
 		m_bIsStun = false;
 	}
 
-	if (m_bJump && m_fTotalTime - m_fJumpCurrentTime > 1.0f)
-	{
-		m_pPlayer->SetGravity(XMFLOAT3(0, -1.5, 0));
-		m_bJump = false;
-	}
 }
 
 void CGameFramework::CreateD3D11On12Device()

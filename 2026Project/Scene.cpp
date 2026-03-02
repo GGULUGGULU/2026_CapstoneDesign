@@ -1108,6 +1108,11 @@ bool CScene::CheckGroundCollision()
 	}
 
 	if (bestT == FLT_MAX) return false;
+	
+	//
+	XMFLOAT3 vel = m_pPlayer->GetVelocity();
+	if (vel.y > 0.0f)
+		return false;
 
 	float distToGround = playerBottomY - bestY;
 	const float epsilon = 3.0f;
