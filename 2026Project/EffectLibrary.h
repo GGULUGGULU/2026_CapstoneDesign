@@ -37,6 +37,13 @@ struct ActiveEffect {
 	CMeshEffect* pMeshEffect;
 };
 
+struct CB_RADIAL_BLUR {
+	float strength;
+	float cx;
+	float cy;
+	float aspect;
+};
+
 class CEffectLibrary
 {
 public:
@@ -101,5 +108,30 @@ private:
 	ActiveEffect* m_pWindShieldEffect = nullptr;
 
 	bool m_bSpreadZero = false;
+
+public:
+	void InitializePostProcess(ID3D12Device* pd3dDevice, int width, int height);
+	void ResizePostProcess(ID3D12Device* pd3dDevice, int width, int height);
+	void PrepareSceneRenderTarget(ID3D12GraphicsCommandList* pd3dCommandList, D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle);
+	void RenderRadialBlur(ID3D12GraphicsCommandList* pd3dCommandList, ID3D12Resource* pBackBuffer, D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle, D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle, int speed);
+
+private:
+	int m_nWidth = 0;
+	int m_nHeight = 0;
+
+	ID3D12RootSignature* m_pd3dComputeRootSignature = nullptr;
+
+	// [핵심 변경] CRadialBlurShader 객체 대신 순수 D3D12 PSO 객체를 사용합니다.
+	ID3D12PipelineState* m_pRadialBlurPSO = nullptr;
+
+	ID3D12Resource* m_pSceneRenderTexture = nullptr;
+	ID3D12Resource* m_pBlurTexture = nullptr;
+
+	ID3D12DescriptorHeap* m_pd3dPostProcessRtvHeap = nullptr;
+	ID3D12DescriptorHeap* m_pd3dCbvSrvUavHeap = nullptr;
+
+	D3D12_CPU_DESCRIPTOR_HANDLE m_d3dSceneRtvCpuHandle;
+	D3D12_GPU_DESCRIPTOR_HANDLE m_d3dSrvGpuHandle;
+	D3D12_GPU_DESCRIPTOR_HANDLE m_d3dUavGpuHandle;
 };
 

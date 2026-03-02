@@ -83,11 +83,7 @@ bool CGameFramework::OnCreate(HINSTANCE hInstance, HWND hMainWnd)
 
 	BuildObjectGameStart();
 
-	CreateComputeRootSignature();
-	CreatePostProcessResource();
-
-	m_pRadialBlurShader = new CRadialBlurShader();
-	m_pRadialBlurShader->CreateShader(m_pd3dDevice, m_pd3dComputeRootSignature);
+	CEffectLibrary::Instance()->InitializePostProcess(m_pd3dDevice, m_nWndClientWidth, m_nWndClientHeight);
 
 	return(true);
 }
@@ -323,10 +319,6 @@ void CGameFramework::ChangeSwapChainState()
 		m_d3dSwapChainBackBuffers[i].Reset();
 	}
 	if (m_pd3dDepthStencilBuffer) { m_pd3dDepthStencilBuffer->Release(); m_pd3dDepthStencilBuffer = NULL; }
-	if (m_pSceneRenderTexture) { m_pSceneRenderTexture->Release(); m_pSceneRenderTexture = NULL; }
-	if (m_pBlurTexture) { m_pBlurTexture->Release(); m_pBlurTexture = NULL; }
-	if (m_pd3dPostProcessRtvHeap) { m_pd3dPostProcessRtvHeap->Release(); m_pd3dPostProcessRtvHeap = NULL; }
-	if (m_pd3dCbvSrvUavHeap) { m_pd3dCbvSrvUavHeap->Release(); m_pd3dCbvSrvUavHeap = NULL; }
 
 	if (m_d3d11DeviceContext) m_d3d11DeviceContext->Flush();
 
@@ -342,7 +334,8 @@ void CGameFramework::ChangeSwapChainState()
 
 	CreateRenderTargetView();
 	CreateDepthStencilView();
-	CreatePostProcessResource();
+
+	CEffectLibrary::Instance()->ResizePostProcess(m_pd3dDevice, m_nWndClientWidth, m_nWndClientHeight); // (추가)
 
 	float fAspectRatio = (float)m_nWndClientWidth / (float)m_nWndClientHeight;
 
@@ -434,17 +427,14 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 		{
 		case VK_SPACE:
 		{
-			// Space를 계속 누르고 있을 때 발생하는 자동 반복 입력은 무시
 			if (lParam & 0x40000000) break;
 
-			// 1단 점프 + (지정 시간 내) 2단 점프
 			if (m_nStage != 2 || !m_pPlayer || !m_pScene) break;
 
 			const float fFirstJumpVelocity = 100.0f;
 			const float fSecondJumpVelocity = 200.0f;
 			const float fNow = m_GameTimer.GetTotalTime();
 
-			// 1단 점프는 '지면에 있을 때'만 허용
 			const bool bOnGround = m_pScene->CheckGroundCollision();
 
 			if (m_nJumpCount == 0)
@@ -1296,174 +1286,6 @@ void CGameFramework::SetMainViewport()
 	m_pd3dCommandList->RSSetScissorRects(1, &scissorRect);
 }
 
-void CGameFramework::CreatePostProcessResource()
-{
-	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = { D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 1, D3D12_DESCRIPTOR_HEAP_FLAG_NONE, 0 };
-	m_pd3dDevice->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&m_pd3dPostProcessRtvHeap));
-	m_d3dSceneRtvCpuHandle = m_pd3dPostProcessRtvHeap->GetCPUDescriptorHandleForHeapStart();
-
-	D3D12_DESCRIPTOR_HEAP_DESC srvUavHeapDesc = { D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 2, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE, 0 };
-	m_pd3dDevice->CreateDescriptorHeap(&srvUavHeapDesc, IID_PPV_ARGS(&m_pd3dCbvSrvUavHeap));
-
-	UINT nIncrementSize = m_pd3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-	D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = m_pd3dCbvSrvUavHeap->GetCPUDescriptorHandleForHeapStart();
-	m_d3dSrvGpuHandle = m_pd3dCbvSrvUavHeap->GetGPUDescriptorHandleForHeapStart();
-	m_d3dUavGpuHandle = m_d3dSrvGpuHandle;
-	m_d3dUavGpuHandle.ptr += nIncrementSize;
-
-	D3D12_RESOURCE_DESC resDesc = {};
-	resDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-	resDesc.Width = m_nWndClientWidth;
-	resDesc.Height = m_nWndClientHeight;
-	resDesc.DepthOrArraySize = 1;
-	resDesc.MipLevels = 1;
-	resDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	resDesc.SampleDesc.Count = 1;
-	resDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-	resDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
-
-	D3D12_CLEAR_VALUE clearVal = { DXGI_FORMAT_R8G8B8A8_UNORM, { 0.0f, 0.125f, 0.3f, 1.0f } };
-
-	m_pd3dDevice->CreateCommittedResource(
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT), D3D12_HEAP_FLAG_NONE,
-		&resDesc, D3D12_RESOURCE_STATE_GENERIC_READ, &clearVal, IID_PPV_ARGS(&m_pSceneRenderTexture));
-
-	m_pd3dDevice->CreateRenderTargetView(m_pSceneRenderTexture, NULL, m_d3dSceneRtvCpuHandle);
-
-	m_pd3dDevice->CreateShaderResourceView(m_pSceneRenderTexture, NULL, cpuHandle);
-
-	cpuHandle.ptr += nIncrementSize;
-	resDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-
-	m_pd3dDevice->CreateCommittedResource(
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT), D3D12_HEAP_FLAG_NONE,
-		&resDesc, D3D12_RESOURCE_STATE_COPY_SOURCE, NULL, IID_PPV_ARGS(&m_pBlurTexture));
-
-	m_pd3dDevice->CreateUnorderedAccessView(m_pBlurTexture, NULL, NULL, cpuHandle);
-}
-
-void CGameFramework::CreateComputeRootSignature()
-{
-	D3D12_ROOT_PARAMETER pd3dRootParameters[3];
-
-	pd3dRootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
-	pd3dRootParameters[0].Constants.Num32BitValues = 4;
-	pd3dRootParameters[0].Constants.ShaderRegister = 0; // b0
-	pd3dRootParameters[0].Constants.RegisterSpace = 0;
-	pd3dRootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
-
-	D3D12_DESCRIPTOR_RANGE srvRange[1];
-	srvRange[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	srvRange[0].NumDescriptors = 1;
-	srvRange[0].BaseShaderRegister = 0; // t0
-	srvRange[0].RegisterSpace = 0;
-	srvRange[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
-	pd3dRootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	pd3dRootParameters[1].DescriptorTable.NumDescriptorRanges = 1;
-	pd3dRootParameters[1].DescriptorTable.pDescriptorRanges = srvRange;
-	pd3dRootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
-
-	D3D12_DESCRIPTOR_RANGE uavRange[1];
-	uavRange[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
-	uavRange[0].NumDescriptors = 1;
-	uavRange[0].BaseShaderRegister = 0; // u0
-	uavRange[0].RegisterSpace = 0;
-	uavRange[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
-	pd3dRootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	pd3dRootParameters[2].DescriptorTable.NumDescriptorRanges = 1;
-	pd3dRootParameters[2].DescriptorTable.pDescriptorRanges = uavRange;
-	pd3dRootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
-
-	D3D12_ROOT_SIGNATURE_DESC d3dRootSignatureDesc;
-	::ZeroMemory(&d3dRootSignatureDesc, sizeof(D3D12_ROOT_SIGNATURE_DESC));
-	d3dRootSignatureDesc.NumParameters = _countof(pd3dRootParameters);
-	d3dRootSignatureDesc.pParameters = pd3dRootParameters;
-	d3dRootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
-
-	ID3DBlob* pd3dSignatureBlob = NULL;
-	ID3DBlob* pd3dErrorBlob = NULL;
-	D3D12SerializeRootSignature(&d3dRootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &pd3dSignatureBlob, &pd3dErrorBlob);
-	m_pd3dDevice->CreateRootSignature(0, pd3dSignatureBlob->GetBufferPointer(), pd3dSignatureBlob->GetBufferSize(), __uuidof(ID3D12RootSignature), (void**)&m_pd3dComputeRootSignature);
-	if (pd3dSignatureBlob) pd3dSignatureBlob->Release();
-	if (pd3dErrorBlob) pd3dErrorBlob->Release();
-}
-
-void CGameFramework::RenderBlur()
-{
-	D3D12_RESOURCE_BARRIER toRT = CD3DX12_RESOURCE_BARRIER::Transition(
-		m_pSceneRenderTexture, D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	m_pd3dCommandList->ResourceBarrier(1, &toRT);
-
-	float pfClearColor[4] = { 0.0f, 0.125f, 0.3f, 1.0f };
-	m_pd3dCommandList->ClearRenderTargetView(m_d3dSceneRtvCpuHandle, pfClearColor, 0, NULL);
-
-	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = m_pd3dDsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-	m_pd3dCommandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, NULL);
-
-	m_pd3dCommandList->OMSetRenderTargets(1, &m_d3dSceneRtvCpuHandle, TRUE, &dsvHandle);
-	SetMainViewport();
-
-	if (m_pScene) m_pScene->Render(m_pd3dCommandList, m_pCamera);
-
-	D3D12_RESOURCE_BARRIER barriers[2];
-	barriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(
-		m_pSceneRenderTexture, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_GENERIC_READ);
-	barriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(
-		m_pBlurTexture, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-	m_pd3dCommandList->ResourceBarrier(2, barriers);
-
-	m_pd3dCommandList->SetComputeRootSignature(m_pd3dComputeRootSignature);
-	m_pd3dCommandList->SetDescriptorHeaps(1, &m_pd3dCbvSrvUavHeap);
-
-	m_pd3dCommandList->SetComputeRootDescriptorTable(1, m_d3dSrvGpuHandle); // t0
-	m_pd3dCommandList->SetComputeRootDescriptorTable(2, m_d3dUavGpuHandle); // u0
-
-	if (m_nPlayerCurrentSpeed > 0)
-	{
-		cbData.strength = min((float)m_nPlayerCurrentSpeed * 0.0005f, 0.15f);
-	}
-	else
-	{
-		cbData.strength = 0.0f;
-	}
-	cbData.cx = 0.5f; cbData.cy = 0.5f;
-	cbData.aspect = (float)m_nWndClientWidth / (float)m_nWndClientHeight;
-
-	m_pd3dCommandList->SetComputeRoot32BitConstants(0, 4, &cbData, 0);
-
-	m_pRadialBlurShader->Dispatch(m_pd3dCommandList, m_nWndClientWidth, m_nWndClientHeight,
-		(m_nWndClientWidth + 15) / 16, (m_nWndClientHeight + 15) / 16, 1);
-
-	D3D12_RESOURCE_BARRIER copyBarriers[2];
-	copyBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(
-		m_d3dSwapChainBackBuffers[m_nSwapChainBufferIndex].Get(),
-		D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_COPY_DEST);
-	copyBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(
-		m_pBlurTexture, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE);
-	m_pd3dCommandList->ResourceBarrier(2, copyBarriers);
-
-	m_pd3dCommandList->CopyResource(m_d3dSwapChainBackBuffers[m_nSwapChainBufferIndex].Get(), m_pBlurTexture);
-
-	D3D12_RESOURCE_BARRIER toRTBack = CD3DX12_RESOURCE_BARRIER::Transition(
-		m_d3dSwapChainBackBuffers[m_nSwapChainBufferIndex].Get(),
-		D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	m_pd3dCommandList->ResourceBarrier(1, &toRTBack);
-
-	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = m_pd3dRtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-	rtvHandle.ptr += (m_nSwapChainBufferIndex * m_nRtvDescriptorIncrementSize);
-
-	m_pd3dCommandList->OMSetRenderTargets(1, &rtvHandle, TRUE, &dsvHandle);
-
-	SetMainViewport();
-
-	if (m_pPlayer)
-	{
-		m_pPlayer->Render(m_pd3dCommandList, NULL, m_pCamera);
-	}
-}
-
 //#define _WITH_PLAYER_TOP
 
 void CGameFramework::FrameAdvance()
@@ -1495,7 +1317,7 @@ void CGameFramework::FrameAdvance()
 		{
 			m_pPlayer->Update(m_GameTimer.GetTimeElapsed());
 		}
-	}//     Ű 
+	}//
 
 	if (4 == m_nScore)
 	{
@@ -1522,7 +1344,21 @@ void CGameFramework::FrameAdvance()
 
 	if (2 == m_nStage)
 	{
-		RenderBlur();
+		D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = m_pd3dDsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+
+		CEffectLibrary::Instance()->PrepareSceneRenderTarget(m_pd3dCommandList, dsvHandle);
+		SetMainViewport();
+
+		if (m_pScene) m_pScene->Render(m_pd3dCommandList, m_pCamera);
+
+		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = m_pd3dRtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+		rtvHandle.ptr += (m_nSwapChainBufferIndex * m_nRtvDescriptorIncrementSize);
+
+		CEffectLibrary::Instance()->RenderRadialBlur(m_pd3dCommandList, m_d3dSwapChainBackBuffers[m_nSwapChainBufferIndex].Get(), rtvHandle, dsvHandle, m_nPlayerCurrentSpeed);
+
+		SetMainViewport();
+
+		if (m_pPlayer) m_pPlayer->Render(m_pd3dCommandList, NULL, m_pCamera);
 		CEffectLibrary::Instance()->Render(m_pd3dCommandList, m_pCamera->GetViewMatrix(), m_pCamera->GetProjectionMatrix());
 	}
 	else
@@ -1535,7 +1371,6 @@ void CGameFramework::FrameAdvance()
 
 		if (m_pScene) m_pScene->Render(m_pd3dCommandList, m_pCamera);
 		if (m_pPlayer) m_pPlayer->Render(m_pd3dCommandList, NULL, m_pCamera);
-
 	}
 
 	CGameObject* pDebugBoxToRender = NULL;
@@ -1544,7 +1379,6 @@ void CGameFramework::FrameAdvance()
 		pDebugBoxToRender = m_pScene->m_pWireframeBoxObject;
 	}
 
-	//if (m_pScene) m_pScene->Render(m_pd3dCommandList, m_pCamera);
 
 #ifdef _WITH_PLAYER_TOP
 	m_pd3dCommandList->ClearDepthStencilView(d3dDsvCPUDescriptorHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, NULL);

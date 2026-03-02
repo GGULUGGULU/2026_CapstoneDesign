@@ -272,7 +272,7 @@ void CParticleSystem::BoosterAnimate(float fTimeElapsed)
             m_pMappedParticles[m_nActiveParticles].m_xmf3Position = m_vCpuParticles[i].m_xmf3Position;
             m_pMappedParticles[m_nActiveParticles].m_xmf2Size.x = m_vCpuParticles[i].m_xmf2MaxSize.x * fScale;
             m_pMappedParticles[m_nActiveParticles].m_xmf2Size.y = m_vCpuParticles[i].m_xmf2MaxSize.y * fScale;
-            //m_pMappedParticles[m_nActiveParticles].m_xmf3Color = m_vCpuParticles[i].m_xmf3Color;
+            m_pMappedParticles[m_nActiveParticles].m_xmf3Color = m_vCpuParticles[i].m_xmf3Color;
 
             m_nActiveParticles++;
         }

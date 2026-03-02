@@ -61,12 +61,6 @@ public:
 	void CreateShadowMap();
 	void RenderShadowPass();
 	void SetMainViewport(); // [추가] 메인 화면용 뷰포트 설정 함수
-
-	void CreatePostProcessResource();
-	void CreateComputeRootSignature();
-	void RenderBlur();
-
-	CB_RADIAL_BLUR cbData;
 	//
 private:
 	HINSTANCE					m_hInstance;
@@ -140,18 +134,6 @@ private:
 	ID3D12DescriptorHeap* m_pd3dShadowDSVHeap;
 	D3D12_CPU_DESCRIPTOR_HANDLE m_d3dCPUShadowDSVHandle;
 
-	CRadialBlurShader* m_pRadialBlurShader;
-	ID3D12RootSignature* m_pd3dComputeRootSignature;
-
-	ID3D12Resource* m_pSceneRenderTexture;
-	ID3D12Resource* m_pBlurTexture;
-
-	ID3D12DescriptorHeap* m_pd3dCbvSrvUavHeap;
-	D3D12_GPU_DESCRIPTOR_HANDLE m_d3dSrvGpuHandle;
-	D3D12_GPU_DESCRIPTOR_HANDLE m_d3dUavGpuHandle;
-
-	ID3D12DescriptorHeap* m_pd3dPostProcessRtvHeap;
-	D3D12_CPU_DESCRIPTOR_HANDLE m_d3dSceneRtvCpuHandle;
 public:
 	// UI
 	TCHAR m_timeBuffer[1024];

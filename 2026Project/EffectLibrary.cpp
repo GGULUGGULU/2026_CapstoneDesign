@@ -575,6 +575,13 @@ void CEffectLibrary::Release()
 		}
 		m_vEffectPool[i].clear();
 	}
+
+	if (m_pRadialBlurPSO) { m_pRadialBlurPSO->Release(); m_pRadialBlurPSO = nullptr; }
+	if (m_pd3dComputeRootSignature) { m_pd3dComputeRootSignature->Release(); m_pd3dComputeRootSignature = nullptr; }
+	if (m_pSceneRenderTexture) { m_pSceneRenderTexture->Release(); m_pSceneRenderTexture = nullptr; }
+	if (m_pBlurTexture) { m_pBlurTexture->Release(); m_pBlurTexture = nullptr; }
+	if (m_pd3dPostProcessRtvHeap) { m_pd3dPostProcessRtvHeap->Release(); m_pd3dPostProcessRtvHeap = nullptr; }
+	if (m_pd3dCbvSrvUavHeap) { m_pd3dCbvSrvUavHeap->Release(); m_pd3dCbvSrvUavHeap = nullptr; }
 }
 
 void CEffectLibrary::ToggleBooster(bool flag)
@@ -622,4 +629,138 @@ void CEffectLibrary::UpdateBoosterPosition(const XMFLOAT3& pos, const XMFLOAT3& 
 
 		m_pBoosterEffect->pParticleSys->SetPosition(fRearPos);
 	}
+}
+
+void CEffectLibrary::InitializePostProcess(ID3D12Device* pd3dDevice, int width, int height)
+{
+	m_nWidth = width;
+	m_nHeight = height;
+
+	CD3DX12_ROOT_PARAMETER pd3dRootParameters[3];
+	pd3dRootParameters[0].InitAsConstants(4, 0); // b0
+
+	CD3DX12_DESCRIPTOR_RANGE srvRange[1];
+	srvRange[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
+	pd3dRootParameters[1].InitAsDescriptorTable(1, srvRange); // t0
+
+	CD3DX12_DESCRIPTOR_RANGE uavRange[1];
+	uavRange[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
+	pd3dRootParameters[2].InitAsDescriptorTable(1, uavRange); // u0
+
+	CD3DX12_ROOT_SIGNATURE_DESC d3dRootSignatureDesc;
+	d3dRootSignatureDesc.Init(3, pd3dRootParameters, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_NONE);
+
+	ID3DBlob* pd3dSignatureBlob = NULL;
+	ID3DBlob* pd3dErrorBlob = NULL;
+	D3D12SerializeRootSignature(&d3dRootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &pd3dSignatureBlob, &pd3dErrorBlob);
+	pd3dDevice->CreateRootSignature(0, pd3dSignatureBlob->GetBufferPointer(), pd3dSignatureBlob->GetBufferSize(), __uuidof(ID3D12RootSignature), (void**)&m_pd3dComputeRootSignature);
+
+	if (pd3dSignatureBlob) pd3dSignatureBlob->Release();
+	if (pd3dErrorBlob) pd3dErrorBlob->Release();
+
+	D3D12_COMPUTE_PIPELINE_STATE_DESC psoDesc = {};
+	psoDesc.pRootSignature = m_pd3dComputeRootSignature;
+	psoDesc.CS = CompileShaderHelper(L"Shaders.hlsl", "CS_RadialBlur", "cs_5_1"); 
+	psoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+
+	pd3dDevice->CreateComputePipelineState(&psoDesc, IID_PPV_ARGS(&m_pRadialBlurPSO));
+
+	ResizePostProcess(pd3dDevice, width, height);
+}
+
+void CEffectLibrary::ResizePostProcess(ID3D12Device* pd3dDevice, int width, int height)
+{
+	if (m_pSceneRenderTexture) { m_pSceneRenderTexture->Release(); m_pSceneRenderTexture = nullptr; }
+	if (m_pBlurTexture) { m_pBlurTexture->Release(); m_pBlurTexture = nullptr; }
+	if (m_pd3dPostProcessRtvHeap) { m_pd3dPostProcessRtvHeap->Release(); m_pd3dPostProcessRtvHeap = nullptr; }
+	if (m_pd3dCbvSrvUavHeap) { m_pd3dCbvSrvUavHeap->Release(); m_pd3dCbvSrvUavHeap = nullptr; }
+
+	m_nWidth = width;
+	m_nHeight = height;
+
+	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = { D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 1, D3D12_DESCRIPTOR_HEAP_FLAG_NONE, 0 };
+	pd3dDevice->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&m_pd3dPostProcessRtvHeap));
+	m_d3dSceneRtvCpuHandle = m_pd3dPostProcessRtvHeap->GetCPUDescriptorHandleForHeapStart();
+
+	D3D12_DESCRIPTOR_HEAP_DESC srvUavHeapDesc = { D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 2, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE, 0 };
+	pd3dDevice->CreateDescriptorHeap(&srvUavHeapDesc, IID_PPV_ARGS(&m_pd3dCbvSrvUavHeap));
+
+	UINT nIncrementSize = pd3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = m_pd3dCbvSrvUavHeap->GetCPUDescriptorHandleForHeapStart();
+
+	m_d3dSrvGpuHandle = m_pd3dCbvSrvUavHeap->GetGPUDescriptorHandleForHeapStart();
+	m_d3dUavGpuHandle = m_d3dSrvGpuHandle;
+	m_d3dUavGpuHandle.ptr += nIncrementSize;
+
+	D3D12_RESOURCE_DESC resDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R8G8B8A8_UNORM, width, height, 1, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET);
+	D3D12_CLEAR_VALUE clearVal = { DXGI_FORMAT_R8G8B8A8_UNORM, { 0.0f, 0.125f, 0.3f, 1.0f } }; // 기존 게임의 배경색
+
+	pd3dDevice->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT), D3D12_HEAP_FLAG_NONE,
+		&resDesc, D3D12_RESOURCE_STATE_GENERIC_READ, &clearVal, IID_PPV_ARGS(&m_pSceneRenderTexture)
+	);
+
+	pd3dDevice->CreateRenderTargetView(m_pSceneRenderTexture, NULL, m_d3dSceneRtvCpuHandle);
+	pd3dDevice->CreateShaderResourceView(m_pSceneRenderTexture, NULL, cpuHandle);
+
+	cpuHandle.ptr += nIncrementSize;
+
+	resDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+	pd3dDevice->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT), D3D12_HEAP_FLAG_NONE,
+		&resDesc, D3D12_RESOURCE_STATE_COPY_SOURCE, NULL, IID_PPV_ARGS(&m_pBlurTexture)
+	);
+
+	pd3dDevice->CreateUnorderedAccessView(m_pBlurTexture, NULL, NULL, cpuHandle);
+}
+
+void CEffectLibrary::PrepareSceneRenderTarget(ID3D12GraphicsCommandList* pd3dCommandList, D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle)
+{
+	D3D12_RESOURCE_BARRIER toRT = CD3DX12_RESOURCE_BARRIER::Transition(
+		m_pSceneRenderTexture,
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		D3D12_RESOURCE_STATE_RENDER_TARGET
+	);
+	pd3dCommandList->ResourceBarrier(1, &toRT);
+
+	float pfClearColor[4] = { 0.0f, 0.125f, 0.3f, 1.0f };
+	pd3dCommandList->ClearRenderTargetView(m_d3dSceneRtvCpuHandle, pfClearColor, 0, NULL);
+	pd3dCommandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, NULL);
+
+	pd3dCommandList->OMSetRenderTargets(1, &m_d3dSceneRtvCpuHandle, TRUE, &dsvHandle);
+}
+
+void CEffectLibrary::RenderRadialBlur(ID3D12GraphicsCommandList* pd3dCommandList, ID3D12Resource* pBackBuffer, D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle, D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle, int speed)
+{
+	D3D12_RESOURCE_BARRIER barriers[2];
+	barriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(m_pSceneRenderTexture, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_GENERIC_READ);
+	barriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(m_pBlurTexture, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	pd3dCommandList->ResourceBarrier(2, barriers);
+
+	pd3dCommandList->SetComputeRootSignature(m_pd3dComputeRootSignature);
+	pd3dCommandList->SetDescriptorHeaps(1, &m_pd3dCbvSrvUavHeap);
+	pd3dCommandList->SetComputeRootDescriptorTable(1, m_d3dSrvGpuHandle); // t0
+	pd3dCommandList->SetComputeRootDescriptorTable(2, m_d3dUavGpuHandle); // u0
+
+	CB_RADIAL_BLUR cbData;
+	cbData.strength = (speed > 0) ? min((float)speed * 0.0005f, 0.15f) : 0.0f;
+	cbData.cx = 0.5f; cbData.cy = 0.5f;
+	cbData.aspect = (float)m_nWidth / (float)m_nHeight;
+
+	pd3dCommandList->SetComputeRoot32BitConstants(0, 4, &cbData, 0);
+
+	pd3dCommandList->SetPipelineState(m_pRadialBlurPSO);
+	pd3dCommandList->Dispatch((m_nWidth + 15) / 16, (m_nHeight + 15) / 16, 1);
+
+	D3D12_RESOURCE_BARRIER copyBarriers[2];
+	copyBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(pBackBuffer, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_COPY_DEST);
+	copyBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(m_pBlurTexture, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE);
+	pd3dCommandList->ResourceBarrier(2, copyBarriers);
+
+	pd3dCommandList->CopyResource(pBackBuffer, m_pBlurTexture);
+
+	D3D12_RESOURCE_BARRIER toRTBack = CD3DX12_RESOURCE_BARRIER::Transition(pBackBuffer, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	pd3dCommandList->ResourceBarrier(1, &toRTBack);
+
+	pd3dCommandList->OMSetRenderTargets(1, &rtvHandle, TRUE, &dsvHandle);
 }

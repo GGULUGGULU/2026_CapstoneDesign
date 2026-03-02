@@ -801,46 +801,6 @@ void CShadowShader::CreateShader(ID3D12Device* pd3dDevice, ID3D12GraphicsCommand
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // 
-
-CRadialBlurShader::CRadialBlurShader()
-{
-}
-
-CRadialBlurShader::~CRadialBlurShader()
-{
-}
-
-D3D12_SHADER_BYTECODE CRadialBlurShader::CreateComputeShader()
-{
-	return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "CS_RadialBlur", "cs_5_1", &m_pd3dComputeShaderBlob));
-}
-
-void CRadialBlurShader::CreateShader(ID3D12Device* pd3dDevice, ID3D12RootSignature* pd3dRootSignature)
-{
-	m_nPipelineStates = 1;
-	m_ppd3dPipelineStates = new ID3D12PipelineState * [m_nPipelineStates];
-
-	D3D12_COMPUTE_PIPELINE_STATE_DESC d3dComputePipelineStateDesc;
-	::ZeroMemory(&d3dComputePipelineStateDesc, sizeof(D3D12_COMPUTE_PIPELINE_STATE_DESC));
-
-	d3dComputePipelineStateDesc.pRootSignature = pd3dRootSignature;
-	d3dComputePipelineStateDesc.CS = CreateComputeShader();
-	d3dComputePipelineStateDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
-
-	HRESULT hResult = pd3dDevice->CreateComputePipelineState(&d3dComputePipelineStateDesc, __uuidof(ID3D12PipelineState), (void**)&m_ppd3dPipelineStates[0]);
-
-	if (m_pd3dComputeShaderBlob) m_pd3dComputeShaderBlob->Release();
-}
-
-void CRadialBlurShader::Dispatch(ID3D12GraphicsCommandList* pd3dCommandList, UINT nWidth, UINT nHeight, UINT nGroupX, UINT nGroupY, UINT nGroupZ)
-{
-	pd3dCommandList->SetPipelineState(m_ppd3dPipelineStates[0]);
-
-	pd3dCommandList->Dispatch(nGroupX, nGroupY, nGroupZ);
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////
-
 CTerrainShader::CTerrainShader()
 {
 }

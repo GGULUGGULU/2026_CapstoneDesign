@@ -172,21 +172,6 @@ public:
 	virtual void CreateShader(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature);
 };
 
-class CRadialBlurShader :public CShader
-{
-public:
-	CRadialBlurShader();
-	virtual ~CRadialBlurShader();
-
-	virtual D3D12_SHADER_BYTECODE CreateComputeShader();
-	virtual void CreateShader(ID3D12Device* pd3dDevice, ID3D12RootSignature* pd3dRootSignature);
-
-	void Dispatch(ID3D12GraphicsCommandList* pd3dCommandList, UINT nWidth, UINT nHeight, UINT nGroupX, UINT nGroupY, UINT nGroupZ);
-
-protected:
-	ID3DBlob* m_pd3dComputeShaderBlob = NULL;
-};
-
 class CTerrainShader : public CShader
 {
 public:
