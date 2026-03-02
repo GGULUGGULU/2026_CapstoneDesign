@@ -441,7 +441,7 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 			if (m_nStage != 2 || !m_pPlayer || !m_pScene) break;
 
 			const float fFirstJumpVelocity = 100.0f;
-			const float fSecondJumpVelocity = 90.0f;
+			const float fSecondJumpVelocity = 200.0f;
 			const float fNow = m_GameTimer.GetTotalTime();
 
 			// 1단 점프는 '지면에 있을 때'만 허용
