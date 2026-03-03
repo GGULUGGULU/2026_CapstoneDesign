@@ -609,7 +609,7 @@ void CEffectLibrary::UpdateBoosterPosition(const XMFLOAT3& pos, const XMFLOAT3& 
 
 	if (m_pWindShieldEffect && m_pWindShieldEffect->pMeshEffect)
 	{
-		XMVECTOR vFrontPos = XMLoadFloat3(&pos) + (vLook * 5.0f);
+		XMVECTOR vFrontPos = XMLoadFloat3(&pos) - (vLook * 150.0f); // Ä¸½¶ÀÇ ¾ÕÀÌ °´Ã¼ ¹Ù·Î ¾Õ¿¡ ¿À°Ô²û vLook* n ¼öÁ¤
 		XMFLOAT3 fFrontPos;
 		XMStoreFloat3(&fFrontPos, vFrontPos);
 
@@ -617,7 +617,12 @@ void CEffectLibrary::UpdateBoosterPosition(const XMFLOAT3& pos, const XMFLOAT3& 
 
 		float yaw = XMConvertToDegrees(atan2(lookDir.x, lookDir.z));
 
-		XMFLOAT3 rot = XMFLOAT3(90.0f, yaw, 0.0f);
+		float yVal = lookDir.y;
+		if (yVal > 1.0f) yVal = 1.0f;
+		if (yVal < -1.0f) yVal = -1.0f;
+		float pitch = XMConvertToDegrees(asin(yVal));
+
+		XMFLOAT3 rot = XMFLOAT3(90.0f - pitch, yaw, 0.0f);
 		m_pWindShieldEffect->pMeshEffect->SetRotation(rot);
 	}
 
