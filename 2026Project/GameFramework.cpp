@@ -45,6 +45,20 @@ CGameFramework::CGameFramework()
 	m_fJumpCurrentTime = 0.0f;
 	m_fSecondJumpWindow = 0.35f; // seconds
 
+	// 아이템 + 대시
+	m_fBasePlayerMaxSpeed = 0.0f;
+	m_fSpeedItemBonus = 0.0f;
+
+	m_fDashSpeedBonus = 150.0f;
+	m_fCurrentDashGauge = 100.0f;
+	m_fMaxDashGauge = 100.0f;
+	m_fDashGaugeConsumePerSecond = 45.0f;
+	m_fDashGaugeRecoverPerSecond = 25.0f;
+	m_fDashGaugeIncreaseAmount = 50.0f;
+
+	m_bIsDashing = false;
+
+
 	_tcscpy_s(m_pszFrameRate, _T("2026Project ("));
 }
 
@@ -477,6 +491,11 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 		case VK_F2:
 		case VK_F3:
 			m_pCamera = m_pPlayer->ChangeCamera((DWORD)(wParam - VK_F1 + 1), m_GameTimer.GetTimeElapsed());
+			
+			// 아이템 + 대시 재적용
+			m_fBasePlayerMaxSpeed = m_pPlayer->m_fMaxVelocityXZ;
+			m_pPlayer->m_fMaxVelocityXZ = GetPlayerEffectiveMaxSpeed();
+
 			break;
 		case VK_F9:
 			ChangeSwapChainState();
@@ -641,25 +660,56 @@ void CGameFramework::ProcessInput()
 	}
 	m_pPlayer->Update(m_GameTimer.GetTimeElapsed());
 }
-
 void CGameFramework::ProcessInputGameStage()
 {
 	static UCHAR pKeysBuffer[256];
+	::ZeroMemory(pKeysBuffer, sizeof(pKeysBuffer));
+
 	bool bProcessedByScene = false;
-	if (GetKeyboardState(pKeysBuffer) && m_pScene) bProcessedByScene = m_pScene->ProcessInput(pKeysBuffer);
+	if (GetKeyboardState(pKeysBuffer) && m_pScene)
+		bProcessedByScene = m_pScene->ProcessInput(pKeysBuffer);
+
+	const bool bForward = ((pKeysBuffer[VK_UP] & 0xF0) != 0);
+	const bool bBackward = ((pKeysBuffer[VK_DOWN] & 0xF0) != 0);
+	const bool bHasDriveInput = (bForward || bBackward);
+	const bool bDashKeyDown = ((::GetAsyncKeyState('Z') & 0x8000) != 0);
+
+	const float fTimeElapsed = m_GameTimer.GetTimeElapsed();
+
+	UpdateDashSystem(fTimeElapsed, bDashKeyDown, bHasDriveInput);
+
 	if (!bProcessedByScene)
 	{
 		DWORD dwDirection = 0;
-		if (pKeysBuffer[VK_UP] & 0xF0) { dwDirection |= DIR_FORWARD; if (m_nPlayerCurrentSpeed < m_pPlayer->m_fMaxVelocityXZ) ++m_nPlayerCurrentSpeed; }
-		else if (pKeysBuffer[VK_DOWN] & 0xF0) { dwDirection |= DIR_BACKWARD; if (m_nPlayerCurrentSpeed < m_pPlayer->m_fMaxVelocityXZ) ++m_nPlayerCurrentSpeed; }
-		else { if (m_nPlayerCurrentSpeed > 0)--m_nPlayerCurrentSpeed; }
+
+		const int nAccel = (m_bIsDashing ? 4 : 1);
+		const int nCurrentMaxSpeed = (int)GetPlayerEffectiveMaxSpeed();
+
+		if (bForward)
+		{
+			dwDirection |= DIR_FORWARD;
+			m_nPlayerCurrentSpeed += nAccel;
+			if (m_nPlayerCurrentSpeed > nCurrentMaxSpeed)
+				m_nPlayerCurrentSpeed = nCurrentMaxSpeed;
+		}
+		else if (bBackward)
+		{
+			dwDirection |= DIR_BACKWARD;
+			m_nPlayerCurrentSpeed += nAccel;
+			if (m_nPlayerCurrentSpeed > nCurrentMaxSpeed)
+				m_nPlayerCurrentSpeed = nCurrentMaxSpeed;
+		}
+		else
+		{
+			if (m_nPlayerCurrentSpeed > 0) --m_nPlayerCurrentSpeed;
+		}
 
 		if (pKeysBuffer[VK_LEFT] & 0xF0) dwDirection |= DIR_LEFT;
 		if (pKeysBuffer[VK_RIGHT] & 0xF0) dwDirection |= DIR_RIGHT;
 		if (pKeysBuffer[VK_PRIOR] & 0xF0) dwDirection |= DIR_UP;
 		if (pKeysBuffer[VK_NEXT] & 0xF0) dwDirection |= DIR_DOWN;
 
-		if ((dwDirection != 0))
+		if (dwDirection != 0)
 		{
 			if (dwDirection == DIR_LEFT || dwDirection == DIR_RIGHT)
 			{
@@ -668,12 +718,21 @@ void CGameFramework::ProcessInputGameStage()
 				else
 					m_pPlayer->Rotate(0.0f, -1.0f, 0.0f);
 			}
-			else if (dwDirection) m_pPlayer->Move(dwDirection, m_nPlayerCurrentSpeed, true);
+			else
+			{
+				m_pPlayer->Move(dwDirection, (float)m_nPlayerCurrentSpeed, true);
+			}
 
-			//CEffectLibrary::Instance()->PlayCarDustParticle(EFFECT_TYPE::DUST, XMFLOAT3(m_pPlayer->GetPosition().x, m_pPlayer->GetPosition().y, m_pPlayer->GetPosition().z), XMFLOAT2(5, 5), XMFLOAT2(10,20));
 			if (2 < m_cnt)
 			{
-				CEffectLibrary::Instance()->PlayCarDustParticle(EFFECT_TYPE::DUST, m_pPlayer->GetPosition(), m_pPlayer->GetRightVector(), m_pPlayer->GetLookVector(), XMFLOAT2(5, 5), XMFLOAT2(10, 20));
+				CEffectLibrary::Instance()->PlayCarDustParticle(
+					EFFECT_TYPE::DUST,
+					m_pPlayer->GetPosition(),
+					m_pPlayer->GetRightVector(),
+					m_pPlayer->GetLookVector(),
+					XMFLOAT2(5, 5),
+					XMFLOAT2(10, 20)
+				);
 				m_cnt = 0;
 			}
 			else
@@ -683,17 +742,13 @@ void CGameFramework::ProcessInputGameStage()
 		}
 	}
 
-	if (::GetAsyncKeyState('Z') & 0x8000)
-	{
-		CEffectLibrary::Instance()->ToggleBooster(true);
-	}
-	else
-	{
-		CEffectLibrary::Instance()->ToggleBooster(false);
-	}///////////////////
+	if ((float)m_nPlayerCurrentSpeed > GetPlayerEffectiveMaxSpeed())
+		m_nPlayerCurrentSpeed = (int)GetPlayerEffectiveMaxSpeed();
 
-	m_pPlayer->Update(m_GameTimer.GetTimeElapsed());
+	m_pPlayer->Update(fTimeElapsed);
 }
+
+
 
 void CGameFramework::AnimateObjects()
 {
@@ -826,6 +881,27 @@ void CGameFramework::BuildGameObjects()
 
 	m_pCamera = m_pPlayer->GetCamera();
 
+	// 아이템 + 대시 
+
+	m_fBasePlayerMaxSpeed = m_pPlayer->m_fMaxVelocityXZ;
+	m_fSpeedItemBonus = 0.0f;
+
+	m_fDashSpeedBonus = 150.0f;
+	m_fMaxDashGauge = 100.0f;
+	m_fCurrentDashGauge = m_fMaxDashGauge;
+	m_fDashGaugeConsumePerSecond = 45.0f;
+	m_fDashGaugeRecoverPerSecond = 25.0f;
+	m_fDashGaugeIncreaseAmount = 50.0f;
+
+	m_bIsDashing = false;
+	m_nPlayerCurrentSpeed = 0;
+
+	m_pPlayer->m_fMaxVelocityXZ = GetPlayerEffectiveMaxSpeed();
+
+	//
+
+
+
 	m_pd3dCommandList->Close();
 	ID3D12CommandList* ppd3dCommandLists[] = { m_pd3dCommandList };
 	m_pd3dCommandQueue->ExecuteCommandLists(1, ppd3dCommandLists);
@@ -836,6 +912,96 @@ void CGameFramework::BuildGameObjects()
 	if (m_pPlayer) m_pPlayer->ReleaseUploadBuffers();
 
 	m_GameTimer.Reset();
+}
+
+CGameFramework::ITEM_TYPE CGameFramework::GetItemType(CGameObject* pObject) const
+{
+	if (!m_pScene || !pObject) return ITEM_NONE;
+
+	if (pObject == m_pScene->m_ppGameObjects[109]) return ITEM_DASH_POTION;
+	if (pObject == m_pScene->m_ppGameObjects[110]) return ITEM_MAX_SPEED_UP;
+	if (pObject == m_pScene->m_ppGameObjects[111]) return ITEM_MAX_DASH_GAUGE_UP;
+	if (pObject == m_pScene->m_ppGameObjects[112]) return ITEM_DASH_POTION; // 중복 배치
+
+	return ITEM_NONE;
+}
+
+float CGameFramework::GetPlayerEffectiveMaxSpeed() const
+{
+	float fMaxSpeed = m_fBasePlayerMaxSpeed + m_fSpeedItemBonus;
+	if (m_bIsDashing) fMaxSpeed += m_fDashSpeedBonus;
+	return fMaxSpeed;
+}
+
+void CGameFramework::ApplyItemReward(ITEM_TYPE eItemType)
+{
+	if (!m_pPlayer) return;
+
+	switch (eItemType)
+	{
+	case ITEM_DASH_POTION:
+		// 대시포션: 게이지 풀충전
+		m_fCurrentDashGauge = m_fMaxDashGauge;
+		break;
+
+	case ITEM_MAX_SPEED_UP:
+		// 최대 스피드 증가
+		m_fSpeedItemBonus += 50.0f;
+		break;
+
+	case ITEM_MAX_DASH_GAUGE_UP:
+		// 최대 대시 게이지 증가
+		m_fMaxDashGauge += m_fDashGaugeIncreaseAmount;
+		m_fCurrentDashGauge += m_fDashGaugeIncreaseAmount;
+		if (m_fCurrentDashGauge > m_fMaxDashGauge)
+			m_fCurrentDashGauge = m_fMaxDashGauge;
+		break;
+
+	default:
+		break;
+	}
+
+	m_pPlayer->m_fMaxVelocityXZ = GetPlayerEffectiveMaxSpeed();
+
+	if ((float)m_nPlayerCurrentSpeed > m_pPlayer->m_fMaxVelocityXZ)
+		m_nPlayerCurrentSpeed = (int)m_pPlayer->m_fMaxVelocityXZ;
+}
+
+// 아이템 + 대시 
+void CGameFramework::UpdateDashSystem(float fTimeElapsed, bool bDashKeyDown, bool bHasDriveInput)
+{
+	if (!m_pPlayer)
+	{
+		m_bIsDashing = false;
+		CEffectLibrary::Instance()->ToggleBooster(false);
+		return;
+	}
+
+	const bool bCanDash = (bDashKeyDown && bHasDriveInput && (m_fCurrentDashGauge > 0.0f));
+	m_bIsDashing = bCanDash;
+
+	if (m_bIsDashing)
+	{
+		m_fCurrentDashGauge -= (m_fDashGaugeConsumePerSecond * fTimeElapsed);
+		if (m_fCurrentDashGauge <= 0.0f)
+		{
+			m_fCurrentDashGauge = 0.0f;
+			m_bIsDashing = false;
+		}
+	}
+	else
+	{
+		m_fCurrentDashGauge += (m_fDashGaugeRecoverPerSecond * fTimeElapsed);
+		if (m_fCurrentDashGauge > m_fMaxDashGauge)
+			m_fCurrentDashGauge = m_fMaxDashGauge;
+	}
+
+	m_pPlayer->m_fMaxVelocityXZ = GetPlayerEffectiveMaxSpeed();
+
+	if ((float)m_nPlayerCurrentSpeed > m_pPlayer->m_fMaxVelocityXZ)
+		m_nPlayerCurrentSpeed = (int)m_pPlayer->m_fMaxVelocityXZ;
+
+	CEffectLibrary::Instance()->ToggleBooster(m_bIsDashing);
 }
 
 void CGameFramework::CollisionProcess()
@@ -873,11 +1039,11 @@ void CGameFramework::CollisionProcess()
 	{
 		CGameObject* pCollidedObject = m_pScene->m_pCollidedObject;
 
+		// 아이템 + 대시
+		ITEM_TYPE eItemType = GetItemType(pCollidedObject);
 
-		if (pCollidedObject == m_pScene->m_ppGameObjects[109] || pCollidedObject == m_pScene->m_ppGameObjects[110] ||
-			pCollidedObject == m_pScene->m_ppGameObjects[111] || pCollidedObject == m_pScene->m_ppGameObjects[112])
+		if (eItemType != ITEM_NONE)
 		{
-
 			XMFLOAT3 vPos = pCollidedObject->GetPosition();
 
 			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM1, vPos, XMFLOAT2(50, 50));
@@ -891,20 +1057,17 @@ void CGameFramework::CollisionProcess()
 			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM9, vPos, XMFLOAT2(50, 50));
 
 			pCollidedObject->Disable();
-
 			++m_nScore;
 
-			m_pPlayer->m_fMaxVelocityXZ += 50;
+			ApplyItemReward(eItemType);
 		}
 		else if (pCollidedObject != m_pScene->m_ppGameObjects[38])
 		{
-
 			XMFLOAT3 vPos = pCollidedObject->GetPosition();
 
 			CEffectLibrary::Instance()->Play(EFFECT_TYPE::COLLISION, XMFLOAT3(vPos.x, vPos.y + 10, vPos.z), XMFLOAT2(50, 50), XMFLOAT3(1, 0, 0));
 			CEffectLibrary::Instance()->Play(EFFECT_TYPE::COLLISION, XMFLOAT3(vPos.x, vPos.y + 10, vPos.z), XMFLOAT2(50, 50), XMFLOAT3(0, 1, 0));
 			CEffectLibrary::Instance()->Play(EFFECT_TYPE::COLLISION, XMFLOAT3(vPos.x, vPos.y + 10, vPos.z), XMFLOAT2(50, 50), XMFLOAT3(0, 0, 1));
-
 
 			pCollidedObject->Disable();
 
@@ -934,6 +1097,8 @@ void CGameFramework::CollisionProcess()
 			m_bIsStun = true;
 			m_fCollisionCurrentTime = m_fTotalTime;
 		}
+
+
 	}
 
 	if (m_bIsStun && m_fTotalTime - m_fCollisionCurrentTime > 1.0f)
@@ -1111,7 +1276,18 @@ void CGameFramework::RenderUI()
 	swprintf_s(m_timeBuffer, 1024, L"%02d:%02d:%02d", minutes, seconds, milliseconds);
 
 	//swprintf_s(m_speedBuffer, 1024, L"%d Km/h", m_nPlayerCurrentSpeed);
-	swprintf_s(m_speedBuffer, 1024, L"%d Km/h  [Res: %d x %d]", m_nPlayerCurrentSpeed, m_nWndClientWidth, m_nWndClientHeight);
+	//swprintf_s(m_speedBuffer, 1024, L"%d Km/h  [Res: %d x %d]", m_nPlayerCurrentSpeed, m_nWndClientWidth, m_nWndClientHeight);
+	swprintf_s(
+		m_speedBuffer,
+		1024,
+		L"%d Km/h  Dash : %.0f / %.0f  [Res: %d x %d]",
+		m_nPlayerCurrentSpeed,
+		m_fCurrentDashGauge,
+		m_fMaxDashGauge,
+		m_nWndClientWidth,
+		m_nWndClientHeight
+	);
+	
 	if (4 != m_nScore && 2 == m_nStage)
 	{
 		m_d2dDeviceContext->DrawTextW(
@@ -1315,7 +1491,9 @@ void CGameFramework::FrameAdvance()
 		}
 		else
 		{
-			m_pPlayer->Update(m_GameTimer.GetTimeElapsed());
+			const float fTimeElapsed = m_GameTimer.GetTimeElapsed(); 
+			UpdateDashSystem(fTimeElapsed, false, false); // 스턴 중에는 dash 끔 + 게이지 회복
+			m_pPlayer->Update(fTimeElapsed);
 		}
 	}//
 

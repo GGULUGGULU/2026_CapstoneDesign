@@ -523,8 +523,8 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 			pSuperCobraObject = new CSuperCobraObject();
 			pSuperCobraObject->SetChild(pSuperCobraModel, true);
 			pSuperCobraObject->OnInitialize();
-			pSuperCobraObject->SetPosition(0.0f, 0.0f, uid1(dre));
-			pSuperCobraObject->SetScale(10.5f, 10.5f, 10.5f);
+			pSuperCobraObject->SetPosition(1000.0f, 0.0f, uid1(dre));
+			pSuperCobraObject->SetScale(0.5f, 10.5f, 10.5f);
 			pSuperCobraObject->Rotate(0.0f, uid(dre), 0.0f);
 			pSuperCobraObject->ComputeNewLocalAABB();
 			m_ppGameObjects[94 + i] = pSuperCobraObject;
@@ -534,7 +534,7 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		CGameObject* pItemModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
 		CGameObject* pItemObject = new CGameObject();
 		pItemObject->SetChild(pItemModel);
-		pItemObject->SetPosition(-2300.0f, 50.0f, 2300.0f);
+		pItemObject->SetPosition(0.0f, 0.0f, uid1(dre));
 		pItemObject->Rotate(0.0f, 0.0f, 0.0f);
 		pItemObject->SetScale(10, 10, 10);
 		pItemObject->ComputeNewLocalAABB();
@@ -543,7 +543,7 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		CGameObject* pItemModel1 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
 		CGameObject* pItemObject1 = new CGameObject();
 		pItemObject1->SetChild(pItemModel1);
-		pItemObject1->SetPosition(-2200.0f, 20.0f, -2300.0f);
+		pItemObject1->SetPosition(0.0f, 0.0f, uid1(dre));
 		pItemObject1->Rotate(0.0f, 0.0f, 0.0f);
 		pItemObject1->SetScale(10, 10, 10);
 		pItemObject1->ComputeNewLocalAABB();
@@ -552,7 +552,7 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		CGameObject* pItemModel2 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
 		CGameObject* pItemObject2 = new CGameObject();
 		pItemObject2->SetChild(pItemModel2);
-		pItemObject2->SetPosition(2300.0f, 40.0f, -2300.0f);
+		pItemObject2->SetPosition(0.0f, 0.0f, uid1(dre));
 		pItemObject2->Rotate(0.0f, 0.0f, 0.0f);
 		pItemObject2->SetScale(10, 10, 10);
 		pItemObject2->ComputeNewLocalAABB();
@@ -561,7 +561,7 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		CGameObject* pItemModel3 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
 		CGameObject* pItemObject3 = new CGameObject();
 		pItemObject3->SetChild(pItemModel3);
-		pItemObject3->SetPosition(2200.0f, 50.0f, 2300.0f);
+		pItemObject3->SetPosition(0.0f, 0.0f, uid1(dre));
 		pItemObject3->Rotate(0.0f, 0.0f, 0.0f);
 		pItemObject3->SetScale(10, 10, 10);
 		pItemObject3->ComputeNewLocalAABB();

@@ -10,6 +10,34 @@
 
 class CGameFramework
 {
+	// 아이템 + 대시
+private:
+	enum ITEM_TYPE
+	{
+		ITEM_NONE = 0,
+		ITEM_DASH_POTION,
+		ITEM_MAX_SPEED_UP,
+		ITEM_MAX_DASH_GAUGE_UP
+	};
+
+	ITEM_TYPE GetItemType(CGameObject* pObject) const;
+	void ApplyItemReward(ITEM_TYPE eItemType);
+	void UpdateDashSystem(float fTimeElapsed, bool bDashKeyDown, bool bHasDriveInput);
+	float GetPlayerEffectiveMaxSpeed() const;
+
+private:
+	float m_fBasePlayerMaxSpeed;
+	float m_fSpeedItemBonus;
+
+	float m_fDashSpeedBonus;
+	float m_fCurrentDashGauge;
+	float m_fMaxDashGauge;
+	float m_fDashGaugeConsumePerSecond;
+	float m_fDashGaugeRecoverPerSecond;
+	float m_fDashGaugeIncreaseAmount;
+
+	bool  m_bIsDashing;
+
 public:
 	CGameFramework();
 	~CGameFramework();

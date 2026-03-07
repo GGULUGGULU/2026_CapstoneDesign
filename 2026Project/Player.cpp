@@ -464,6 +464,8 @@ CCamera* CCarPlayer::ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed)
 		m_pCamera->GenerateProjectionMatrix(1.01f, 50000.0f, fAspectRatio, 60.0f);
 		m_pCamera->SetViewport(0, 0, nWidth, nHeight, 0.0f, 1.0f);
 		m_pCamera->SetScissorRect(0, 0, nWidth, nHeight);
+		break;
+
 	case THIRD_PERSON_CAMERA:
 		SetFriction(100.0f);
 		SetGravity(XMFLOAT3(0.0f, 0.0f, 0.0f));
