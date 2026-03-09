@@ -1260,6 +1260,21 @@ void CGameFramework::CreateTextResources()
 		D2D1::ColorF(D2D1::ColorF::Yellow),
 		m_textEndTimeBrush.GetAddressOf()
 	);
+
+	m_d2dDeviceContext->CreateSolidColorBrush(
+		D2D1::ColorF(D2D1::ColorF::Blue),
+		m_dashGaugeFillBrush.GetAddressOf()
+	);
+
+	m_d2dDeviceContext->CreateSolidColorBrush(
+		D2D1::ColorF(0.2f, 0.2f, 0.2f, 0.8f),
+		m_dashGaugeBGBrush.GetAddressOf()
+	);
+
+	m_d2dDeviceContext->CreateSolidColorBrush(
+		D2D1::ColorF(D2D1::ColorF::DarkGray),
+		m_dashGaugeBorderBrush.GetAddressOf()
+	);
 }
 
 void CGameFramework::RenderUI()
@@ -1309,6 +1324,31 @@ void CGameFramework::RenderUI()
 				(float)m_nWndClientHeight - 10.0f),
 			m_textSpeedBrush.Get()
 		);
+
+		float gaugeWidth = 40.0f;   // 게이지 너비
+		float gaugeHeight = 200.0f; // 게이지 높이
+		float marginX = 50.0f;      // 좌측 여백
+		float marginY = 50.0f;      // 하단 여백
+
+		float left = marginX;
+		float bottom = (float)m_nWndClientHeight - marginY;
+		float top = bottom - gaugeHeight;
+		float right = left + gaugeWidth;
+
+		D2D1_RECT_F bgRect = D2D1::RectF(left, top, right, bottom);
+		m_d2dDeviceContext->FillRectangle(&bgRect, m_dashGaugeBGBrush.Get());
+
+		float dashRatio = m_fCurrentDashGauge / m_fMaxDashGauge;
+		if (dashRatio < 0.0f) dashRatio = 0.0f;
+		if (dashRatio > 1.0f) dashRatio = 1.0f;
+
+		float fillHeight = gaugeHeight * dashRatio;
+		float fillTop = bottom - fillHeight; 
+
+		D2D1_RECT_F fillRect = D2D1::RectF(left, fillTop, right, bottom);
+		m_d2dDeviceContext->FillRectangle(&fillRect, m_dashGaugeFillBrush.Get());
+
+		m_d2dDeviceContext->DrawRectangle(&bgRect, m_dashGaugeBorderBrush.Get(), 2.0f);
 	}
 
 	if (100 == m_nStage)

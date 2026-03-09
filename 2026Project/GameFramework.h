@@ -157,6 +157,10 @@ private:
 
 	ComPtr<IDWriteTextFormat> m_textEndTimeFormat;  // 글꼴, 크기, 정렬
 	ComPtr<ID2D1SolidColorBrush> m_textEndTimeBrush; // 글자 색상
+	
+	ComPtr<ID2D1SolidColorBrush> m_dashGaugeFillBrush; // 대시게이지 색상
+	ComPtr<ID2D1SolidColorBrush> m_dashGaugeBGBrush; // 대시게이지 배경 색상
+	ComPtr<ID2D1SolidColorBrush> m_dashGaugeBorderBrush; // 대시게이지 경계선 색상
 
 	ID3D12Resource* m_pd3dShadowMap;
 	ID3D12DescriptorHeap* m_pd3dShadowDSVHeap;
