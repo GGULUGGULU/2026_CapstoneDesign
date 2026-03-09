@@ -321,6 +321,22 @@ public class ExtractMeshByBinaryWithNormal : MonoBehaviour
         binaryWriter.Write(f);
     }
 
+    private void WriteVector(Quaternion q)
+    {
+        binaryWriter.Write(q.x);
+        binaryWriter.Write(q.y);
+        binaryWriter.Write(q.z);
+        binaryWriter.Write(q.w);
+    }
+
+    private void WriteColor(string strHeader, Color c)
+    {
+        binaryWriter.Write(strHeader);
+        binaryWriter.Write(c.r);
+        binaryWriter.Write(c.g);
+        binaryWriter.Write(c.b);
+        binaryWriter.Write(c.a);
+    }
     private void WriteVector(Vector2 v)
     {
         binaryWriter.Write(v.x);
@@ -411,7 +427,9 @@ public class ExtractMeshByBinaryWithNormal : MonoBehaviour
         WriteColors("<Colors>:", mesh.colors);
         WriteVectors("<Normals>:", mesh.normals);
 
-        WriteVectors("<UV0>:", mesh.uv);
+        Vector2[] uvs = mesh.uv;
+        for (int i = 0; i < uvs.Length; i++) { uvs[i].y = 1.0f - uvs[i].y; }
+        WriteVectors("<UV0>:", uvs);
 
         binaryWriter.Write("<SubMeshes>:");
         binaryWriter.Write(mesh.subMeshCount);
