@@ -161,3 +161,24 @@ public:
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList);
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, int nSubSet);
 };
+
+struct UITexturedVertex
+{
+	XMFLOAT3 position; 
+	XMFLOAT2 uv;       
+};
+
+class CUIMesh : public CMesh
+{
+public:
+	CUIMesh(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+	virtual ~CUIMesh();
+
+	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList);
+
+	UINT m_nStride;
+
+	ID3D12Resource* m_pd3dVertexBuffer = NULL;
+	ID3D12Resource* m_pd3dVertexUploadBuffer = NULL;
+	D3D12_VERTEX_BUFFER_VIEW m_d3dVertexBufferView;
+};

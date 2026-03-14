@@ -394,6 +394,8 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 
 	LoadTexture(pd3dDevice, pd3dCommandList);
 
+	BuildUIResources(pd3dDevice, pd3dCommandList);
+
 	// 
 	m_nGameObjects = 1 + 1 + 12 + 12 + 12 + 1 + 20 + 20 + 15 + 15 + 4 + 1 + 1;
 	m_ppGameObjects = new CGameObject * [m_nGameObjects];
@@ -1530,6 +1532,106 @@ void CScene::RenderSkybox(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* p
 	if (!m_pSkyboxObject) return;
 
 	m_pSkyboxObject->Render(pd3dCommandList, NULL, pCamera);
+}
+
+void CScene::CreateUIRootSignature(ID3D12Device* pd3dDevice)
+{
+	CD3DX12_DESCRIPTOR_RANGE d3dDescriptorRange;
+	d3dDescriptorRange.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 7);
+
+	CD3DX12_ROOT_PARAMETER d3dRootParameter[1];
+	d3dRootParameter[0].InitAsDescriptorTable(1, &d3dDescriptorRange, D3D12_SHADER_VISIBILITY_PIXEL);
+
+	CD3DX12_STATIC_SAMPLER_DESC d3dSamplerDesc(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR);
+
+	CD3DX12_ROOT_SIGNATURE_DESC d3dRootSignatureDesc(1, d3dRootParameter, 1, &d3dSamplerDesc, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+
+	ID3DBlob* pd3dSignatureBlob = NULL;
+	ID3DBlob* pd3dErrorBlob = NULL;
+	D3D12SerializeRootSignature(&d3dRootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &pd3dSignatureBlob, &pd3dErrorBlob);
+	pd3dDevice->CreateRootSignature(0, pd3dSignatureBlob->GetBufferPointer(), pd3dSignatureBlob->GetBufferSize(), IID_PPV_ARGS(&m_pd3dUIRootSignature));
+}
+
+void CScene::BuildUIResources(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	CreateUIRootSignature(pd3dDevice);
+	m_pUIMesh = new CUIMesh(pd3dDevice, pd3dCommandList);
+	m_pUIShader = new CUIShader();
+	m_pUIShader->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dUIRootSignature);
+
+	const wchar_t* texPaths[3] = {
+		L"Asset/DDS_File/Item_Dash.dds",
+		L"Asset/DDS_File/Item_Speed.dds",
+		L"Asset/DDS_File/Item_Gauge.dds"
+	};
+
+	UINT uiSrvStartIndex = g_nNextSrvTableIndex;
+	g_nNextSrvTableIndex += 3;
+
+	D3D12_CPU_DESCRIPTOR_HANDLE d3dCpuSrvHandleStart = m_pd3dCbvSrvHeap->GetCPUDescriptorHandleForHeapStart();
+	D3D12_GPU_DESCRIPTOR_HANDLE d3dGpuSrvHandleStart = m_pd3dCbvSrvHeap->GetGPUDescriptorHandleForHeapStart();
+
+	for (int i = 0; i < 3; ++i)
+	{
+		std::unique_ptr<uint8_t[]> ddsData;
+		std::vector<D3D12_SUBRESOURCE_DATA> subresources;
+
+		ID3D12Resource* pTex = nullptr;
+		ID3D12Resource* pUpload = nullptr;
+
+		HRESULT hr = DirectX::LoadDDSTextureFromFile(pd3dDevice, texPaths[i], &pTex, ddsData, subresources);
+
+		if (SUCCEEDED(hr) && pTex)
+		{
+			UINT64 uploadSize = GetRequiredIntermediateSize(pTex, 0, (UINT)subresources.size());
+			pd3dDevice->CreateCommittedResource(
+				&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD), D3D12_HEAP_FLAG_NONE,
+				&CD3DX12_RESOURCE_DESC::Buffer(uploadSize), D3D12_RESOURCE_STATE_GENERIC_READ,
+				nullptr, IID_PPV_ARGS(&pUpload));
+
+			UpdateSubresources(pd3dCommandList, pTex, pUpload, 0, 0, (UINT)subresources.size(), subresources.data());
+
+			pd3dCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(
+				pTex, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
+
+			UINT currentSrvIndex = uiSrvStartIndex + i;
+
+			D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = d3dCpuSrvHandleStart;
+			cpuHandle.ptr += (SIZE_T)m_nDescriptorIncrementSize * currentSrvIndex;
+
+			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+			srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+			srvDesc.Format = pTex->GetDesc().Format;
+			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+			srvDesc.Texture2D.MipLevels = pTex->GetDesc().MipLevels;
+
+			pd3dDevice->CreateShaderResourceView(pTex, &srvDesc, cpuHandle);
+
+			D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle = d3dGpuSrvHandleStart;
+			gpuHandle.ptr += (UINT64)m_nDescriptorIncrementSize * currentSrvIndex;
+			m_pd3dUIItemSrvHandles[i] = gpuHandle;
+
+			g_vLoadedTextures.push_back(pTex);
+			g_vLoadedTextureUploadBuffers.push_back(pUpload);
+		}
+	}
+}
+
+void CScene::RenderItemUI(ID3D12GraphicsCommandList* pd3dCommandList, int nItemIndex)
+{
+	if (!m_pd3dUIRootSignature || !m_pUIShader || !m_pUIMesh) return;
+
+	pd3dCommandList->SetGraphicsRootSignature(m_pd3dUIRootSignature);
+	m_pUIShader->Render(pd3dCommandList, 0); 
+
+	pd3dCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+
+	ID3D12DescriptorHeap* ppHeaps[] = { m_pd3dCbvSrvHeap };
+	pd3dCommandList->SetDescriptorHeaps(1, ppHeaps);
+
+	pd3dCommandList->SetGraphicsRootDescriptorTable(0, m_pd3dUIItemSrvHandles[nItemIndex]);
+
+	m_pUIMesh->Render(pd3dCommandList);
 }
 
 void RenderReflectedObject(ID3D12GraphicsCommandList* pd3dCommandList, CGameObject* pObject, XMMATRIX matReflect)

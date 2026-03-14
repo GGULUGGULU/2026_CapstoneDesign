@@ -10,21 +10,6 @@
 
 class CGameFramework
 {
-	// 아이템 + 대시
-private:
-	enum ITEM_TYPE
-	{
-		ITEM_NONE = 0,
-		ITEM_DASH_POTION,
-		ITEM_MAX_SPEED_UP,
-		ITEM_MAX_DASH_GAUGE_UP
-	};
-
-	ITEM_TYPE GetItemType(CGameObject* pObject) const;
-	void ApplyItemReward(ITEM_TYPE eItemType);
-	void UpdateDashSystem(float fTimeElapsed, bool bDashKeyDown, bool bHasDriveInput);
-	float GetPlayerEffectiveMaxSpeed() const;
-
 private:
 	float m_fBasePlayerMaxSpeed;
 	float m_fSpeedItemBonus;
@@ -166,6 +151,22 @@ private:
 	ID3D12DescriptorHeap* m_pd3dShadowDSVHeap;
 	D3D12_CPU_DESCRIPTOR_HANDLE m_d3dCPUShadowDSVHandle;
 
+	// 아이템 + 대시
+private:
+	enum ITEM_TYPE
+	{
+		ITEM_NONE = 0,
+		ITEM_DASH_POTION,
+		ITEM_MAX_SPEED_UP,
+		ITEM_MAX_DASH_GAUGE_UP
+	};
+
+	ITEM_TYPE GetItemType(CGameObject* pObject) const;
+	void ApplyItemReward(ITEM_TYPE eItemType);
+	void UpdateDashSystem(float fTimeElapsed, bool bDashKeyDown, bool bHasDriveInput);
+	float GetPlayerEffectiveMaxSpeed() const;
+
+
 public:
 	// UI
 	TCHAR m_timeBuffer[1024];
@@ -175,7 +176,10 @@ public:
 
 	TCHAR m_speedBuffer[1024];
 	int m_nPlayerCurrentSpeed{ 0 };
-	
+
+	float m_fItemDisplayTimer = 0.0f;
+	ITEM_TYPE m_eHoldItem = ITEM_NONE;
+
 	// stage
 	int m_nStage{ 0 };
 	bool m_bFlag{ false };

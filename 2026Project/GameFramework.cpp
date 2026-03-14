@@ -474,6 +474,12 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 				}
 			}
 		}
+		case VK_CONTROL:
+			if (m_eHoldItem != ITEM_NONE) {
+				ApplyItemReward(m_eHoldItem);
+				m_eHoldItem = ITEM_NONE;
+			}
+			break;
 		break;
 		default:
 			break;
@@ -515,6 +521,7 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM8, m_pPlayer->GetPosition(), XMFLOAT2(25, 25));
 			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM9, m_pPlayer->GetPosition(), XMFLOAT2(50, 50));
 			break;
+
 		default:
 			break;
 		}
@@ -1056,10 +1063,16 @@ void CGameFramework::CollisionProcess()
 			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM8, vPos, XMFLOAT2(25, 25));
 			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM9, vPos, XMFLOAT2(50, 50));
 
+			m_fItemDisplayTimer = 3.0f;
+
 			pCollidedObject->Disable();
 			++m_nScore;
 
-			ApplyItemReward(eItemType);
+			int randItem = rand() % 3;
+
+			if (randItem == 0) m_eHoldItem = ITEM_DASH_POTION;
+			else if (randItem == 1) m_eHoldItem = ITEM_MAX_SPEED_UP;
+			else if (randItem == 2) m_eHoldItem = ITEM_MAX_DASH_GAUGE_UP;
 		}
 		else if (pCollidedObject != m_pScene->m_ppGameObjects[38])
 		{
@@ -1573,11 +1586,23 @@ void CGameFramework::FrameAdvance()
 		rtvHandle.ptr += (m_nSwapChainBufferIndex * m_nRtvDescriptorIncrementSize);
 
 		CEffectLibrary::Instance()->RenderRadialBlur(m_pd3dCommandList, m_d3dSwapChainBackBuffers[m_nSwapChainBufferIndex].Get(), rtvHandle, dsvHandle, m_nPlayerCurrentSpeed);
-
+		m_pd3dCommandList->OMSetRenderTargets(1, &rtvHandle, FALSE, &dsvHandle);
+		
 		SetMainViewport();
 
 		if (m_pPlayer) m_pPlayer->Render(m_pd3dCommandList, NULL, m_pCamera);
 		CEffectLibrary::Instance()->Render(m_pd3dCommandList, m_pCamera->GetViewMatrix(), m_pCamera->GetProjectionMatrix());
+
+		if (m_eHoldItem != ITEM_NONE)
+		{
+			int itemIdx = 0;
+
+			if (m_eHoldItem == ITEM_DASH_POTION) itemIdx = 0; 
+			else if (m_eHoldItem == ITEM_MAX_SPEED_UP) itemIdx = 1; 
+			else if (m_eHoldItem == ITEM_MAX_DASH_GAUGE_UP) itemIdx = 2; 
+
+			m_pScene->RenderItemUI(m_pd3dCommandList, itemIdx);
+		}
 	}
 	else
 	{

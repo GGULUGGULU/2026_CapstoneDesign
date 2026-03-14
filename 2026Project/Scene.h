@@ -82,6 +82,9 @@ public:
 	void CreateSkybox(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 	void RenderSkybox(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
 
+	void CreateUIRootSignature(ID3D12Device* pd3dDevice);
+	void BuildUIResources(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+	void RenderItemUI(ID3D12GraphicsCommandList* pd3dCommandList, int nItemIndex);
 
 	CGameObject* m_pSelectedObject = NULL; // 클릭된 객체 저장용 
 	CGameObject* m_pCollidedObject = NULL;
@@ -132,6 +135,12 @@ public:
 	D3D12_GPU_DESCRIPTOR_HANDLE m_d3dGpuSkyboxSrvHandle;
 
 	CSkyboxShader* m_pSkyboxShader = NULL;
+
+	ID3D12RootSignature* m_pd3dUIRootSignature = nullptr;
+	CUIShader* m_pUIShader = nullptr;
+	CUIMesh* m_pUIMesh = nullptr;
+
+	D3D12_GPU_DESCRIPTOR_HANDLE m_pd3dUIItemSrvHandles[3];
 	//
 public:
 	ID3D12RootSignature			*m_pd3dGraphicsRootSignature = NULL;
@@ -151,7 +160,5 @@ public:
 
 	int m_nGFStage{};
 
-	void ApplyMeshTextures(ID3D12Device* pd3dDevice,
-		ID3D12GraphicsCommandList* pd3dCommandList,
-		CGameObject* pObject);
+	void ApplyMeshTextures(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CGameObject* pObject);
 };

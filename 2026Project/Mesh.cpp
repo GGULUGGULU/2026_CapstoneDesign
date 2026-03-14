@@ -155,7 +155,6 @@ int CMeshFromFile::CheckRayIntersection(XMFLOAT3& xmRayPosition, XMFLOAT3& xmRay
 	}
 
 
-	// If the mesh has no indices, use the bounding-box hit as a pick hit (fallback).
 	if (m_vIndices.empty())
 	{
 		if (pfNearHitDistance) *pfNearHitDistance = fHitDistance;
@@ -335,4 +334,35 @@ void CBillboardVertex::Render(ID3D12GraphicsCommandList* pd3dCommandList)
 void CBillboardVertex::Render(ID3D12GraphicsCommandList* pd3dCommandList, int nSubSet)
 {
 	Render(pd3dCommandList);
+}
+
+CUIMesh::CUIMesh(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	m_nVertices = 4;
+	m_nStride = sizeof(UITexturedVertex); 
+	m_nOffset = 0;
+	m_nSlot = 0;
+	m_d3dPrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
+
+	UITexturedVertex pVertices[4] = {
+	{ XMFLOAT3(-0.95f,  0.85f, 0.0f), XMFLOAT2(0.0f, 0.0f) }, 
+	{ XMFLOAT3(-0.80f,  0.85f, 0.0f), XMFLOAT2(1.0f, 0.0f) },
+	{ XMFLOAT3(-0.95f,  0.55f, 0.0f), XMFLOAT2(0.0f, 1.0f) }, 
+	{ XMFLOAT3(-0.80f,  0.55f, 0.0f), XMFLOAT2(1.0f, 1.0f) } 
+	};
+
+	m_pd3dVertexBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, pVertices, m_nStride * m_nVertices, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, &m_pd3dVertexUploadBuffer);
+
+	m_d3dVertexBufferView.BufferLocation = m_pd3dVertexBuffer->GetGPUVirtualAddress();
+	m_d3dVertexBufferView.StrideInBytes = m_nStride;
+	m_d3dVertexBufferView.SizeInBytes = m_nStride * m_nVertices;
+}
+
+CUIMesh::~CUIMesh() {}
+
+void CUIMesh::Render(ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	pd3dCommandList->IASetPrimitiveTopology(m_d3dPrimitiveTopology);
+	pd3dCommandList->IASetVertexBuffers(m_nSlot, 1, &m_d3dVertexBufferView);
+	pd3dCommandList->DrawInstanced(m_nVertices, 1, m_nOffset, 0);
 }

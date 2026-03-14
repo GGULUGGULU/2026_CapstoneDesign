@@ -621,3 +621,34 @@ float4 PS_Skybox(VS_SKYBOX_OUTPUT input) : SV_TARGET
 {
     return gCubeMap.Sample(gSampler, input.localPos);
 }
+
+Texture2D gUITexture : register(t7);
+
+struct VS_UI_INPUT
+{
+    float3 position : POSITION;
+    float2 uv : TEXCOORD0;
+};
+
+struct VS_UI_OUTPUT
+{
+    float4 position : SV_POSITION;
+    float2 uv : TEXCOORD0;
+};
+
+VS_UI_OUTPUT VS_UI_Main(VS_UI_INPUT input)
+{
+    VS_UI_OUTPUT output;
+    
+    output.position = float4(input.position, 1.0f);
+    output.uv = input.uv;
+    
+    return output;
+}
+
+float4 PS_UI_Main(VS_UI_OUTPUT input) : SV_TARGET
+{
+    float4 color = gUITexture.Sample(gSampler, input.uv);
+    
+    return color;
+}
