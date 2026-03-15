@@ -1372,6 +1372,19 @@ void CGameFramework::RenderUI()
 		m_d2dDeviceContext->FillRectangle(&fillRect, m_dashGaugeFillBrush.Get());
 
 		m_d2dDeviceContext->DrawRectangle(&bgRect, m_dashGaugeBorderBrush.Get(), 2.0f);
+		///////////////////////////
+		float ItemWidth = 60.0f;   // 게이지 너비
+		float ItemHeight = 90.0f; // 게이지 높이
+		float ItemmarginX = 10.0f;      // 좌측 여백
+		float ItemmarginY = 120.0f;      // 하단 여백
+
+		float Itemleft = m_nWndClientWidth * (0.5f * (-0.97f + 1.0f));
+		float Itemright = m_nWndClientWidth * (0.5f * (-0.78f + 1.0f));
+		float Itemtop = m_nWndClientHeight * (0.5f * (1.0f - 0.90f));
+		float Itembottom = m_nWndClientHeight * (0.5f * (1.0f - 0.50f));
+
+		D2D1_RECT_F ItemBgRect = D2D1::RectF(Itemleft, Itemtop, Itemright, Itembottom);
+		m_d2dDeviceContext->FillRectangle(&ItemBgRect, m_dashGaugeBGBrush.Get());
 	}
 
 	if (100 == m_nStage)
@@ -1603,16 +1616,6 @@ void CGameFramework::FrameAdvance()
 		if (m_pPlayer) m_pPlayer->Render(m_pd3dCommandList, NULL, m_pCamera);
 		CEffectLibrary::Instance()->Render(m_pd3dCommandList, m_pCamera->GetViewMatrix(), m_pCamera->GetProjectionMatrix());
 
-		if (m_eHoldItem != ITEM_NONE)
-		{
-			int itemIdx = 0;
-
-			if (m_eHoldItem == ITEM_DASH_POTION) itemIdx = 0; 
-			else if (m_eHoldItem == ITEM_MAX_SPEED_UP) itemIdx = 1; 
-			else if (m_eHoldItem == ITEM_MAX_DASH_GAUGE_UP) itemIdx = 2; 
-
-			m_pScene->RenderItemUI(m_pd3dCommandList, itemIdx);
-		}
 	}
 	else
 	{
@@ -1648,11 +1651,40 @@ void CGameFramework::FrameAdvance()
 	if (0 != m_nStage)
 	{
 		RenderUI();
+
+		
 	}
 	hResult = m_pd3dCommandList->Reset(m_d3dCommandAllocators[m_nSwapChainBufferIndex].Get(), NULL);
 
 	if (0 == m_nStage)
 	{
+		D3D12_RESOURCE_BARRIER presentBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
+			m_d3dSwapChainBackBuffers[m_nSwapChainBufferIndex].Get(),
+			D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+		m_pd3dCommandList->ResourceBarrier(1, &presentBarrier);
+	}
+	else if (0 != m_nStage) {
+		D3D12_RESOURCE_BARRIER rtBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
+			m_d3dSwapChainBackBuffers[m_nSwapChainBufferIndex].Get(),
+			D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+		m_pd3dCommandList->ResourceBarrier(1, &rtBarrier);
+
+		if (2 == m_nStage && m_eHoldItem != ITEM_NONE)
+		{
+			D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = m_pd3dRtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+			rtvHandle.ptr += (m_nSwapChainBufferIndex * m_nRtvDescriptorIncrementSize);
+
+			m_pd3dCommandList->OMSetRenderTargets(1, &rtvHandle, FALSE, NULL);
+			SetMainViewport();
+
+			int itemIdx = 0;
+			if (m_eHoldItem == ITEM_DASH_POTION) itemIdx = 0;
+			else if (m_eHoldItem == ITEM_MAX_SPEED_UP) itemIdx = 1;
+			else if (m_eHoldItem == ITEM_MAX_DASH_GAUGE_UP) itemIdx = 2;
+
+			m_pScene->RenderItemUI(m_pd3dCommandList, itemIdx);
+		}
+
 		D3D12_RESOURCE_BARRIER presentBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
 			m_d3dSwapChainBackBuffers[m_nSwapChainBufferIndex].Get(),
 			D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
