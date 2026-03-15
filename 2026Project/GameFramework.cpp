@@ -474,13 +474,23 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 				}
 			}
 		}
+		break;
 		case VK_CONTROL:
 			if (m_eHoldItem != ITEM_NONE) {
 				ApplyItemReward(m_eHoldItem);
 				m_eHoldItem = ITEM_NONE;
 			}
-			break;
 		break;
+
+		case '1':
+			m_eHoldItem = ITEM_DASH_POTION;
+			break;
+		case '2':
+			m_eHoldItem = ITEM_MAX_SPEED_UP;
+			break;
+		case '3':
+			m_eHoldItem = ITEM_MAX_DASH_GAUGE_UP;
+			break;
 		default:
 			break;
 		}

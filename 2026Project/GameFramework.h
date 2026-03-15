@@ -10,19 +10,6 @@
 
 class CGameFramework
 {
-private:
-	float m_fBasePlayerMaxSpeed;
-	float m_fSpeedItemBonus;
-
-	float m_fDashSpeedBonus;
-	float m_fCurrentDashGauge;
-	float m_fMaxDashGauge;
-	float m_fDashGaugeConsumePerSecond;
-	float m_fDashGaugeRecoverPerSecond;
-	float m_fDashGaugeIncreaseAmount;
-
-	bool  m_bIsDashing;
-
 public:
 	CGameFramework();
 	~CGameFramework();
@@ -166,6 +153,18 @@ private:
 	void UpdateDashSystem(float fTimeElapsed, bool bDashKeyDown, bool bHasDriveInput);
 	float GetPlayerEffectiveMaxSpeed() const;
 
+private:
+	float m_fBasePlayerMaxSpeed;
+	float m_fSpeedItemBonus;
+
+	float m_fDashSpeedBonus;
+	float m_fCurrentDashGauge;
+	float m_fMaxDashGauge;
+	float m_fDashGaugeConsumePerSecond;
+	float m_fDashGaugeRecoverPerSecond;
+	float m_fDashGaugeIncreaseAmount;
+
+	bool  m_bIsDashing;
 
 public:
 	// UI
