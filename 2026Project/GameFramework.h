@@ -6,7 +6,10 @@
 #include "Timer.h"
 #include "Player.h"
 #include "Scene.h"
+#include "NetworkTypes.h"
 
+
+class CNetworkManager;
 
 class CGameFramework
 {
@@ -27,12 +30,12 @@ public:
 
 	void ChangeSwapChainState();
 
-    void BuildObjectGameStart();
-    void ReleaseObjects();
+	void BuildObjectGameStart();
+	void ReleaseObjects();
 
-    void ProcessInput();
-    void AnimateObjects();
-    void FrameAdvance();
+	void ProcessInput();
+	void AnimateObjects();
+	void FrameAdvance();
 
 	void WaitForGpuComplete();
 	void MoveToNextFrame();
@@ -57,21 +60,31 @@ public:
 	void CreateTextResources();
 	void RenderUI();
 	void BuildObjectEnd();
-	
+
 	void CreateShadowMap();
 	void RenderShadowPass();
-	void SetMainViewport(); 
+	void SetMainViewport();
+
+	bool StartListenServer(unsigned short port = NET_DEFAULT_PORT);
+	bool ConnectToListenServer(const char* pszAddress, unsigned short port = NET_DEFAULT_PORT);
+	void SyncMultiplayer();
+	PlayerNetState BuildLocalPlayerState() const;
+	void ApplyRemotePlayerState(const PlayerNetState& state);
+	void CreateRemotePlayer();
+	void ReleaseRemotePlayer();
+	void SetupPlayerTransform(CPlayer* pPlayer, const XMFLOAT3& xmf3Position, float fYaw);
+	void ApplyMultiplayerSpawn();
 	//
 private:
 	HINSTANCE					m_hInstance;
-	HWND						m_hWnd; 
+	HWND						m_hWnd;
 
 	int							m_nWndClientWidth;
 	int							m_nWndClientHeight;
-        
-	IDXGIFactory4				*m_pdxgiFactory = NULL;
-	IDXGISwapChain3				*m_pdxgiSwapChain = NULL;
-	ID3D12Device				*m_pd3dDevice = NULL;
+
+	IDXGIFactory4* m_pdxgiFactory = NULL;
+	IDXGISwapChain3* m_pdxgiSwapChain = NULL;
+	ID3D12Device* m_pd3dDevice = NULL;
 
 	bool						m_bMsaa4xEnable = false;
 	UINT						m_nMsaa4xQualityLevels = 0;
@@ -79,29 +92,34 @@ private:
 	static const UINT			m_nSwapChainBuffers = 2;
 	UINT						m_nSwapChainBufferIndex;
 
-	ID3D12DescriptorHeap		*m_pd3dRtvDescriptorHeap = NULL;
+	ID3D12DescriptorHeap* m_pd3dRtvDescriptorHeap = NULL;
 	UINT						m_nRtvDescriptorIncrementSize;
 
-	ID3D12Resource				*m_pd3dDepthStencilBuffer = NULL;
-	ID3D12DescriptorHeap		*m_pd3dDsvDescriptorHeap = NULL;
+	ID3D12Resource* m_pd3dDepthStencilBuffer = NULL;
+	ID3D12DescriptorHeap* m_pd3dDsvDescriptorHeap = NULL;
 	UINT						m_nDsvDescriptorIncrementSize;
 
-	ID3D12CommandQueue			*m_pd3dCommandQueue = NULL;
-	ID3D12GraphicsCommandList	*m_pd3dCommandList = NULL;
+	ID3D12CommandQueue* m_pd3dCommandQueue = NULL;
+	ID3D12GraphicsCommandList* m_pd3dCommandList = NULL;
 
-	ID3D12Fence					*m_pd3dFence = NULL;
+	ID3D12Fence* m_pd3dFence = NULL;
 	UINT64						m_nFenceValues[m_nSwapChainBuffers];
 	HANDLE						m_hFenceEvent;
 
 #if defined(_DEBUG)
-	ID3D12Debug					*m_pd3dDebugController;
+	ID3D12Debug* m_pd3dDebugController;
 #endif
 
 	CGameTimer					m_GameTimer;
 
-	CScene						*m_pScene = NULL;
-	CPlayer						*m_pPlayer = NULL;
-	CCamera						*m_pCamera = NULL;
+	CScene* m_pScene = NULL;
+	CPlayer* m_pPlayer = NULL;
+	CPlayer* m_pRemotePlayer = NULL;
+	CCamera* m_pCamera = NULL;
+	CNetworkManager* m_pNetwork = NULL;
+	float						m_fRemotePlayerYaw = 180.0f;
+	bool						m_bMultiplayerEnabled = false;
+	bool						m_bIsHostPlayer = false;
 
 	POINT						m_ptOldCursorPos;
 
@@ -129,7 +147,7 @@ private:
 
 	ComPtr<IDWriteTextFormat> m_textEndTimeFormat;  // 글꼴, 크기, 정렬
 	ComPtr<ID2D1SolidColorBrush> m_textEndTimeBrush; // 글자 색상
-	
+
 	ComPtr<ID2D1SolidColorBrush> m_dashGaugeFillBrush; // 대시게이지 색상
 	ComPtr<ID2D1SolidColorBrush> m_dashGaugeBGBrush; // 대시게이지 배경 색상
 	ComPtr<ID2D1SolidColorBrush> m_dashGaugeBorderBrush; // 대시게이지 경계선 색상
@@ -190,7 +208,7 @@ public:
 	// jump
 	int   m_nJumpCount = 0;
 	float m_fSecondJumpWindow = 0.35f;   // 2단 범위
-	float m_fFirstJumpTime = 0.0f;    
+	float m_fFirstJumpTime = 0.0f;
 	unsigned m_cnt{ 0 };
 };
 

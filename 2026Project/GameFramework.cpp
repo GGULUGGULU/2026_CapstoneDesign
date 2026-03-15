@@ -5,6 +5,15 @@
 #include "stdafx.h"
 #include "GameFramework.h"
 #include "EffectLibrary.h"
+#include "NetworkManager.h"
+
+namespace
+{
+	const XMFLOAT3 SINGLE_PLAYER_SPAWN = XMFLOAT3(0.0f, 10.0f, 0.0f);
+	const XMFLOAT3 HOST_PLAYER_SPAWN = XMFLOAT3(-35.0f, 10.0f, 0.0f);
+	const XMFLOAT3 CLIENT_PLAYER_SPAWN = XMFLOAT3(35.0f, 10.0f, 0.0f);
+	constexpr float PLAYER_SPAWN_YAW = 180.0f;
+};
 
 CGameFramework::CGameFramework()
 {
@@ -32,6 +41,8 @@ CGameFramework::CGameFramework()
 
 	m_pScene = NULL;
 	m_pPlayer = NULL;
+	m_pRemotePlayer = NULL;
+	m_pNetwork = NULL;
 
 	m_nStage = 0;
 	m_nScore = 0;
@@ -480,7 +491,7 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 				ApplyItemReward(m_eHoldItem);
 				m_eHoldItem = ITEM_NONE;
 			}
-		break;
+			break;
 
 		case '1':
 			m_eHoldItem = ITEM_DASH_POTION;
@@ -507,11 +518,17 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 		case VK_F2:
 		case VK_F3:
 			m_pCamera = m_pPlayer->ChangeCamera((DWORD)(wParam - VK_F1 + 1), m_GameTimer.GetTimeElapsed());
-			
+
 			// 아이템 + 대시 재적용
 			m_fBasePlayerMaxSpeed = m_pPlayer->m_fMaxVelocityXZ;
 			m_pPlayer->m_fMaxVelocityXZ = GetPlayerEffectiveMaxSpeed();
 
+			break;
+		case VK_F5:
+			StartListenServer();
+			break;
+		case VK_F6:
+			ConnectToListenServer("127.0.0.1");
 			break;
 		case VK_F9:
 			ChangeSwapChainState();
@@ -574,6 +591,14 @@ void CGameFramework::OnDestroy()
 {
 	ReleaseObjects();
 
+	if (m_pNetwork)
+	{
+		m_pNetwork->Shutdown();
+		delete m_pNetwork;
+		m_pNetwork = NULL;
+		m_bMultiplayerEnabled = false;
+	}
+
 	CEffectLibrary::Instance()->Release();//
 
 	::CloseHandle(m_hFenceEvent);
@@ -625,6 +650,7 @@ void CGameFramework::BuildObjectGameStart()
 
 	if (m_pScene) m_pScene->ReleaseUploadBuffers();
 	if (m_pPlayer) m_pPlayer->ReleaseUploadBuffers();
+	if (m_pRemotePlayer) m_pRemotePlayer->ReleaseUploadBuffers();
 
 	m_GameTimer.Reset();
 }
@@ -632,6 +658,7 @@ void CGameFramework::BuildObjectGameStart()
 void CGameFramework::ReleaseObjects()
 {
 	if (m_pPlayer) m_pPlayer->Release();
+	ReleaseRemotePlayer();
 
 	if (m_pScene) m_pScene->ReleaseObjects();
 	if (m_pScene) delete m_pScene;
@@ -782,6 +809,10 @@ void CGameFramework::AnimateObjects()
 			m_pPlayer->GetLookVector()
 		);
 	}
+	if (m_pRemotePlayer && m_pRemotePlayer->m_bIsActive)
+	{
+		m_pRemotePlayer->Animate(fTimeElapsed, NULL);
+	}
 
 	CEffectLibrary::Instance()->Update(fTimeElapsed);
 }
@@ -870,6 +901,7 @@ void CGameFramework::BuildGameObjects()
 		m_pPlayer->Release();
 		m_pPlayer = NULL;
 	}
+	ReleaseRemotePlayer();
 	if (m_pScene)
 	{
 		m_pScene->ReleaseObjects();
@@ -888,14 +920,10 @@ void CGameFramework::BuildGameObjects()
 	m_pScene->m_pPlayer = m_pPlayer = pCarPlayer;
 
 	m_pPlayer->ComputeNewLocalAABB();
-
-
-	m_pPlayer->Rotate(0, 180, 0);
-	m_pPlayer->SetPosition(XMFLOAT3(0.0f, 10.0f, 0.0f));
 	m_pPlayer->SetGravity(XMFLOAT3(0, -1, 0));
 
-	m_pPlayer->OnPrepareRender();
-
+	CreateRemotePlayer();
+	ApplyMultiplayerSpawn();
 	m_pCamera = m_pPlayer->GetCamera();
 
 	// 아이템 + 대시 
@@ -927,6 +955,7 @@ void CGameFramework::BuildGameObjects()
 
 	if (m_pScene) m_pScene->ReleaseUploadBuffers();
 	if (m_pPlayer) m_pPlayer->ReleaseUploadBuffers();
+	if (m_pRemotePlayer) m_pRemotePlayer->ReleaseUploadBuffers();
 
 	m_GameTimer.Reset();
 }
@@ -1035,7 +1064,7 @@ void CGameFramework::CollisionProcess()
 
 		if (bOnGround)
 		{
-			
+
 			m_pPlayer->SetGravity(XMFLOAT3(0, 0, 0));
 
 			XMFLOAT3 currentVel = m_pPlayer->GetVelocity();
@@ -1315,17 +1344,27 @@ void CGameFramework::RenderUI()
 
 	//swprintf_s(m_speedBuffer, 1024, L"%d Km/h", m_nPlayerCurrentSpeed);
 	//swprintf_s(m_speedBuffer, 1024, L"%d Km/h  [Res: %d x %d]", m_nPlayerCurrentSpeed, m_nWndClientWidth, m_nWndClientHeight);
+	const wchar_t* pwszNetStatus = L"OFF";
+	if (m_pNetwork)
+	{
+		if (m_pNetwork->IsHosting())
+			pwszNetStatus = (m_pNetwork->IsConnected() ? L"HOST CONNECTED" : L"HOST WAITING");
+		else
+			pwszNetStatus = (m_pNetwork->IsConnected() ? L"CLIENT CONNECTED" : L"CLIENT DISCONNECTED");
+	}
+
 	swprintf_s(
 		m_speedBuffer,
 		1024,
-		L"%d Km/h  Dash : %.0f / %.0f  [Res: %d x %d]",
+		L"%d Km/h  Dash : %.0f / %.0f  Net : %s  [Res: %d x %d]",
 		m_nPlayerCurrentSpeed,
 		m_fCurrentDashGauge,
 		m_fMaxDashGauge,
+		pwszNetStatus,
 		m_nWndClientWidth,
 		m_nWndClientHeight
 	);
-	
+
 	if (4 != m_nScore && 2 == m_nStage)
 	{
 		m_d2dDeviceContext->DrawTextW(
@@ -1366,7 +1405,7 @@ void CGameFramework::RenderUI()
 		if (dashRatio > 1.0f) dashRatio = 1.0f;
 
 		float fillHeight = gaugeHeight * dashRatio;
-		float fillTop = bottom - fillHeight; 
+		float fillTop = bottom - fillHeight;
 
 		D2D1_RECT_F fillRect = D2D1::RectF(left, fillTop, right, bottom);
 		m_d2dDeviceContext->FillRectangle(&fillRect, m_dashGaugeFillBrush.Get());
@@ -1414,6 +1453,7 @@ void CGameFramework::BuildObjectEnd()
 		m_pPlayer->Release();
 		m_pPlayer = NULL;
 	}
+	ReleaseRemotePlayer();
 	if (m_pScene)
 	{
 		m_pScene->ReleaseObjects();
@@ -1517,6 +1557,10 @@ void CGameFramework::RenderShadowPass()
 	m_pd3dCommandList->ResourceBarrier(1, &toShadowWrite);
 
 	m_pScene->RenderShadowMap(m_pd3dCommandList, m_d3dCPUShadowDSVHandle);
+	if (m_pRemotePlayer && m_pRemotePlayer->m_bIsActive)
+	{
+		m_pRemotePlayer->Render(m_pd3dCommandList, NULL, NULL);
+	}
 
 	D3D12_RESOURCE_BARRIER toGenericRead = {};
 	toGenericRead.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
@@ -1537,6 +1581,161 @@ void CGameFramework::SetMainViewport()
 	m_pd3dCommandList->RSSetViewports(1, &viewport);
 	m_pd3dCommandList->RSSetScissorRects(1, &scissorRect);
 }
+
+
+void CGameFramework::SetupPlayerTransform(CPlayer* pPlayer, const XMFLOAT3& xmf3Position, float fYaw)
+{
+	if (!pPlayer) return;
+
+	pPlayer->SetVelocity(XMFLOAT3(0.0f, 0.0f, 0.0f));
+	pPlayer->SetPosition(xmf3Position);
+
+	float fDeltaYaw = fYaw - pPlayer->GetYaw();
+	if (fDeltaYaw > 180.0f) fDeltaYaw -= 360.0f;
+	if (fDeltaYaw < -180.0f) fDeltaYaw += 360.0f;
+
+	if (fabsf(fDeltaYaw) > 0.001f)
+	{
+		pPlayer->Rotate(0.0f, fDeltaYaw, 0.0f);
+	}
+
+	pPlayer->OnPrepareRender();
+}
+
+void CGameFramework::ApplyMultiplayerSpawn()
+{
+	if (m_pPlayer)
+	{
+		const XMFLOAT3& xmf3LocalSpawn = (m_bMultiplayerEnabled ? (m_bIsHostPlayer ? HOST_PLAYER_SPAWN : CLIENT_PLAYER_SPAWN) : SINGLE_PLAYER_SPAWN);
+		SetupPlayerTransform(m_pPlayer, xmf3LocalSpawn, PLAYER_SPAWN_YAW);
+		m_nPlayerCurrentSpeed = 0;
+	}
+
+	if (m_pRemotePlayer)
+	{
+		const XMFLOAT3& xmf3RemoteSpawn = (m_bIsHostPlayer ? CLIENT_PLAYER_SPAWN : HOST_PLAYER_SPAWN);
+		SetupPlayerTransform(m_pRemotePlayer, xmf3RemoteSpawn, PLAYER_SPAWN_YAW);
+		m_pRemotePlayer->m_bIsActive = false;
+		m_fRemotePlayerYaw = PLAYER_SPAWN_YAW;
+	}
+}
+
+bool CGameFramework::StartListenServer(unsigned short port)
+{
+	if (!m_pNetwork) m_pNetwork = new CNetworkManager();
+	else m_pNetwork->Shutdown();
+
+	m_bMultiplayerEnabled = m_pNetwork->StartHost(port);
+	m_bIsHostPlayer = m_bMultiplayerEnabled;
+
+	if (m_bMultiplayerEnabled && (m_nStage == 2))
+	{
+		CreateRemotePlayer();
+		ApplyMultiplayerSpawn();
+	}
+
+	return(m_bMultiplayerEnabled);
+}
+
+bool CGameFramework::ConnectToListenServer(const char* pszAddress, unsigned short port)
+{
+	if (!m_pNetwork) m_pNetwork = new CNetworkManager();
+	else m_pNetwork->Shutdown();
+
+	m_bMultiplayerEnabled = m_pNetwork->ConnectToHost(pszAddress, port);
+	m_bIsHostPlayer = false;
+
+	if (m_bMultiplayerEnabled && (m_nStage == 2))
+	{
+		CreateRemotePlayer();
+		ApplyMultiplayerSpawn();
+	}
+
+	return(m_bMultiplayerEnabled);
+}
+
+void CGameFramework::CreateRemotePlayer()
+{
+	if (!m_pScene || m_pRemotePlayer) return;
+
+	CCarPlayer* pRemotePlayer = new CCarPlayer(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature());
+	pRemotePlayer->SetScale(10.2f, 10.2f, 10.2f);
+	m_pScene->ApplyMeshTextures(m_pd3dDevice, m_pd3dCommandList, pRemotePlayer);
+	pRemotePlayer->ComputeNewLocalAABB();
+	pRemotePlayer->Rotate(0, 180, 0);
+	pRemotePlayer->SetPosition(XMFLOAT3(30.0f, 10.0f, 0.0f));
+	pRemotePlayer->OnPrepareRender();
+	pRemotePlayer->m_bIsActive = false;
+
+	m_pRemotePlayer = pRemotePlayer;
+	m_fRemotePlayerYaw = 180.0f;
+}
+
+void CGameFramework::ReleaseRemotePlayer()
+{
+	if (m_pRemotePlayer)
+	{
+		m_pRemotePlayer->Release();
+		m_pRemotePlayer = NULL;
+	}
+	m_fRemotePlayerYaw = 180.0f;
+}
+
+PlayerNetState CGameFramework::BuildLocalPlayerState() const
+{
+	PlayerNetState state{};
+
+	if (!m_pPlayer) return(state);
+
+	const XMFLOAT3 position = m_pPlayer->GetPosition();
+
+	state.playerId = (m_bIsHostPlayer) ? 1u : 2u;
+	state.x = position.x;
+	state.y = position.y;
+	state.z = position.z;
+	state.yaw = m_pPlayer->GetYaw();
+	state.speed = static_cast<float>(m_nPlayerCurrentSpeed);
+	state.stage = static_cast<unsigned int>(m_nStage);
+	state.score = static_cast<unsigned int>(m_nScore);
+
+	return(state);
+}
+
+void CGameFramework::ApplyRemotePlayerState(const PlayerNetState& state)
+{
+	if (!m_pRemotePlayer) return;
+
+	m_pRemotePlayer->m_bIsActive = true;
+	m_pRemotePlayer->SetVelocity(XMFLOAT3(0.0f, 0.0f, 0.0f));
+	m_pRemotePlayer->SetPosition(XMFLOAT3(state.x, state.y, state.z));
+
+	float fDeltaYaw = state.yaw - m_fRemotePlayerYaw;
+	if (fDeltaYaw > 180.0f) fDeltaYaw -= 360.0f;
+	if (fDeltaYaw < -180.0f) fDeltaYaw += 360.0f;
+
+	if (fabsf(fDeltaYaw) > 0.001f)
+	{
+		m_pRemotePlayer->Rotate(0.0f, fDeltaYaw, 0.0f);
+	}
+
+	m_fRemotePlayerYaw = state.yaw;
+	m_pRemotePlayer->OnPrepareRender();
+}
+
+void CGameFramework::SyncMultiplayer()
+{
+	if (!m_pNetwork || !m_pPlayer) return;
+
+	PlayerNetState localState = BuildLocalPlayerState();
+	m_pNetwork->Update(m_GameTimer.GetTimeElapsed(), &localState);
+
+	PlayerNetState remoteState{};
+	while (m_pNetwork->ConsumeRemoteState(remoteState))
+	{
+		ApplyRemotePlayerState(remoteState);
+	}
+}
+
 
 //#define _WITH_PLAYER_TOP
 
@@ -1567,11 +1766,20 @@ void CGameFramework::FrameAdvance()
 		}
 		else
 		{
-			const float fTimeElapsed = m_GameTimer.GetTimeElapsed(); 
+			const float fTimeElapsed = m_GameTimer.GetTimeElapsed();
 			UpdateDashSystem(fTimeElapsed, false, false); // 스턴 중에는 dash 끔 + 게이지 회복
 			m_pPlayer->Update(fTimeElapsed);
 		}
 	}//
+
+	if ((2 == m_nStage) && m_pNetwork && m_pPlayer)
+	{
+		SyncMultiplayer();
+	}
+	else if (m_pNetwork)
+	{
+		m_pNetwork->Update(m_GameTimer.GetTimeElapsed(), NULL);
+	}
 
 	if (4 == m_nScore)
 	{
@@ -1610,10 +1818,11 @@ void CGameFramework::FrameAdvance()
 
 		CEffectLibrary::Instance()->RenderRadialBlur(m_pd3dCommandList, m_d3dSwapChainBackBuffers[m_nSwapChainBufferIndex].Get(), rtvHandle, dsvHandle, m_nPlayerCurrentSpeed);
 		m_pd3dCommandList->OMSetRenderTargets(1, &rtvHandle, FALSE, &dsvHandle);
-		
+
 		SetMainViewport();
 
 		if (m_pPlayer) m_pPlayer->Render(m_pd3dCommandList, NULL, m_pCamera);
+		if (m_pRemotePlayer && m_pRemotePlayer->m_bIsActive) m_pRemotePlayer->Render(m_pd3dCommandList, NULL, m_pCamera);
 		CEffectLibrary::Instance()->Render(m_pd3dCommandList, m_pCamera->GetViewMatrix(), m_pCamera->GetProjectionMatrix());
 
 	}
@@ -1652,7 +1861,7 @@ void CGameFramework::FrameAdvance()
 	{
 		RenderUI();
 
-		
+
 	}
 	hResult = m_pd3dCommandList->Reset(m_d3dCommandAllocators[m_nSwapChainBufferIndex].Get(), NULL);
 

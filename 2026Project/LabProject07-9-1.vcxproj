@@ -145,6 +145,8 @@
     <ClInclude Include="2026Project.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="MeshEffect.h" />
+    <ClInclude Include="NetworkManager.h" />
+    <ClInclude Include="NetworkTypes.h" />
     <ClInclude Include="Object.h" />
     <ClInclude Include="ParticleSystem.h" />
     <ClInclude Include="Player.h" />
@@ -164,6 +166,7 @@
     <ClCompile Include="2026Project.cpp" />
     <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="MeshEffect.cpp" />
+    <ClCompile Include="NetworkManager.cpp" />
     <ClCompile Include="Object.cpp" />
     <ClCompile Include="ParticleSystem.cpp" />
     <ClCompile Include="Player.cpp" />
