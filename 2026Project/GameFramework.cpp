@@ -704,6 +704,94 @@ void CGameFramework::ProcessInput()
 	}
 	m_pPlayer->Update(m_GameTimer.GetTimeElapsed());
 }
+//void CGameFramework::ProcessInputGameStage()
+//{
+//	static UCHAR pKeysBuffer[256];
+//	::ZeroMemory(pKeysBuffer, sizeof(pKeysBuffer));
+//
+//	bool bProcessedByScene = false;
+//	if (GetKeyboardState(pKeysBuffer) && m_pScene)
+//		bProcessedByScene = m_pScene->ProcessInput(pKeysBuffer);
+//
+//	const bool bForward = ((pKeysBuffer[VK_UP] & 0xF0) != 0);
+//	const bool bBackward = ((pKeysBuffer[VK_DOWN] & 0xF0) != 0);
+//	const bool bHasDriveInput = (bForward || bBackward);
+//	const bool bDashKeyDown = ((::GetAsyncKeyState('Z') & 0x8000) != 0);
+//
+//	const float fTimeElapsed = m_GameTimer.GetTimeElapsed();
+//
+//	UpdateDashSystem(fTimeElapsed, bDashKeyDown, bHasDriveInput);
+//
+//	if (!bProcessedByScene)
+//	{
+//		DWORD dwDirection = 0;
+//
+//		const int nAccel = (m_bIsDashing ? 4 : 1);
+//		const int nCurrentMaxSpeed = (int)GetPlayerEffectiveMaxSpeed();
+//
+//		if (bForward)
+//		{
+//			dwDirection |= DIR_FORWARD;
+//			m_nPlayerCurrentSpeed += nAccel;
+//			if (m_nPlayerCurrentSpeed > nCurrentMaxSpeed)
+//				m_nPlayerCurrentSpeed = nCurrentMaxSpeed;
+//		}
+//		else if (bBackward)
+//		{
+//			dwDirection |= DIR_BACKWARD;
+//			m_nPlayerCurrentSpeed += nAccel;
+//			if (m_nPlayerCurrentSpeed > nCurrentMaxSpeed)
+//				m_nPlayerCurrentSpeed = nCurrentMaxSpeed;
+//		}
+//		else
+//		{
+//			if (m_nPlayerCurrentSpeed > 0) --m_nPlayerCurrentSpeed;
+//		}
+//
+//		if (pKeysBuffer[VK_LEFT] & 0xF0) dwDirection |= DIR_LEFT;
+//		if (pKeysBuffer[VK_RIGHT] & 0xF0) dwDirection |= DIR_RIGHT;
+//		if (pKeysBuffer[VK_PRIOR] & 0xF0) dwDirection |= DIR_UP;
+//		if (pKeysBuffer[VK_NEXT] & 0xF0) dwDirection |= DIR_DOWN;
+//
+//		if (dwDirection != 0)
+//		{
+//			if (dwDirection == DIR_LEFT || dwDirection == DIR_RIGHT)
+//			{
+//				if (dwDirection == DIR_RIGHT)
+//					m_pPlayer->Rotate(0.0f, +1.0f, 0.0f);
+//				else
+//					m_pPlayer->Rotate(0.0f, -1.0f, 0.0f);
+//			}
+//			else
+//			{
+//				m_pPlayer->Move(dwDirection, (float)m_nPlayerCurrentSpeed, true);
+//			}
+//
+//			if (2 < m_cnt)
+//			{
+//				CEffectLibrary::Instance()->PlayCarDustParticle(
+//					EFFECT_TYPE::DUST,
+//					m_pPlayer->GetPosition(),
+//					m_pPlayer->GetRightVector(),
+//					m_pPlayer->GetLookVector(),
+//					XMFLOAT2(5, 5),
+//					XMFLOAT2(10, 20)
+//				);
+//				m_cnt = 0;
+//			}
+//			else
+//			{
+//				++m_cnt;
+//			}
+//		}
+//	}
+//
+//	if ((float)m_nPlayerCurrentSpeed > GetPlayerEffectiveMaxSpeed())
+//		m_nPlayerCurrentSpeed = (int)GetPlayerEffectiveMaxSpeed();
+//
+//	m_pPlayer->Update(fTimeElapsed);
+//}
+
 void CGameFramework::ProcessInputGameStage()
 {
 	static UCHAR pKeysBuffer[256];
@@ -715,6 +803,8 @@ void CGameFramework::ProcessInputGameStage()
 
 	const bool bForward = ((pKeysBuffer[VK_UP] & 0xF0) != 0);
 	const bool bBackward = ((pKeysBuffer[VK_DOWN] & 0xF0) != 0);
+	const bool bLeft = ((pKeysBuffer[VK_LEFT] & 0xF0) != 0);
+	const bool bRight = ((pKeysBuffer[VK_RIGHT] & 0xF0) != 0);
 	const bool bHasDriveInput = (bForward || bBackward);
 	const bool bDashKeyDown = ((::GetAsyncKeyState('Z') & 0x8000) != 0);
 
@@ -739,33 +829,40 @@ void CGameFramework::ProcessInputGameStage()
 		else if (bBackward)
 		{
 			dwDirection |= DIR_BACKWARD;
-			m_nPlayerCurrentSpeed += nAccel;
-			if (m_nPlayerCurrentSpeed > nCurrentMaxSpeed)
-				m_nPlayerCurrentSpeed = nCurrentMaxSpeed;
+			m_nPlayerCurrentSpeed -= nAccel;
+			if (m_nPlayerCurrentSpeed < -nCurrentMaxSpeed)
+				m_nPlayerCurrentSpeed = -nCurrentMaxSpeed;
 		}
 		else
 		{
 			if (m_nPlayerCurrentSpeed > 0) --m_nPlayerCurrentSpeed;
+			else if (m_nPlayerCurrentSpeed < 0) ++m_nPlayerCurrentSpeed;
 		}
 
-		if (pKeysBuffer[VK_LEFT] & 0xF0) dwDirection |= DIR_LEFT;
-		if (pKeysBuffer[VK_RIGHT] & 0xF0) dwDirection |= DIR_RIGHT;
-		if (pKeysBuffer[VK_PRIOR] & 0xF0) dwDirection |= DIR_UP;
-		if (pKeysBuffer[VK_NEXT] & 0xF0) dwDirection |= DIR_DOWN;
-
-		if (dwDirection != 0)
+		if (m_nPlayerCurrentSpeed != 0)
 		{
-			if (dwDirection == DIR_LEFT || dwDirection == DIR_RIGHT)
-			{
-				if (dwDirection == DIR_RIGHT)
-					m_pPlayer->Rotate(0.0f, +1.0f, 0.0f);
-				else
-					m_pPlayer->Rotate(0.0f, -1.0f, 0.0f);
+			float fTurnSpeed = 1.5f; 
+
+			float fTurnDir = (dwDirection & DIR_BACKWARD) ? -1.0f : 1.0f;
+
+			if (bLeft) m_pPlayer->Rotate(0.0f, -fTurnSpeed * fTurnDir, 0.0f);
+			if (bRight) m_pPlayer->Rotate(0.0f, fTurnSpeed * fTurnDir, 0.0f);
+
+			DWORD moveDirection = 0;
+			if (dwDirection & DIR_FORWARD) moveDirection |= DIR_FORWARD;
+			if (dwDirection & DIR_BACKWARD) moveDirection |= DIR_BACKWARD;
+
+			if (moveDirection == 0 && m_nPlayerCurrentSpeed > 0) {
+				moveDirection = DIR_FORWARD; // 1
 			}
-			else
-			{
-				m_pPlayer->Move(dwDirection, (float)m_nPlayerCurrentSpeed, true);
+			else if(moveDirection == 0 && m_nPlayerCurrentSpeed < 0) {
+				moveDirection = DIR_BACKWARD; // 2 
 			}
+
+			if(moveDirection == 1)
+				m_pPlayer->Move(moveDirection, (float)m_nPlayerCurrentSpeed, true);
+			else if(moveDirection == 2)
+				m_pPlayer->Move(moveDirection, -(float)m_nPlayerCurrentSpeed, true);
 
 			if (2 < m_cnt)
 			{
@@ -784,6 +881,9 @@ void CGameFramework::ProcessInputGameStage()
 				++m_cnt;
 			}
 		}
+		else if (m_nPlayerCurrentSpeed == 0) {
+			m_pPlayer->SetVelocity(XMFLOAT3(0, 0, 0));
+		}
 	}
 
 	if ((float)m_nPlayerCurrentSpeed > GetPlayerEffectiveMaxSpeed())
@@ -791,8 +891,6 @@ void CGameFramework::ProcessInputGameStage()
 
 	m_pPlayer->Update(fTimeElapsed);
 }
-
-
 
 void CGameFramework::AnimateObjects()
 {
