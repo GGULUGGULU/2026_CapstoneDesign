@@ -268,54 +268,72 @@ VSParticle_OUT VSParticle(VSParticle_IN input)
 RWTexture2D<float4> gOutputColor : register(u0);
 
 Texture2D<float4> gInputColor : register(t0);
+Texture2D<float4> gSpeedLineTex : register(t1); 
+
+SamplerState gComputeSampler : register(s0);
 
 cbuffer cbBlurParams : register(b0)
 {
     float4 gBlurParams;
+    
+    float gSpeedLineSin;
+    float gSpeedLineCos;
+    float gSpeedLineScale;
+    float gSpeedLineAlpha;
 };
 
 [numthreads(32, 32, 1)]
 void CS_RadialBlur(uint3 dispatchThreadID : SV_DispatchThreadID)
 {
     uint2 pixelCoord = dispatchThreadID.xy;
-    
     uint width, height;
     gOutputColor.GetDimensions(width, height);
-    
     if (pixelCoord.x >= width || pixelCoord.y >= height)
         return;
     
     float strength = gBlurParams.x;
     float2 center = gBlurParams.yz;
     float aspectRatio = gBlurParams.w;
-    
+
     float2 uv = float2(pixelCoord.x / (float) width, pixelCoord.y / (float) height);
-    
     float2 uvCorrected = uv;
     float2 centerCorrected = center;
-    
+
     uvCorrected.x *= aspectRatio;
     centerCorrected.x *= aspectRatio;
-    
+
     float2 dir = uv - center;
     float dist = length(uvCorrected - centerCorrected);
-    
+
     float4 color = float4(0, 0, 0, 0);
     int nSamples = 12;
-    
     for (int i = 0; i < nSamples; ++i)
     {
         float scale = strength * (i / (float) (nSamples - 1)) * dist;
-        
         float2 sampleUV = uv - (dir * scale);
-        
+
         int2 sampleCoord = int2(sampleUV.x * width, sampleUV.y * height);
         sampleCoord = clamp(sampleCoord, int2(0, 0), int2(width - 1, height - 1));
-        
+
         color += gInputColor.Load(int3(sampleCoord, 0));
     }
-
     color /= nSamples;
+    
+    if (gSpeedLineAlpha > 0.0f)
+    {
+        float2 centeredUV = uv - 0.5f;
+        float2x2 rotMatrix = float2x2(gSpeedLineCos, -gSpeedLineSin, gSpeedLineSin, gSpeedLineCos);
+        float2 animatedUV = mul(centeredUV, rotMatrix) / gSpeedLineScale + 0.5f;
+        
+        if (animatedUV.x >= 0.0f && animatedUV.x <= 1.0f && animatedUV.y >= 0.0f && animatedUV.y <= 1.0f)
+        {
+            float4 speedColor = gSpeedLineTex.SampleLevel(gComputeSampler, animatedUV, 0);
+            
+            float finalAlpha = speedColor.a * gSpeedLineAlpha;
+            color.rgb = (color.rgb * (1.0f - finalAlpha)) + (speedColor.rgb * finalAlpha);
+        }
+    }
+
     gOutputColor[pixelCoord] = color;
 }
 

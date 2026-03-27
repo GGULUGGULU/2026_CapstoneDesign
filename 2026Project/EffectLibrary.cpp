@@ -140,7 +140,6 @@ void CEffectLibrary::BuildRootSignature(ID3D12Device* pd3dDevice)
 
 	ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 6);
 	rootParameters[0].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_PIXEL);
-
 	rootParameters[1].InitAsConstants(32, 6, 0, D3D12_SHADER_VISIBILITY_ALL);
 	rootParameters[2].InitAsConstants(20, 7, 0, D3D12_SHADER_VISIBILITY_ALL);
 
@@ -528,6 +527,23 @@ void CEffectLibrary::Update(float fTimeElapsed)
 			++it;
 		}
 	}
+
+	m_fSpeedLineAccumTime += fTimeElapsed;
+
+	if (m_fSpeedLineAccumTime > 0.05f)
+	{
+		m_fSpeedLineAccumTime = 0.0f;
+		m_fSpeedLineAngle = ((rand() % 360) * 3.141592f) / 180.0f;
+		m_fSpeedLineScale = 0.9f + ((rand() % 20) / 100.0f);       
+	}
+
+	if (m_fCurrentPlayerSpeedRatio > 0.7f) {
+		m_fSpeedLineAlpha = (m_fCurrentPlayerSpeedRatio - 0.7f) * 3.33f;
+		if (m_fSpeedLineAlpha > 1.0f) m_fSpeedLineAlpha = 1.0f;
+	}
+	else {
+		m_fSpeedLineAlpha = 0.0f;
+	}
 }
 
 void CEffectLibrary::Release()
@@ -641,8 +657,8 @@ void CEffectLibrary::InitializePostProcess(ID3D12Device* pd3dDevice, int width, 
 	m_nWidth = width;
 	m_nHeight = height;
 
-	CD3DX12_ROOT_PARAMETER pd3dRootParameters[3];
-	pd3dRootParameters[0].InitAsConstants(4, 0); // b0
+	CD3DX12_ROOT_PARAMETER pd3dRootParameters[4];
+	pd3dRootParameters[0].InitAsConstants(8, 0); // b0
 
 	CD3DX12_DESCRIPTOR_RANGE srvRange[1];
 	srvRange[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
@@ -652,8 +668,17 @@ void CEffectLibrary::InitializePostProcess(ID3D12Device* pd3dDevice, int width, 
 	uavRange[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
 	pd3dRootParameters[2].InitAsDescriptorTable(1, uavRange); // u0
 
+	CD3DX12_DESCRIPTOR_RANGE speedLineRange[1];
+	speedLineRange[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1);
+	pd3dRootParameters[3].InitAsDescriptorTable(1, speedLineRange); // t1 (속도선 텍스처)
+
+	CD3DX12_STATIC_SAMPLER_DESC sampler(
+		0, D3D12_FILTER_MIN_MAG_MIP_LINEAR,
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP
+	);
+
 	CD3DX12_ROOT_SIGNATURE_DESC d3dRootSignatureDesc;
-	d3dRootSignatureDesc.Init(3, pd3dRootParameters, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_NONE);
+	d3dRootSignatureDesc.Init(4, pd3dRootParameters, 1, &sampler, D3D12_ROOT_SIGNATURE_FLAG_NONE);
 
 	ID3DBlob* pd3dSignatureBlob = NULL;
 	ID3DBlob* pd3dErrorBlob = NULL;
@@ -687,18 +712,16 @@ void CEffectLibrary::ResizePostProcess(ID3D12Device* pd3dDevice, int width, int 
 	pd3dDevice->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&m_pd3dPostProcessRtvHeap));
 	m_d3dSceneRtvCpuHandle = m_pd3dPostProcessRtvHeap->GetCPUDescriptorHandleForHeapStart();
 
-	D3D12_DESCRIPTOR_HEAP_DESC srvUavHeapDesc = { D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 2, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE, 0 };
+	D3D12_DESCRIPTOR_HEAP_DESC srvUavHeapDesc = { D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 3, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE, 0 };
 	pd3dDevice->CreateDescriptorHeap(&srvUavHeapDesc, IID_PPV_ARGS(&m_pd3dCbvSrvUavHeap));
 
 	UINT nIncrementSize = pd3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = m_pd3dCbvSrvUavHeap->GetCPUDescriptorHandleForHeapStart();
 
 	m_d3dSrvGpuHandle = m_pd3dCbvSrvUavHeap->GetGPUDescriptorHandleForHeapStart();
-	m_d3dUavGpuHandle = m_d3dSrvGpuHandle;
-	m_d3dUavGpuHandle.ptr += nIncrementSize;
 
 	D3D12_RESOURCE_DESC resDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R8G8B8A8_UNORM, width, height, 1, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET);
-	D3D12_CLEAR_VALUE clearVal = { DXGI_FORMAT_R8G8B8A8_UNORM, { 0.0f, 0.125f, 0.3f, 1.0f } }; // 기존 게임의 배경색
+	D3D12_CLEAR_VALUE clearVal = { DXGI_FORMAT_R8G8B8A8_UNORM, { 0.0f, 0.125f, 0.3f, 1.0f } };
 
 	pd3dDevice->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT), D3D12_HEAP_FLAG_NONE,
@@ -707,8 +730,10 @@ void CEffectLibrary::ResizePostProcess(ID3D12Device* pd3dDevice, int width, int 
 
 	pd3dDevice->CreateRenderTargetView(m_pSceneRenderTexture, NULL, m_d3dSceneRtvCpuHandle);
 	pd3dDevice->CreateShaderResourceView(m_pSceneRenderTexture, NULL, cpuHandle);
-
 	cpuHandle.ptr += nIncrementSize;
+
+	m_d3dUavGpuHandle = m_d3dSrvGpuHandle;
+	m_d3dUavGpuHandle.ptr += nIncrementSize;
 
 	resDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
 	pd3dDevice->CreateCommittedResource(
@@ -717,6 +742,15 @@ void CEffectLibrary::ResizePostProcess(ID3D12Device* pd3dDevice, int width, int 
 	);
 
 	pd3dDevice->CreateUnorderedAccessView(m_pBlurTexture, NULL, NULL, cpuHandle);
+	cpuHandle.ptr += nIncrementSize;
+
+	m_d3dSpeedLineGpuHandle = m_d3dUavGpuHandle;
+	m_d3dSpeedLineGpuHandle.ptr += nIncrementSize;
+
+	D3D12_CPU_DESCRIPTOR_HANDLE srcHandle = m_d3dSrvCpuHandleStart;
+	srcHandle.ptr += ((UINT64)EFFECT_TYPE::SPEED_LINE) * m_nSrvDescriptorIncrementSize;
+
+	pd3dDevice->CopyDescriptorsSimple(1, cpuHandle, srcHandle, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 }
 
 void CEffectLibrary::PrepareSceneRenderTarget(ID3D12GraphicsCommandList* pd3dCommandList, D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle)
@@ -746,13 +780,28 @@ void CEffectLibrary::RenderRadialBlur(ID3D12GraphicsCommandList* pd3dCommandList
 	pd3dCommandList->SetDescriptorHeaps(1, &m_pd3dCbvSrvUavHeap);
 	pd3dCommandList->SetComputeRootDescriptorTable(1, m_d3dSrvGpuHandle); // t0
 	pd3dCommandList->SetComputeRootDescriptorTable(2, m_d3dUavGpuHandle); // u0
+	pd3dCommandList->SetComputeRootDescriptorTable(3, m_d3dSpeedLineGpuHandle); // t1
+
+	// 속도 계산 로직
+	float maxSpeed = 300.0f; 
+	float speedRatio = max(0.0f, min(1.0f, (float)speed / maxSpeed));
+
+	float slAlpha = 0.0f;
+	if (speedRatio > 0.7f) {
+		slAlpha = min(1.0f, (speedRatio - 0.7f) * 3.33f);
+	}
 
 	CB_RADIAL_BLUR cbData;
 	cbData.strength = (speed > 0) ? min((float)speed * 0.0005f, 0.15f) : 0.0f;
 	cbData.cx = 0.5f; cbData.cy = 0.5f;
 	cbData.aspect = (float)m_nWidth / (float)m_nHeight;
 
-	pd3dCommandList->SetComputeRoot32BitConstants(0, 4, &cbData, 0);
+	cbData.slSin = sinf(m_fSpeedLineAngle);
+	cbData.slCos = cosf(m_fSpeedLineAngle);
+	cbData.slScale = m_fSpeedLineScale;
+	cbData.slAlpha = slAlpha;
+
+	pd3dCommandList->SetComputeRoot32BitConstants(0, 8, &cbData, 0);
 
 	pd3dCommandList->SetPipelineState(m_pRadialBlurPSO);
 	pd3dCommandList->Dispatch((m_nWidth + 15) / 16, (m_nHeight + 15) / 16, 1);

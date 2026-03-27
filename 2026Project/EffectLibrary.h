@@ -25,7 +25,8 @@ enum class EFFECT_TYPE
 	ITEM9, // 아이템 획득
 	BOOSTER, // 부스터
 	WIND_EFFECT,
-	COUNT // 개수
+	SPEED_LINE,
+	COUNT, // 개수
 };
 
 struct ActiveEffect {
@@ -42,6 +43,11 @@ struct CB_RADIAL_BLUR {
 	float cx;
 	float cy;
 	float aspect;
+
+	float slSin;     
+	float slCos;     
+	float slScale;   
+	float slAlpha;   
 };
 
 class CEffectLibrary
@@ -92,6 +98,7 @@ private:
 		/////////////////////////////////////////////////
 		L"Asset/DDS_File/Booster.dds",
 		L"Asset/DDS_File/WindShield.dds",
+		L"Asset/DDS_File/SpeedLine.dds"
 	};
 
 	UINT m_nSrvDescriptorIncrementSize = 0;
@@ -132,5 +139,19 @@ private:
 	D3D12_CPU_DESCRIPTOR_HANDLE m_d3dSceneRtvCpuHandle;
 	D3D12_GPU_DESCRIPTOR_HANDLE m_d3dSrvGpuHandle;
 	D3D12_GPU_DESCRIPTOR_HANDLE m_d3dUavGpuHandle;
+
+private:
+	ID3D12PipelineState* m_pSpeedLinePSO = nullptr;
+
+	float m_fSpeedLineAccumTime = 0.0f;
+	float m_fSpeedLineAngle = 0.0f;
+	float m_fSpeedLineScale = 1.0f;
+	float m_fSpeedLineAlpha = 0.0f;
+	float m_fCurrentPlayerSpeedRatio = 0.0f; 
+
+	D3D12_GPU_DESCRIPTOR_HANDLE m_d3dSpeedLineGpuHandle; 
+
+public:
+	void SetPlayerSpeedRatio(float ratio) { m_fCurrentPlayerSpeedRatio = ratio; }
 };
 

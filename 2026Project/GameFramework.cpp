@@ -7,8 +7,7 @@
 #include "EffectLibrary.h"
 #include "NetworkManager.h"
 
-namespace
-{
+namespace {
 	const XMFLOAT3 SINGLE_PLAYER_SPAWN = XMFLOAT3(0.0f, 10.0f, 0.0f);
 	const XMFLOAT3 HOST_PLAYER_SPAWN = XMFLOAT3(-35.0f, 10.0f, 0.0f);
 	const XMFLOAT3 CLIENT_PLAYER_SPAWN = XMFLOAT3(35.0f, 10.0f, 0.0f);
@@ -911,6 +910,9 @@ void CGameFramework::AnimateObjects()
 	{
 		m_pRemotePlayer->Animate(fTimeElapsed, NULL);
 	}
+
+	float speedRatio = (float)m_nPlayerCurrentSpeed / GetPlayerEffectiveMaxSpeed();
+	CEffectLibrary::Instance()->SetPlayerSpeedRatio(speedRatio);
 
 	CEffectLibrary::Instance()->Update(fTimeElapsed);
 }
