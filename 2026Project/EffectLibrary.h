@@ -106,6 +106,7 @@ private:
 	ID3D12RootSignature* m_pRootSignature = nullptr;
 	ID3D12PipelineState* m_pPipelineState = nullptr;
 	ID3D12PipelineState* m_pMeshEffectPSO = nullptr;
+	ID3D12PipelineState* m_pParticleDepthPSO = nullptr; // Èë¸ÕÁö¿ë
 
 	void BuildRootSignature(ID3D12Device* pd3dDevice);
 	void BuildPipelineState(ID3D12Device* pd3dDevice);
@@ -141,8 +142,6 @@ private:
 	D3D12_GPU_DESCRIPTOR_HANDLE m_d3dUavGpuHandle;
 
 private:
-	ID3D12PipelineState* m_pSpeedLinePSO = nullptr;
-
 	float m_fSpeedLineAccumTime = 0.0f;
 	float m_fSpeedLineAngle = 0.0f;
 	float m_fSpeedLineScale = 1.0f;

@@ -264,20 +264,25 @@ void CEffectLibrary::Render(ID3D12GraphicsCommandList* pd3dCommandList, const XM
 	ID3D12DescriptorHeap* pParticleHeap[] = { m_pd3dSrvHeap };
 
 	// [상태 추적용 변수] 현재 바인딩된 PSO가 무엇인지
-	// 0: 없음, 1: Particle, 2: Mesh
+	// 0: 없음, 1: Particle, 2: Mesh, 3: depth용
 	int currentPsoType = 0;
 
 	for (auto eff : m_vActiveEffects)
 	{
 		if (eff->pParticleSys)
 		{
-			if (m_pPipelineState == nullptr) continue;
-			// 파티클 PSO로 변경이 필요한 경우
-			if (currentPsoType != 1)
+			bool bUseDepth = (eff->type == EFFECT_TYPE::DUST || eff->type == EFFECT_TYPE::BOOSTER);
+
+			int nDesiredPsoType = bUseDepth ? 3 : 1;
+			ID3D12PipelineState* pTargetPSO = bUseDepth ? m_pParticleDepthPSO : m_pPipelineState;
+
+			if (pTargetPSO == nullptr) continue;
+
+			if (currentPsoType != nDesiredPsoType)
 			{
-				pd3dCommandList->SetPipelineState(m_pPipelineState); // 파티클 PSO
+				pd3dCommandList->SetPipelineState(pTargetPSO);
 				pd3dCommandList->SetDescriptorHeaps(1, pParticleHeap);
-				currentPsoType = 1;
+				currentPsoType = nDesiredPsoType;
 			}
 			else
 			{
@@ -347,6 +352,16 @@ void CEffectLibrary::BuildPipelineState(ID3D12Device* pd3dDevice)
 	if (FAILED(hr) || (m_pPipelineState == nullptr))
 	{
 		OutputDebugStringA("[EffectLibrary] CreateGraphicsPipelineState(Particle) failed.\n");
+	}
+
+
+	psoDesc.DepthStencilState.DepthEnable = TRUE;
+	psoDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
+
+	hr = pd3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pParticleDepthPSO));
+	if (FAILED(hr) || (m_pParticleDepthPSO == nullptr))
+	{
+		OutputDebugStringA("[EffectLibrary] CreateGraphicsPipelineState(Particle Depth) failed.\n");
 	}
 
 	// 바람저항효과 PSO 생성
@@ -568,10 +583,12 @@ void CEffectLibrary::Release()
 	if (m_pRootSignature) m_pRootSignature->Release();
 	if (m_pPipelineState) m_pPipelineState->Release();
 	if (m_pMeshEffectPSO) m_pMeshEffectPSO->Release();
+	if (m_pParticleDepthPSO) m_pParticleDepthPSO->Release();
 
 	m_pRootSignature = nullptr;
 	m_pPipelineState = nullptr;
 	m_pMeshEffectPSO = nullptr;
+	m_pParticleDepthPSO = nullptr;
 
 	for (auto eff : m_vActiveEffects)
 	{
@@ -782,7 +799,7 @@ void CEffectLibrary::RenderRadialBlur(ID3D12GraphicsCommandList* pd3dCommandList
 	pd3dCommandList->SetComputeRootDescriptorTable(2, m_d3dUavGpuHandle); // u0
 	pd3dCommandList->SetComputeRootDescriptorTable(3, m_d3dSpeedLineGpuHandle); // t1
 
-	// 속도 계산 로직
+	// 속도 
 	float maxSpeed = 300.0f; 
 	float speedRatio = max(0.0f, min(1.0f, (float)speed / maxSpeed));
 
