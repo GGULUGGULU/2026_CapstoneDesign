@@ -813,56 +813,53 @@ void CGameFramework::ProcessInputGameStage()
 
 	if (!bProcessedByScene)
 	{
-		DWORD dwDirection = 0;
+		XMFLOAT3 vCurrentVelocity = m_pPlayer->GetVelocity();
+		XMVECTOR vVel = XMLoadFloat3(&vCurrentVelocity);
 
-		const int nAccel = (m_bIsDashing ? 4 : 1);
-		const int nCurrentMaxSpeed = (int)GetPlayerEffectiveMaxSpeed();
+		float fTurnSpeed = 150.0f; 
+		if (bLeft) m_pPlayer->Rotate(0.0f, -fTurnSpeed * fTimeElapsed, 0.0f);
+		if (bRight) m_pPlayer->Rotate(0.0f, fTurnSpeed * fTimeElapsed, 0.0f);
+
+		XMFLOAT3 vLook = m_pPlayer->GetLookVector();
+		XMVECTOR vForwardDir = XMLoadFloat3(&vLook);
+
+		float fAccelValue = m_bIsDashing ? 1000.0f : 600.0f;
+		XMVECTOR vAcceleration = XMVectorZero();
 
 		if (bForward)
 		{
-			dwDirection |= DIR_FORWARD;
-			m_nPlayerCurrentSpeed += nAccel;
-			if (m_nPlayerCurrentSpeed > nCurrentMaxSpeed)
-				m_nPlayerCurrentSpeed = nCurrentMaxSpeed;
+			vAcceleration = vForwardDir * fAccelValue;
 		}
 		else if (bBackward)
 		{
-			dwDirection |= DIR_BACKWARD;
-			m_nPlayerCurrentSpeed -= nAccel;
-			if (m_nPlayerCurrentSpeed < -nCurrentMaxSpeed)
-				m_nPlayerCurrentSpeed = -nCurrentMaxSpeed;
-		}
-		else
-		{
-			if (m_nPlayerCurrentSpeed > 0) --m_nPlayerCurrentSpeed;
-			else if (m_nPlayerCurrentSpeed < 0) ++m_nPlayerCurrentSpeed;
+			vAcceleration = -vForwardDir * (fAccelValue * 0.5f);
 		}
 
-		if (m_nPlayerCurrentSpeed != 0)
+		vVel += vAcceleration * fTimeElapsed;
+
+		float fDrag = bHasDriveInput ? 1.5f : 4.0f;
+		vVel -= vVel * fDrag * fTimeElapsed;
+
+		XMVECTOR vRightDir = XMLoadFloat3(&m_pPlayer->GetRightVector());
+		float fRightVelocity = XMVectorGetX(XMVector3Dot(vVel, vRightDir));
+
+		float fGripStrength = 8.0f; 
+		vVel -= vRightDir * fRightVelocity * fGripStrength * fTimeElapsed;
+
+		float fCurrentMaxSpeed = GetPlayerEffectiveMaxSpeed();
+		float fSpeedSq = XMVectorGetX(XMVector3LengthSq(vVel));
+		if (fSpeedSq > fCurrentMaxSpeed * fCurrentMaxSpeed)
 		{
-			float fTurnSpeed = 1.5f; 
+			vVel = XMVector3Normalize(vVel) * fCurrentMaxSpeed;
+		}
 
-			float fTurnDir = (dwDirection & DIR_BACKWARD) ? -1.0f : 1.0f;
+		XMStoreFloat3(&vCurrentVelocity, vVel);
+		m_pPlayer->SetVelocity(vCurrentVelocity); 
 
-			if (bLeft) m_pPlayer->Rotate(0.0f, -fTurnSpeed * fTurnDir, 0.0f);
-			if (bRight) m_pPlayer->Rotate(0.0f, fTurnSpeed * fTurnDir, 0.0f);
+		m_nPlayerCurrentSpeed = (int)XMVectorGetX(XMVector3Length(vVel));
 
-			DWORD moveDirection = 0;
-			if (dwDirection & DIR_FORWARD) moveDirection |= DIR_FORWARD;
-			if (dwDirection & DIR_BACKWARD) moveDirection |= DIR_BACKWARD;
-
-			if (moveDirection == 0 && m_nPlayerCurrentSpeed > 0) {
-				moveDirection = DIR_FORWARD; // 1
-			}
-			else if(moveDirection == 0 && m_nPlayerCurrentSpeed < 0) {
-				moveDirection = DIR_BACKWARD; // 2 
-			}
-
-			if(moveDirection == 1)
-				m_pPlayer->Move(moveDirection, (float)m_nPlayerCurrentSpeed, true);
-			else if(moveDirection == 2)
-				m_pPlayer->Move(moveDirection, -(float)m_nPlayerCurrentSpeed, true);
-
+		if (m_nPlayerCurrentSpeed > 20)
+		{
 			if (2 < m_cnt)
 			{
 				CEffectLibrary::Instance()->PlayCarDustParticle(
@@ -880,14 +877,7 @@ void CGameFramework::ProcessInputGameStage()
 				++m_cnt;
 			}
 		}
-		else if (m_nPlayerCurrentSpeed == 0) {
-			m_pPlayer->SetVelocity(XMFLOAT3(0, 0, 0));
-		}
 	}
-
-	if ((float)m_nPlayerCurrentSpeed > GetPlayerEffectiveMaxSpeed())
-		m_nPlayerCurrentSpeed = (int)GetPlayerEffectiveMaxSpeed();
-
 	m_pPlayer->Update(fTimeElapsed);
 }
 

@@ -134,5 +134,10 @@ public:
 
 	virtual void Update(XMFLOAT3& xmf3LookAt, float fTimeElapsed);
 	virtual void SetLookAt(XMFLOAT3& vLookAt);
+
+public:
+	float m_fCurrentFOV;
+	float m_fShakeAccumulator;
+	float m_fPreviousSpeed;
 };
 

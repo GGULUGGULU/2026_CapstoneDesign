@@ -270,12 +270,78 @@ CThirdPersonCamera::CThirdPersonCamera(CCamera *pCamera) : CCamera(pCamera)
 			m_xmf3Look = Vector3::Normalize(m_xmf3Look);
 		}
 	}
+	m_fCurrentFOV = 60.0f;
+	m_fShakeAccumulator = 0.0f;
+	m_fPreviousSpeed = 0.0f;
 }
+
+//void CThirdPersonCamera::Update(XMFLOAT3& xmf3LookAt, float fTimeElapsed)
+//{
+//	if (m_pPlayer)
+//	{
+//		XMFLOAT4X4 xmf4x4Rotate = Matrix4x4::Identity();
+//		XMFLOAT3 xmf3Right = m_pPlayer->GetRightVector();
+//		XMFLOAT3 xmf3Up = m_pPlayer->GetUpVector();
+//		XMFLOAT3 xmf3Look = m_pPlayer->GetLookVector();
+//		xmf4x4Rotate._11 = xmf3Right.x; xmf4x4Rotate._21 = xmf3Up.x; xmf4x4Rotate._31 = xmf3Look.x;
+//		xmf4x4Rotate._12 = xmf3Right.y; xmf4x4Rotate._22 = xmf3Up.y; xmf4x4Rotate._32 = xmf3Look.y;
+//		xmf4x4Rotate._13 = xmf3Right.z; xmf4x4Rotate._23 = xmf3Up.z; xmf4x4Rotate._33 = xmf3Look.z;
+//
+//		XMFLOAT3 xmf3Offset = Vector3::TransformCoord(m_xmf3Offset, xmf4x4Rotate);
+//		XMFLOAT3 xmf3Position = Vector3::Add(m_pPlayer->GetPosition(), xmf3Offset);
+//		XMFLOAT3 xmf3Direction = Vector3::Subtract(xmf3Position, m_xmf3Position);
+//		float fLength = Vector3::Length(xmf3Direction);
+//		xmf3Direction = Vector3::Normalize(xmf3Direction);
+//		float fTimeLagScale = (m_fTimeLag) ? fTimeElapsed * (1.0f / m_fTimeLag) : 1.0f;
+//		float fDistance = fLength * fTimeLagScale;
+//		if (fDistance > fLength) fDistance = fLength;
+//		if (fLength < 0.01f) fDistance = fLength;
+//		if (fDistance > 0)
+//		{
+//			m_xmf3Position = Vector3::Add(m_xmf3Position, xmf3Direction, fDistance);
+//			SetLookAt(xmf3LookAt);
+//		}
+//	}
+//}
 
 void CThirdPersonCamera::Update(XMFLOAT3& xmf3LookAt, float fTimeElapsed)
 {
 	if (m_pPlayer)
 	{
+		XMFLOAT3 vVel = m_pPlayer->GetVelocity();
+		float fCurrentSpeed = sqrtf(vVel.x * vVel.x + vVel.y * vVel.y + vVel.z * vVel.z);
+
+		float fAcceleration = 0.0f;
+		if (fTimeElapsed > 0.0001f)
+		{
+			fAcceleration = (fCurrentSpeed - m_fPreviousSpeed) / fTimeElapsed;
+		}
+		m_fPreviousSpeed = fCurrentSpeed;
+
+		float fMaxSpeed = m_pPlayer->GetMaxVelocityXZ();
+		if (fMaxSpeed <= 0.0f) fMaxSpeed = 250.0f;
+
+		float fSpeedRatio = fCurrentSpeed / fMaxSpeed;
+		if (fSpeedRatio > 1.3f) fSpeedRatio = 1.3f;
+
+		float fAccelRatio = fAcceleration / 150.0f;
+		if (fAccelRatio < 0.0f) fAccelRatio = 0.0f; 
+		if (fAccelRatio > 1.0f) fAccelRatio = 1.0f;
+
+		float fBaseFOV = 60.0f;
+
+		float fSpeedFOVBonus = 10.0f * fSpeedRatio;
+
+		float fAccelFOVBonus = 25.0f * fAccelRatio;
+
+		float fTargetFOV = fBaseFOV + fSpeedFOVBonus + fAccelFOVBonus;
+
+		float fLerpSpeed = (fTargetFOV > m_fCurrentFOV) ? 4.0f : 0.5f;
+		m_fCurrentFOV += (fTargetFOV - m_fCurrentFOV) * (fLerpSpeed * fTimeElapsed);
+
+		float fAspectRatio = m_d3dViewport.Width / m_d3dViewport.Height;
+		GenerateProjectionMatrix(1.01f, 50000.0f, fAspectRatio, m_fCurrentFOV);
+
 		XMFLOAT4X4 xmf4x4Rotate = Matrix4x4::Identity();
 		XMFLOAT3 xmf3Right = m_pPlayer->GetRightVector();
 		XMFLOAT3 xmf3Up = m_pPlayer->GetUpVector();
@@ -285,19 +351,38 @@ void CThirdPersonCamera::Update(XMFLOAT3& xmf3LookAt, float fTimeElapsed)
 		xmf4x4Rotate._13 = xmf3Right.z; xmf4x4Rotate._23 = xmf3Up.z; xmf4x4Rotate._33 = xmf3Look.z;
 
 		XMFLOAT3 xmf3Offset = Vector3::TransformCoord(m_xmf3Offset, xmf4x4Rotate);
-		XMFLOAT3 xmf3Position = Vector3::Add(m_pPlayer->GetPosition(), xmf3Offset);
-		XMFLOAT3 xmf3Direction = Vector3::Subtract(xmf3Position, m_xmf3Position);
+		XMFLOAT3 xmf3TargetPosition = Vector3::Add(m_pPlayer->GetPosition(), xmf3Offset);
+		XMFLOAT3 xmf3Direction = Vector3::Subtract(xmf3TargetPosition, m_xmf3Position);
+
 		float fLength = Vector3::Length(xmf3Direction);
 		xmf3Direction = Vector3::Normalize(xmf3Direction);
+
 		float fTimeLagScale = (m_fTimeLag) ? fTimeElapsed * (1.0f / m_fTimeLag) : 1.0f;
 		float fDistance = fLength * fTimeLagScale;
 		if (fDistance > fLength) fDistance = fLength;
 		if (fLength < 0.01f) fDistance = fLength;
+
 		if (fDistance > 0)
 		{
 			m_xmf3Position = Vector3::Add(m_xmf3Position, xmf3Direction, fDistance);
-			SetLookAt(xmf3LookAt);
 		}
+
+		XMFLOAT3 xmf3ShakeOffset = XMFLOAT3(0.0f, 0.0f, 0.0f);
+
+		if (fSpeedRatio > 0.6f)
+		{
+			m_fShakeAccumulator += fTimeElapsed;
+
+			float fShakeIntensity = (fSpeedRatio - 0.6f) * 2.5f;
+
+			xmf3ShakeOffset.x = cosf(m_fShakeAccumulator * 75.0f) * fShakeIntensity;
+			xmf3ShakeOffset.y = sinf(m_fShakeAccumulator * 85.0f) * fShakeIntensity;
+		}
+
+		XMFLOAT3 xmf3TruePosition = m_xmf3Position;
+		m_xmf3Position = Vector3::Add(m_xmf3Position, xmf3ShakeOffset);
+		SetLookAt(xmf3LookAt);
+		m_xmf3Position = xmf3TruePosition;
 	}
 }
 
