@@ -1502,18 +1502,18 @@ void CGameFramework::RenderUI()
 
 		m_d2dDeviceContext->DrawRectangle(&bgRect, m_dashGaugeBorderBrush.Get(), 2.0f);
 		///////////////////////////
-		float ItemWidth = 60.0f;   // 게이지 너비
-		float ItemHeight = 90.0f; // 게이지 높이
-		float ItemmarginX = 10.0f;      // 좌측 여백
-		float ItemmarginY = 120.0f;      // 하단 여백
-
-		float Itemleft = m_nWndClientWidth * (0.5f * (-0.97f + 1.0f));
-		float Itemright = m_nWndClientWidth * (0.5f * (-0.78f + 1.0f));
-		float Itemtop = m_nWndClientHeight * (0.5f * (1.0f - 0.90f));
-		float Itembottom = m_nWndClientHeight * (0.5f * (1.0f - 0.50f));
-
-		D2D1_RECT_F ItemBgRect = D2D1::RectF(Itemleft, Itemtop, Itemright, Itembottom);
-		m_d2dDeviceContext->FillRectangle(&ItemBgRect, m_dashGaugeBGBrush.Get());
+		//float ItemWidth = 60.0f;   // 게이지 너비
+		//float ItemHeight = 90.0f; // 게이지 높이
+		//float ItemmarginX = 10.0f;      // 좌측 여백
+		//float ItemmarginY = 120.0f;      // 하단 여백
+		//
+		//float Itemleft = m_nWndClientWidth * (0.5f * (-0.97f + 1.0f));
+		//float Itemright = m_nWndClientWidth * (0.5f * (-0.78f + 1.0f));
+		//float Itemtop = m_nWndClientHeight * (0.5f * (1.0f - 0.90f));
+		//float Itembottom = m_nWndClientHeight * (0.5f * (1.0f - 0.50f));
+		//
+		//D2D1_RECT_F ItemBgRect = D2D1::RectF(Itemleft, Itemtop, Itemright, Itembottom);
+		//m_d2dDeviceContext->FillRectangle(&ItemBgRect, m_dashGaugeBGBrush.Get());
 	}
 
 	if (100 == m_nStage)
