@@ -670,3 +670,68 @@ float4 PS_UI_Main(VS_UI_OUTPUT input) : SV_TARGET
     
     return color;
 }
+
+cbuffer cbCamera : register(b6)
+{
+    matrix gView;
+    matrix gProj;
+};
+
+cbuffer cbEffect : register(b7)
+{
+    matrix gWorld; 
+    float gTime; 
+    float3 gScrollSpeed; 
+    float4 gTintColor; 
+};
+
+Texture2D gBaseMap : register(t6); 
+Texture2D gNoiseMap : register(t7); 
+Texture2D gMaskMap : register(t8); 
+
+SamplerState gsamLinear : register(s0);
+
+struct VS_BOOSTER_IN
+{
+    float3 PosL : POSITION;
+    float3 NormalL : NORMAL;
+    float2 TexC : TEXCOORD;
+};
+
+struct VS_BOOSTER_OUT
+{
+    float4 PosH : SV_POSITION;
+    float2 TexC : TEXCOORD;
+};
+
+VS_BOOSTER_OUT VS_Booster(VS_BOOSTER_IN vin)
+{
+    VS_BOOSTER_OUT vout;
+    
+    matrix worldViewProj = mul(mul(gWorld, gView), gProj);
+    vout.PosH = mul(float4(vin.PosL, 1.0f), worldViewProj);
+    
+    vout.TexC = vin.TexC;
+    
+    return vout;
+}
+
+float4 PS_Booster(VS_BOOSTER_OUT pin) : SV_Target
+{
+    float2 baseUV = pin.TexC + (gScrollSpeed.xy * gTime);
+    
+    float2 noiseUV = pin.TexC + (gScrollSpeed.xy * 0.7f * gTime) + float2(sin(gTime * 5.0f) * 0.05f, 0.0f);
+    
+    float2 maskUV = pin.TexC;
+    
+    float baseColor = gBaseMap.Sample(gsamLinear, baseUV).r;
+    float noiseColor = gNoiseMap.Sample(gsamLinear, noiseUV).r;
+    float maskAlpha = gMaskMap.Sample(gsamLinear, maskUV).r;
+    
+    float fireIntensity = baseColor * noiseColor * 2.0f;
+    
+    float finalAlpha = fireIntensity * maskAlpha;
+    
+    return float4(gTintColor.rgb * fireIntensity, finalAlpha * gTintColor.a);
+    //return float4(1.0f, 0.0f, 0.0f, 1.0f);
+}

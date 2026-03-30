@@ -20,6 +20,7 @@ struct CB_EFFECT_DATA
 	XMFLOAT4X4 m_xmf4x4World;
 	float m_fTime;
 	XMFLOAT3 m_fScrollSpeed;
+	XMFLOAT4 m_xmf4Color;
 };
 
 class CMeshEffect
@@ -28,9 +29,6 @@ class CMeshEffect
 	~CMeshEffect();
 
 	void CreateMesh(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, float fRadius, int nSlices, int nStacks);
-	void CreateTexture(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, const wchar_t* pszFileName);
-
-	void CreateProceduralTexture(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 
 	void CreateShaderVariables(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 	void ReleaseShaderVariables();
@@ -45,6 +43,10 @@ class CMeshEffect
 	bool IsActive() const { return m_bActive; }
 
 	void Update(float fTimeElapsed);
+
+	void SetColor(const XMFLOAT3& color) { m_xmf4Color = XMFLOAT4(color.x, color.y, color.z, 1.0f); }
+	void SetScrollSpeed(const XMFLOAT3& speed) { m_xmf3ScrollSpeed = speed; }
+	void CreateTextures(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, const std::vector<std::wstring>& fileNames);
 
 private:
 	bool m_bActive = false;
@@ -65,8 +67,12 @@ private:
 
 	UINT m_nIndices = 0;
 
-	ID3D12Resource* m_pTexture = nullptr;
-	ID3D12Resource* m_pTextureUploadBuffer = nullptr;
+	std::vector<ID3D12Resource*> m_vTextures;
+	std::vector<ID3D12Resource*> m_vTextureUploadBuffers;
 	ID3D12DescriptorHeap* m_pSrvHeap = nullptr;
+
+	XMFLOAT4 m_xmf4Color = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	XMFLOAT3 m_xmf3ScrollSpeed = XMFLOAT3(0.f, 0.f, 0.f);
+
 };
 

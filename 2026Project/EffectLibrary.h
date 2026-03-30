@@ -107,6 +107,8 @@ private:
 	ID3D12PipelineState* m_pPipelineState = nullptr;
 	ID3D12PipelineState* m_pMeshEffectPSO = nullptr;
 	ID3D12PipelineState* m_pParticleDepthPSO = nullptr; // 흙먼지용
+	ID3D12PipelineState* m_pBoosterPSO = nullptr; // 부스터용
+
 
 	void BuildRootSignature(ID3D12Device* pd3dDevice);
 	void BuildPipelineState(ID3D12Device* pd3dDevice);

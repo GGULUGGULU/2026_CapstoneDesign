@@ -48,7 +48,7 @@ void CEffectLibrary::Initialize(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandL
 	BuildPipelineState(pd3dDevice);
 
 	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc{};
-	srvHeapDesc.NumDescriptors = (int)EFFECT_TYPE::COUNT; // 텍스처 수만큼
+	srvHeapDesc.NumDescriptors = (int)EFFECT_TYPE::COUNT + 3; // 텍스처 수만큼
 	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	srvHeapDesc.NodeMask = 0;
@@ -74,11 +74,14 @@ void CEffectLibrary::Initialize(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandL
 		{
 			CMeshEffect* pShield = new CMeshEffect(pd3dDevice, pd3dCommandList);
 			pShield->CreateMesh(pd3dDevice, pd3dCommandList, 15.0f, 20, 20);
-			//pShield->CreateProceduralTexture(pd3dDevice, pd3dCommandList);
-			//pShield->CreateTexture(pd3dDevice, pd3dCommandList, L"Asset/DDS_File/WindShield.dds");
-			pShield->CreateTexture(pd3dDevice, pd3dCommandList, L"Asset/DDS_File/noise.dds");
+			std::vector<std::wstring> windTex = { 
+				L"Asset/DDS_File/noise.dds",
+				L"Asset/DDS_File/noise.dds",
+				L"Asset/DDS_File/noise.dds"
+			};
+			pShield->CreateTextures(pd3dDevice, pd3dCommandList, windTex);
 			pShield->SetScale(XMFLOAT3(1.5f, 15.5f, 1.5f));
-			//pShield->SetPosition(XMFLOAT3(0, 0, -30));
+			pShield->SetScrollSpeed(XMFLOAT3(0.0f, -3.0f, 0.0f));
 
 			ActiveEffect* pEffect = new ActiveEffect;
 			pEffect->type = (EFFECT_TYPE)typeIndex;
@@ -93,13 +96,27 @@ void CEffectLibrary::Initialize(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandL
 		}
 		else if ((EFFECT_TYPE)typeIndex == EFFECT_TYPE::BOOSTER)
 		{
-			// 부스터
 			CParticleSystem* pBoosterParticles = new CParticleSystem(pd3dDevice, pd3dCommandList, 50);
+
+			CMeshEffect* pBoosterMesh = new CMeshEffect(pd3dDevice, pd3dCommandList);
+
+			pBoosterMesh->CreateMesh(pd3dDevice, pd3dCommandList, 2.0f, 20, 20);
+
+			std::vector<std::wstring> boosterTexs = {
+				L"Asset/DDS_File/BoosterBase.dds", 
+				L"Asset/DDS_File/BoosterNoise.dds", 
+				L"Asset/DDS_File/BoosterMask.dds"   
+			};
+			pBoosterMesh->CreateTextures(pd3dDevice, pd3dCommandList, boosterTexs);
+
+			pBoosterMesh->SetColor(XMFLOAT3(0.1f, 0.5f, 1.0f)); // 부스터 색상 설정
+			pBoosterMesh->SetScale(XMFLOAT3(2.f, 10.0f, 2.f)); // 부스터 메시 크기
+			pBoosterMesh->SetScrollSpeed(XMFLOAT3(0.0f, 3.0f, 0.0f)); // uv스크롤링 속도
 
 			ActiveEffect* pEffect = new ActiveEffect;
 			pEffect->type = EFFECT_TYPE::BOOSTER;
 			pEffect->pParticleSys = pBoosterParticles;
-			pEffect->pMeshEffect = nullptr;
+			pEffect->pMeshEffect = pBoosterMesh; 
 			pEffect->bActive = false;
 
 			m_vActiveEffects.push_back(pEffect);
@@ -138,10 +155,10 @@ void CEffectLibrary::BuildRootSignature(ID3D12Device* pd3dDevice)
 
 	CD3DX12_DESCRIPTOR_RANGE ranges[1];
 
-	ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 6);
+	ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 3, 6);
 	rootParameters[0].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_PIXEL);
 	rootParameters[1].InitAsConstants(32, 6, 0, D3D12_SHADER_VISIBILITY_ALL);
-	rootParameters[2].InitAsConstants(20, 7, 0, D3D12_SHADER_VISIBILITY_ALL);
+	rootParameters[2].InitAsConstants(24, 7, 0, D3D12_SHADER_VISIBILITY_ALL);
 
 	CD3DX12_STATIC_SAMPLER_DESC sampler(
 		0,
@@ -187,7 +204,7 @@ void CEffectLibrary::LoadAssets(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandL
 
 	for (int i = 0; i < (int)EFFECT_TYPE::COUNT; ++i)
 	{
-		if ((EFFECT_TYPE)i == EFFECT_TYPE::WIND_EFFECT)
+		if ((EFFECT_TYPE)i == EFFECT_TYPE::WIND_EFFECT || (EFFECT_TYPE)i == EFFECT_TYPE::BOOSTER)
 		{
 			currentCpuHandle.ptr += nDescriptorSize;
 			continue;
@@ -264,7 +281,7 @@ void CEffectLibrary::Render(ID3D12GraphicsCommandList* pd3dCommandList, const XM
 	ID3D12DescriptorHeap* pParticleHeap[] = { m_pd3dSrvHeap };
 
 	// [상태 추적용 변수] 현재 바인딩된 PSO가 무엇인지
-	// 0: 없음, 1: Particle, 2: Mesh, 3: depth용
+	// 0: 없음, 1: Particle, 2: Mesh, 3: depth용, 4: 부스터용
 	int currentPsoType = 0;
 
 	for (auto eff : m_vActiveEffects)
@@ -295,13 +312,26 @@ void CEffectLibrary::Render(ID3D12GraphicsCommandList* pd3dCommandList, const XM
 
 			eff->pParticleSys->Render(pd3dCommandList);
 		}
-		else if (eff->pMeshEffect)
+		
+		if (eff->pMeshEffect)
 		{
-			if (m_pMeshEffectPSO == nullptr) continue;
-			if (currentPsoType != 2)
+			if (eff->type == EFFECT_TYPE::BOOSTER)
 			{
-				pd3dCommandList->SetPipelineState(m_pMeshEffectPSO); // 바람저항효과 PSO
-				currentPsoType = 2;
+				if (m_pBoosterPSO == nullptr) continue;
+				if (currentPsoType != 4) 
+				{
+					pd3dCommandList->SetPipelineState(m_pBoosterPSO);
+					currentPsoType = 4;
+				}
+			}
+			else 
+			{
+				if (m_pMeshEffectPSO == nullptr) continue;
+				if (currentPsoType != 2)
+				{
+					pd3dCommandList->SetPipelineState(m_pMeshEffectPSO);
+					currentPsoType = 2;
+				}
 			}
 
 			eff->pMeshEffect->Render(pd3dCommandList);
@@ -409,6 +439,35 @@ void CEffectLibrary::BuildPipelineState(ID3D12Device* pd3dDevice)
 	if (FAILED(hr) || (m_pMeshEffectPSO == nullptr))
 	{
 		OutputDebugStringA("[EffectLibrary] CreateGraphicsPipelineState(MeshEffect) failed.\n");
+	}
+
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC boosterPsoDesc = meshPsoDesc;
+
+	boosterPsoDesc.VS = CompileShaderHelper(L"Shaders.hlsl", "VS_Booster", "vs_5_1");
+	boosterPsoDesc.PS = CompileShaderHelper(L"Shaders.hlsl", "PS_Booster", "ps_5_1");
+
+	D3D12_BLEND_DESC boosterBlendDesc = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+	boosterBlendDesc.RenderTarget[0].BlendEnable = TRUE;
+	boosterBlendDesc.RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA; 
+	boosterBlendDesc.RenderTarget[0].DestBlend = D3D12_BLEND_ONE;     
+	boosterBlendDesc.RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD;
+
+	boosterBlendDesc.RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ZERO;
+	boosterBlendDesc.RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ONE;
+	boosterBlendDesc.RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD;
+
+	boosterPsoDesc.BlendState = boosterBlendDesc;
+
+	D3D12_DEPTH_STENCIL_DESC boosterDepthDesc = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+	boosterDepthDesc.DepthEnable = TRUE;
+	boosterDepthDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO; 
+	boosterDepthDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
+	boosterPsoDesc.DepthStencilState = boosterDepthDesc;
+
+	hr = pd3dDevice->CreateGraphicsPipelineState(&boosterPsoDesc, IID_PPV_ARGS(&m_pBoosterPSO));
+	if (FAILED(hr) || (m_pBoosterPSO == nullptr))
+	{
+		OutputDebugStringA("[EffectLibrary] CreateGraphicsPipelineState(Booster) failed.\n");
 	}
 }
 
@@ -584,11 +643,13 @@ void CEffectLibrary::Release()
 	if (m_pPipelineState) m_pPipelineState->Release();
 	if (m_pMeshEffectPSO) m_pMeshEffectPSO->Release();
 	if (m_pParticleDepthPSO) m_pParticleDepthPSO->Release();
+	if (m_pBoosterPSO) m_pBoosterPSO->Release();
 
 	m_pRootSignature = nullptr;
 	m_pPipelineState = nullptr;
 	m_pMeshEffectPSO = nullptr;
 	m_pParticleDepthPSO = nullptr;
+	m_pBoosterPSO = nullptr;
 
 	for (auto eff : m_vActiveEffects)
 	{
@@ -628,6 +689,11 @@ void CEffectLibrary::ToggleBooster(bool flag)
 	{
 		m_pBoosterEffect->bActive = flag;
 
+		if (m_pBoosterEffect->pMeshEffect)
+		{
+			m_pBoosterEffect->pMeshEffect->SetActive(flag);
+		}
+
 		if (!flag && m_pBoosterEffect->pParticleSys)
 		{
 			m_pBoosterEffect->pParticleSys->Clear();
@@ -642,7 +708,7 @@ void CEffectLibrary::UpdateBoosterPosition(const XMFLOAT3& pos, const XMFLOAT3& 
 
 	if (m_pWindShieldEffect && m_pWindShieldEffect->pMeshEffect)
 	{
-		XMVECTOR vFrontPos = XMLoadFloat3(&pos) - (vLook * 150.0f); // 캡슐의 앞이 객체 바로 앞에 오게끔 vLook* n 수정
+		XMVECTOR vFrontPos = XMLoadFloat3(&pos) - (vLook * 150.0f);
 		XMFLOAT3 fFrontPos;
 		XMStoreFloat3(&fFrontPos, vFrontPos);
 
@@ -659,13 +725,33 @@ void CEffectLibrary::UpdateBoosterPosition(const XMFLOAT3& pos, const XMFLOAT3& 
 		m_pWindShieldEffect->pMeshEffect->SetRotation(rot);
 	}
 
-	if (m_pBoosterEffect && m_pBoosterEffect->pParticleSys)
+	if (m_pBoosterEffect)
 	{
-		XMVECTOR vRearPos = XMLoadFloat3(&pos) - (vLook * 12.0f);
+		XMVECTOR vRearPos = XMLoadFloat3(&pos) - (vLook * 40.0f); // 부스터 생성위치
 		XMFLOAT3 fRearPos;
 		XMStoreFloat3(&fRearPos, vRearPos);
 
-		m_pBoosterEffect->pParticleSys->SetPosition(fRearPos);
+		if (m_pBoosterEffect->pParticleSys)
+		{
+			m_pBoosterEffect->pParticleSys->SetPosition(fRearPos);
+		}
+
+		if (m_pBoosterEffect->pMeshEffect)
+		{
+			m_pBoosterEffect->pMeshEffect->SetPosition(fRearPos);
+
+			XMFLOAT3 backDir = XMFLOAT3(-lookDir.x, -lookDir.y, -lookDir.z);
+
+			float yaw = XMConvertToDegrees(atan2(backDir.x, backDir.z));
+
+			float yVal = backDir.y;
+			if (yVal > 1.0f) yVal = 1.0f;
+			if (yVal < -1.0f) yVal = -1.0f;
+			float pitch = XMConvertToDegrees(asin(yVal));
+
+			XMFLOAT3 rot = XMFLOAT3(90.0f - pitch, yaw, 0.0f);
+			m_pBoosterEffect->pMeshEffect->SetRotation(rot);
+		}
 	}
 }
 
