@@ -23,6 +23,39 @@ struct CNetworkManagerImpl
 
 namespace
 {
+    enum class NET_MESSAGE_TYPE : unsigned int
+    {
+        PLAYER_STATE = 1,
+        COLLISION_EVENT = 2,
+        EFFECT_EVENT = 3
+    };
+
+    struct NetMessageHeader
+    {
+        unsigned int magic = 0x324B544E; // "NTK2"
+        unsigned int version = 1;
+        unsigned int type = 0;
+        unsigned int size = 0;
+    };
+
+    struct PlayerStatePacket
+    {
+        NetMessageHeader header{};
+        PlayerNetState state{};
+    };
+
+    struct CollisionEventPacket
+    {
+        NetMessageHeader header{};
+        CollisionEventNet eventData{};
+    };
+
+    struct EffectEventPacket
+    {
+        NetMessageHeader header{};
+        EffectEventNet eventData{};
+    };
+
     bool EnsureWinsockStarted(CNetworkManagerImpl* pImpl)
     {
         if (!pImpl) return false;
@@ -70,11 +103,8 @@ CNetworkManager::~CNetworkManager()
 {
     Shutdown();
 
-    if (m_pImpl)
-    {
-        delete m_pImpl;
-        m_pImpl = nullptr;
-    }
+    delete m_pImpl;
+    m_pImpl = nullptr;
 }
 
 bool CNetworkManager::StartHost(unsigned short port)
@@ -118,6 +148,8 @@ bool CNetworkManager::StartHost(unsigned short port)
     m_bConnected = false;
     m_bHasRemoteState = false;
     m_recvBuffer.clear();
+    m_collisionEvents.clear();
+    m_effectEvents.clear();
     m_pImpl->pendingSendBuffer.clear();
 
     OutputDebugStringA("[Network] Host started. Waiting for client...\n");
@@ -163,6 +195,8 @@ bool CNetworkManager::ConnectToHost(const char* pszAddress, unsigned short port)
     m_bConnected = true;
     m_bHasRemoteState = false;
     m_recvBuffer.clear();
+    m_collisionEvents.clear();
+    m_effectEvents.clear();
     m_pImpl->pendingSendBuffer.clear();
 
     OutputDebugStringA("[Network] Connected to host.\n");
@@ -172,11 +206,12 @@ bool CNetworkManager::ConnectToHost(const char* pszAddress, unsigned short port)
 void CNetworkManager::Shutdown()
 {
     DisconnectPeer();
-    CloseSocketSafe(m_pImpl->listenSocket);
+    if (m_pImpl) CloseSocketSafe(m_pImpl->listenSocket);
 
     m_bHasRemoteState = false;
     m_recvBuffer.clear();
-    if (m_pImpl) m_pImpl->pendingSendBuffer.clear();
+    m_collisionEvents.clear();
+    m_effectEvents.clear();
     m_eMode = MODE::NONE;
 
     if (m_pImpl && m_pImpl->wsaStarted)
@@ -188,11 +223,17 @@ void CNetworkManager::Shutdown()
 
 void CNetworkManager::DisconnectPeer()
 {
-    if (m_pImpl) m_pImpl->pendingSendBuffer.clear();
-    CloseSocketSafe(m_pImpl->peerSocket);
+    if (m_pImpl)
+    {
+        m_pImpl->pendingSendBuffer.clear();
+        CloseSocketSafe(m_pImpl->peerSocket);
+    }
+
     m_bConnected = false;
     m_bHasRemoteState = false;
     m_recvBuffer.clear();
+    m_collisionEvents.clear();
+    m_effectEvents.clear();
 }
 
 void CNetworkManager::TryAcceptClient()
@@ -218,6 +259,8 @@ void CNetworkManager::TryAcceptClient()
 
     m_bConnected = true;
     m_recvBuffer.clear();
+    m_collisionEvents.clear();
+    m_effectEvents.clear();
     m_pImpl->pendingSendBuffer.clear();
 
     OutputDebugStringA("[Network] Client connected.\n");
@@ -228,7 +271,7 @@ void CNetworkManager::TryReceivePackets()
     if (!m_bConnected) return;
     if (!m_pImpl || (m_pImpl->peerSocket == INVALID_SOCKET)) return;
 
-    char tempBuffer[512]{};
+    char tempBuffer[1024]{};
 
     while (true)
     {
@@ -256,38 +299,110 @@ void CNetworkManager::TryReceivePackets()
         }
     }
 
-    while (m_recvBuffer.size() >= NET_PACKET_SIZE)
+    while (m_recvBuffer.size() >= sizeof(NetMessageHeader))
     {
-        PlayerNetPacket packet{};
-        std::memcpy(&packet, m_recvBuffer.data(), NET_PACKET_SIZE);
-        m_recvBuffer.erase(m_recvBuffer.begin(), m_recvBuffer.begin() + static_cast<std::ptrdiff_t>(NET_PACKET_SIZE));
+        NetMessageHeader header{};
+        std::memcpy(&header, m_recvBuffer.data(), sizeof(NetMessageHeader));
 
-        if ((packet.magic != NET_MAGIC) || (packet.version != 1))
+        if (header.magic != NetMessageHeader{}.magic || header.version != 1 || header.size < sizeof(NetMessageHeader))
         {
-            OutputDebugStringA("[Network] Invalid packet received.\n");
-            continue;
+            OutputDebugStringA("[Network] Invalid packet header.\n");
+            m_recvBuffer.clear();
+            return;
         }
 
-        m_latestRemoteState = packet.state;
-        m_bHasRemoteState = true;
+        if (m_recvBuffer.size() < header.size) break;
+
+        switch (static_cast<NET_MESSAGE_TYPE>(header.type))
+        {
+        case NET_MESSAGE_TYPE::PLAYER_STATE:
+            if (header.size == sizeof(PlayerStatePacket))
+            {
+                PlayerStatePacket packet{};
+                std::memcpy(&packet, m_recvBuffer.data(), sizeof(packet));
+                m_latestRemoteState = packet.state;
+                m_bHasRemoteState = true;
+            }
+            break;
+
+        case NET_MESSAGE_TYPE::COLLISION_EVENT:
+            if (header.size == sizeof(CollisionEventPacket))
+            {
+                CollisionEventPacket packet{};
+                std::memcpy(&packet, m_recvBuffer.data(), sizeof(packet));
+                m_collisionEvents.push_back(packet.eventData);
+            }
+            break;
+
+        case NET_MESSAGE_TYPE::EFFECT_EVENT:
+            if (header.size == sizeof(EffectEventPacket))
+            {
+                EffectEventPacket packet{};
+                std::memcpy(&packet, m_recvBuffer.data(), sizeof(packet));
+                m_effectEvents.push_back(packet.eventData);
+            }
+            break;
+
+        default:
+            OutputDebugStringA("[Network] Unknown packet type.\n");
+            break;
+        }
+
+        m_recvBuffer.erase(
+            m_recvBuffer.begin(),
+            m_recvBuffer.begin() + static_cast<std::ptrdiff_t>(header.size)
+        );
     }
 }
 
 void CNetworkManager::TrySendLocalState(const PlayerNetState& state)
 {
-    if (!m_pImpl) return;
-    if (!m_bConnected) return;
-    if (m_pImpl->peerSocket == INVALID_SOCKET) return;
+    if (!m_pImpl || !m_bConnected || m_pImpl->peerSocket == INVALID_SOCKET) return;
 
-    PlayerNetPacket packet{};
+    PlayerStatePacket packet{};
+    packet.header.type = static_cast<unsigned int>(NET_MESSAGE_TYPE::PLAYER_STATE);
+    packet.header.size = sizeof(PlayerStatePacket);
     packet.state = state;
 
-    const char* packetBytes = reinterpret_cast<const char*>(&packet);
-    m_pImpl->pendingSendBuffer.insert(
-        m_pImpl->pendingSendBuffer.end(),
-        packetBytes,
-        packetBytes + sizeof(packet)
-    );
+    const char* bytes = reinterpret_cast<const char*>(&packet);
+    m_pImpl->pendingSendBuffer.insert(m_pImpl->pendingSendBuffer.end(), bytes, bytes + sizeof(packet));
+
+    FlushPendingSends();
+}
+
+void CNetworkManager::SendCollisionEvent(const CollisionEventNet& ev)
+{
+    if (!m_pImpl || !m_bConnected || m_pImpl->peerSocket == INVALID_SOCKET) return;
+
+    CollisionEventPacket packet{};
+    packet.header.type = static_cast<unsigned int>(NET_MESSAGE_TYPE::COLLISION_EVENT);
+    packet.header.size = sizeof(CollisionEventPacket);
+    packet.eventData = ev;
+
+    const char* bytes = reinterpret_cast<const char*>(&packet);
+    m_pImpl->pendingSendBuffer.insert(m_pImpl->pendingSendBuffer.end(), bytes, bytes + sizeof(packet));
+
+    FlushPendingSends();
+}
+
+void CNetworkManager::SendEffectEvent(const EffectEventNet& ev)
+{
+    if (!m_pImpl || !m_bConnected || m_pImpl->peerSocket == INVALID_SOCKET) return;
+
+    EffectEventPacket packet{};
+    packet.header.type = static_cast<unsigned int>(NET_MESSAGE_TYPE::EFFECT_EVENT);
+    packet.header.size = sizeof(EffectEventPacket);
+    packet.eventData = ev;
+
+    const char* bytes = reinterpret_cast<const char*>(&packet);
+    m_pImpl->pendingSendBuffer.insert(m_pImpl->pendingSendBuffer.end(), bytes, bytes + sizeof(packet));
+
+    FlushPendingSends();
+}
+
+void CNetworkManager::FlushPendingSends()
+{
+    if (!m_pImpl || !m_bConnected || m_pImpl->peerSocket == INVALID_SOCKET) return;
 
     while (!m_pImpl->pendingSendBuffer.empty())
     {
@@ -295,15 +410,13 @@ void CNetworkManager::TrySendLocalState(const PlayerNetState& state)
             m_pImpl->peerSocket,
             m_pImpl->pendingSendBuffer.data(),
             static_cast<int>(m_pImpl->pendingSendBuffer.size()),
-            0
-        );
+            0);
 
         if (sentBytes > 0)
         {
             m_pImpl->pendingSendBuffer.erase(
                 m_pImpl->pendingSendBuffer.begin(),
-                m_pImpl->pendingSendBuffer.begin() + sentBytes
-            );
+                m_pImpl->pendingSendBuffer.begin() + sentBytes);
         }
         else if (sentBytes == SOCKET_ERROR)
         {
@@ -337,6 +450,10 @@ void CNetworkManager::Update(float /*fTimeElapsed*/, const PlayerNetState* pLoca
         {
             TrySendLocalState(*pLocalState);
         }
+        else
+        {
+            FlushPendingSends();
+        }
     }
 }
 
@@ -346,6 +463,24 @@ bool CNetworkManager::ConsumeRemoteState(PlayerNetState& outState)
 
     outState = m_latestRemoteState;
     m_bHasRemoteState = false;
+    return true;
+}
+
+bool CNetworkManager::ConsumeCollisionEvent(CollisionEventNet& outEvent)
+{
+    if (m_collisionEvents.empty()) return false;
+
+    outEvent = m_collisionEvents.front();
+    m_collisionEvents.erase(m_collisionEvents.begin());
+    return true;
+}
+
+bool CNetworkManager::ConsumeEffectEvent(EffectEventNet& outEvent)
+{
+    if (m_effectEvents.empty()) return false;
+
+    outEvent = m_effectEvents.front();
+    m_effectEvents.erase(m_effectEvents.begin());
     return true;
 }
 

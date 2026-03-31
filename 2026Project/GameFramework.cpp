@@ -1142,6 +1142,79 @@ void CGameFramework::UpdateDashSystem(float fTimeElapsed, bool bDashKeyDown, boo
 
 void CGameFramework::CollisionProcess()
 {
+	// 플레이어끼리 충돌 
+	if (m_bMultiplayerEnabled && m_pPlayer && m_pRemotePlayer && m_pRemotePlayer->m_bIsActive)
+	{
+		BoundingBox localAABB = m_pPlayer->GetCombinedAABB();
+		BoundingBox worldAABB_Local;
+		localAABB.Transform(worldAABB_Local, XMLoadFloat4x4(&m_pPlayer->GetWorldMatrix()));
+
+		BoundingBox remoteAABB = m_pRemotePlayer->GetCombinedAABB();
+		BoundingBox worldAABB_Remote;
+		remoteAABB.Transform(worldAABB_Remote, XMLoadFloat4x4(&m_pRemotePlayer->GetWorldMatrix()));
+
+		if (worldAABB_Local.Intersects(worldAABB_Remote))
+		{
+			XMFLOAT3 localPos = m_pPlayer->GetPosition();
+			XMFLOAT3 remotePos = m_pRemotePlayer->GetPosition();
+
+			XMFLOAT3 pushDir = Vector3::Subtract(localPos, remotePos);
+			pushDir.y = 0.0f;
+
+			float fLen = Vector3::Length(pushDir);
+			if (fLen < 0.001f)
+			{
+				
+				pushDir = XMFLOAT3(1.0f, 0.0f, 0.0f);
+			}
+			else
+			{
+				pushDir = Vector3::Normalize(pushDir);
+			}
+
+			const float fSeparation = 8.0f;
+			XMFLOAT3 localNewPos = Vector3::Add(localPos, Vector3::ScalarProduct(pushDir, fSeparation * 0.5f, false));
+			XMFLOAT3 remoteNewPos = Vector3::Add(remotePos, Vector3::ScalarProduct(pushDir, -fSeparation * 0.5f, false));
+
+			m_pPlayer->SetPosition(localNewPos);
+			m_pRemotePlayer->SetPosition(remoteNewPos);
+
+			m_pPlayer->OnPrepareRender();
+			m_pRemotePlayer->OnPrepareRender();
+
+	
+			XMFLOAT3 localVel = m_pPlayer->GetVelocity();
+			XMFLOAT3 remoteVel = m_pRemotePlayer->GetVelocity();
+
+			float localSpeed = max(80.0f, Vector3::Length(localVel));
+			float remoteSpeed = max(80.0f, Vector3::Length(remoteVel));
+			float reboundPower = max(localSpeed, remoteSpeed) * 0.8f;
+
+			XMFLOAT3 localBounceVel = Vector3::ScalarProduct(pushDir, reboundPower, false);
+			XMFLOAT3 remoteBounceVel = Vector3::ScalarProduct(pushDir, -reboundPower, false);
+
+			m_pPlayer->SetVelocity(localBounceVel);
+			m_pRemotePlayer->SetVelocity(remoteBounceVel);
+
+			// 충돌 이펙트
+			XMFLOAT3 hitPos = XMFLOAT3(
+				(localPos.x + remotePos.x) * 0.5f,
+				(localPos.y + remotePos.y) * 0.5f + 10.0f,
+				(localPos.z + remotePos.z) * 0.5f
+			);
+
+			CEffectLibrary::Instance()->Play(EFFECT_TYPE::COLLISION, hitPos, XMFLOAT2(50, 50), XMFLOAT3(1, 0, 0));
+			CEffectLibrary::Instance()->Play(EFFECT_TYPE::COLLISION, hitPos, XMFLOAT2(50, 50), XMFLOAT3(0, 1, 0));
+			CEffectLibrary::Instance()->Play(EFFECT_TYPE::COLLISION, hitPos, XMFLOAT2(50, 50), XMFLOAT3(0, 0, 1));
+
+			m_bIsStun = true;
+			m_fCollisionCurrentTime = m_fTotalTime;
+
+			
+			return;
+		}
+	}
+
 	if (m_pPlayer) m_pPlayer->OnPrepareRender();
 
 	XMFLOAT3 colDirection;
