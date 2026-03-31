@@ -537,16 +537,19 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 			break;
 
 		case 'P':
-			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM1, m_pPlayer->GetPosition(), XMFLOAT2(50, 50));
-			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM2, m_pPlayer->GetPosition(), XMFLOAT2(50, 50));
-			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM3, m_pPlayer->GetPosition(), XMFLOAT2(50, 50));
-			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM4, m_pPlayer->GetPosition(), XMFLOAT2(25, 25));
-			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM5, m_pPlayer->GetPosition(), XMFLOAT2(50, 50));
-			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM6, m_pPlayer->GetPosition(), XMFLOAT2(50, 50));
-			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM7, m_pPlayer->GetPosition(), XMFLOAT2(50, 50));
-			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM8, m_pPlayer->GetPosition(), XMFLOAT2(25, 25));
-			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM9, m_pPlayer->GetPosition(), XMFLOAT2(50, 50));
+		{
+			XMFLOAT3 effectPos = m_pPlayer->GetPosition();
+			PlayAndSyncEffect(EFFECT_TYPE::ITEM1, effectPos, XMFLOAT2(50, 50));
+			PlayAndSyncEffect(EFFECT_TYPE::ITEM2, effectPos, XMFLOAT2(50, 50));
+			PlayAndSyncEffect(EFFECT_TYPE::ITEM3, effectPos, XMFLOAT2(50, 50));
+			PlayAndSyncEffect(EFFECT_TYPE::ITEM4, effectPos, XMFLOAT2(25, 25));
+			PlayAndSyncEffect(EFFECT_TYPE::ITEM5, effectPos, XMFLOAT2(50, 50));
+			PlayAndSyncEffect(EFFECT_TYPE::ITEM6, effectPos, XMFLOAT2(50, 50));
+			PlayAndSyncEffect(EFFECT_TYPE::ITEM7, effectPos, XMFLOAT2(50, 50));
+			PlayAndSyncEffect(EFFECT_TYPE::ITEM8, effectPos, XMFLOAT2(25, 25));
+			PlayAndSyncEffect(EFFECT_TYPE::ITEM9, effectPos, XMFLOAT2(50, 50));
 			break;
+		}
 
 		default:
 			break;
@@ -816,7 +819,7 @@ void CGameFramework::ProcessInputGameStage()
 		XMFLOAT3 vCurrentVelocity = m_pPlayer->GetVelocity();
 		XMVECTOR vVel = XMLoadFloat3(&vCurrentVelocity);
 
-		float fTurnSpeed = 150.0f; 
+		float fTurnSpeed = 150.0f;
 		if (bLeft) m_pPlayer->Rotate(0.0f, -fTurnSpeed * fTimeElapsed, 0.0f);
 		if (bRight) m_pPlayer->Rotate(0.0f, fTurnSpeed * fTimeElapsed, 0.0f);
 
@@ -843,7 +846,7 @@ void CGameFramework::ProcessInputGameStage()
 		XMVECTOR vRightDir = XMLoadFloat3(&m_pPlayer->GetRightVector());
 		float fRightVelocity = XMVectorGetX(XMVector3Dot(vVel, vRightDir));
 
-		float fGripStrength = 8.0f; 
+		float fGripStrength = 8.0f;
 		vVel -= vRightDir * fRightVelocity * fGripStrength * fTimeElapsed;
 
 		float fCurrentMaxSpeed = GetPlayerEffectiveMaxSpeed();
@@ -854,7 +857,7 @@ void CGameFramework::ProcessInputGameStage()
 		}
 
 		XMStoreFloat3(&vCurrentVelocity, vVel);
-		m_pPlayer->SetVelocity(vCurrentVelocity); 
+		m_pPlayer->SetVelocity(vCurrentVelocity);
 
 		m_nPlayerCurrentSpeed = (int)XMVectorGetX(XMVector3Length(vVel));
 
@@ -1164,7 +1167,7 @@ void CGameFramework::CollisionProcess()
 			float fLen = Vector3::Length(pushDir);
 			if (fLen < 0.001f)
 			{
-				
+
 				pushDir = XMFLOAT3(1.0f, 0.0f, 0.0f);
 			}
 			else
@@ -1182,7 +1185,7 @@ void CGameFramework::CollisionProcess()
 			m_pPlayer->OnPrepareRender();
 			m_pRemotePlayer->OnPrepareRender();
 
-	
+
 			XMFLOAT3 localVel = m_pPlayer->GetVelocity();
 			XMFLOAT3 remoteVel = m_pRemotePlayer->GetVelocity();
 
@@ -1203,14 +1206,14 @@ void CGameFramework::CollisionProcess()
 				(localPos.z + remotePos.z) * 0.5f
 			);
 
-			CEffectLibrary::Instance()->Play(EFFECT_TYPE::COLLISION, hitPos, XMFLOAT2(50, 50), XMFLOAT3(1, 0, 0));
-			CEffectLibrary::Instance()->Play(EFFECT_TYPE::COLLISION, hitPos, XMFLOAT2(50, 50), XMFLOAT3(0, 1, 0));
-			CEffectLibrary::Instance()->Play(EFFECT_TYPE::COLLISION, hitPos, XMFLOAT2(50, 50), XMFLOAT3(0, 0, 1));
+			PlayAndSyncEffect(EFFECT_TYPE::COLLISION, hitPos, XMFLOAT2(50, 50), XMFLOAT3(1, 0, 0));
+			PlayAndSyncEffect(EFFECT_TYPE::COLLISION, hitPos, XMFLOAT2(50, 50), XMFLOAT3(0, 1, 0));
+			PlayAndSyncEffect(EFFECT_TYPE::COLLISION, hitPos, XMFLOAT2(50, 50), XMFLOAT3(0, 0, 1));
 
 			m_bIsStun = true;
 			m_fCollisionCurrentTime = m_fTotalTime;
 
-			
+
 			return;
 		}
 	}
@@ -1255,15 +1258,15 @@ void CGameFramework::CollisionProcess()
 		{
 			XMFLOAT3 vPos = pCollidedObject->GetPosition();
 
-			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM1, vPos, XMFLOAT2(50, 50));
-			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM2, vPos, XMFLOAT2(50, 50));
-			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM3, vPos, XMFLOAT2(50, 50));
-			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM4, vPos, XMFLOAT2(25, 25));
-			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM5, vPos, XMFLOAT2(50, 50));
-			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM6, vPos, XMFLOAT2(50, 50));
-			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM7, vPos, XMFLOAT2(50, 50));
-			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM8, vPos, XMFLOAT2(25, 25));
-			CEffectLibrary::Instance()->Play(EFFECT_TYPE::ITEM9, vPos, XMFLOAT2(50, 50));
+			PlayAndSyncEffect(EFFECT_TYPE::ITEM1, vPos, XMFLOAT2(50, 50));
+			PlayAndSyncEffect(EFFECT_TYPE::ITEM2, vPos, XMFLOAT2(50, 50));
+			PlayAndSyncEffect(EFFECT_TYPE::ITEM3, vPos, XMFLOAT2(50, 50));
+			PlayAndSyncEffect(EFFECT_TYPE::ITEM4, vPos, XMFLOAT2(25, 25));
+			PlayAndSyncEffect(EFFECT_TYPE::ITEM5, vPos, XMFLOAT2(50, 50));
+			PlayAndSyncEffect(EFFECT_TYPE::ITEM6, vPos, XMFLOAT2(50, 50));
+			PlayAndSyncEffect(EFFECT_TYPE::ITEM7, vPos, XMFLOAT2(50, 50));
+			PlayAndSyncEffect(EFFECT_TYPE::ITEM8, vPos, XMFLOAT2(25, 25));
+			PlayAndSyncEffect(EFFECT_TYPE::ITEM9, vPos, XMFLOAT2(50, 50));
 
 			m_fItemDisplayTimer = 3.0f;
 
@@ -1280,9 +1283,9 @@ void CGameFramework::CollisionProcess()
 		{
 			XMFLOAT3 vPos = pCollidedObject->GetPosition();
 
-			CEffectLibrary::Instance()->Play(EFFECT_TYPE::COLLISION, XMFLOAT3(vPos.x, vPos.y + 10, vPos.z), XMFLOAT2(50, 50), XMFLOAT3(1, 0, 0));
-			CEffectLibrary::Instance()->Play(EFFECT_TYPE::COLLISION, XMFLOAT3(vPos.x, vPos.y + 10, vPos.z), XMFLOAT2(50, 50), XMFLOAT3(0, 1, 0));
-			CEffectLibrary::Instance()->Play(EFFECT_TYPE::COLLISION, XMFLOAT3(vPos.x, vPos.y + 10, vPos.z), XMFLOAT2(50, 50), XMFLOAT3(0, 0, 1));
+			PlayAndSyncEffect(EFFECT_TYPE::COLLISION, XMFLOAT3(vPos.x, vPos.y + 10, vPos.z), XMFLOAT2(50, 50), XMFLOAT3(1, 0, 0));
+			PlayAndSyncEffect(EFFECT_TYPE::COLLISION, XMFLOAT3(vPos.x, vPos.y + 10, vPos.z), XMFLOAT2(50, 50), XMFLOAT3(0, 1, 0));
+			PlayAndSyncEffect(EFFECT_TYPE::COLLISION, XMFLOAT3(vPos.x, vPos.y + 10, vPos.z), XMFLOAT2(50, 50), XMFLOAT3(0, 0, 1));
 
 			pCollidedObject->Disable();
 
@@ -1896,6 +1899,45 @@ void CGameFramework::SyncMultiplayer()
 	while (m_pNetwork->ConsumeRemoteState(remoteState))
 	{
 		ApplyRemotePlayerState(remoteState);
+	}
+
+	ConsumeNetworkEffectEvents();
+}
+
+
+void CGameFramework::PlayAndSyncEffect(EFFECT_TYPE eType, const XMFLOAT3& xmf3Position, const XMFLOAT2& xmf2Size, const XMFLOAT3& xmf3Color)
+{
+	CEffectLibrary::Instance()->Play(eType, xmf3Position, xmf2Size, xmf3Color);
+	SendEffectEvent(eType, xmf3Position, xmf2Size, xmf3Color);
+}
+
+void CGameFramework::SendEffectEvent(EFFECT_TYPE eType, const XMFLOAT3& xmf3Position, const XMFLOAT2& xmf2Size, const XMFLOAT3& xmf3Color)
+{
+	if (!m_pNetwork || !m_pNetwork->IsConnected()) return;
+	if (!m_pNetwork->IsHosting()) return;
+
+	EffectEventNet ev{};
+	ev.effectType = static_cast<int>(eType);
+	ev.x = xmf3Position.x;
+	ev.y = xmf3Position.y;
+	ev.z = xmf3Position.z;
+	ev.sx = xmf2Size.x;
+	ev.sy = xmf2Size.y;
+	ev.r = xmf3Color.x;
+	ev.g = xmf3Color.y;
+	ev.b = xmf3Color.z;
+
+	m_pNetwork->SendEffectEvent(ev);
+}
+
+void CGameFramework::ConsumeNetworkEffectEvents()
+{
+	if (!m_pNetwork) return;
+
+	EffectEventNet ev{};
+	while (m_pNetwork->ConsumeEffectEvent(ev))
+	{
+		CEffectLibrary::Instance()->Play(static_cast<EFFECT_TYPE>(ev.effectType), XMFLOAT3(ev.x, ev.y, ev.z), XMFLOAT2(ev.sx, ev.sy), XMFLOAT3(ev.r, ev.g, ev.b));
 	}
 }
 
