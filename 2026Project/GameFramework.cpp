@@ -816,6 +816,17 @@ void CGameFramework::ProcessInputGameStage()
 
 	if (!bProcessedByScene)
 	{
+		float fTargetSteering = 0.0f;
+		float fMaxSteeringAngle = 35.0f; 
+
+		if (bLeft) fTargetSteering = -fMaxSteeringAngle;
+		else if (bRight) fTargetSteering = fMaxSteeringAngle;
+		
+		if (m_pPlayer)
+		{
+			((CCarPlayer*)m_pPlayer)->UpdateSteering(fTargetSteering, fTimeElapsed);
+		}
+
 		XMFLOAT3 vCurrentVelocity = m_pPlayer->GetVelocity();
 		XMVECTOR vVel = XMLoadFloat3(&vCurrentVelocity);
 

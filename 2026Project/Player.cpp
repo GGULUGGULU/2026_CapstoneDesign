@@ -364,11 +364,11 @@ CCarPlayer::CCarPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3d
 {
 	m_pCamera = ChangeCamera(/*SPACESHIP_CAMERA*/THIRD_PERSON_CAMERA, 0.0f);
 
-	CGameObject* pGameObject = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/SSC_TUATARA.bin");
+	CGameObject* pGameObject = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/FINAL_MODEL_24.bin");
 
 	pGameObject->SetPosition(0.0f, 0.0f, 0.0f);
-	pGameObject->Rotate(-90.0f, 90.0f, 0.0f);
-	pGameObject->SetScale(1.0f, 1.0f, 1.0f);
+	//pGameObject->Rotate(-90.0f, 90.0f, 0.0f);
+	pGameObject->SetScale(8.0f, 8.0f, 8.0f);
 
 	SetChild(pGameObject, true);
 
@@ -383,37 +383,58 @@ CCarPlayer::~CCarPlayer()
 
 void CCarPlayer::OnInitialize()
 {
-	m_pWheelLeftFrontFrame = FindFrame("WHEEL_LF");
-	m_pWheelRightFrontFrame = FindFrame("WHEEL_RF");
-	m_pWheelLeftRearFrame = FindFrame("WHEEL_LR");
-	m_pWheelRightRearFrame = FindFrame("WHEEL_RR");
+	//m_pWheelLeftFrontFrame = FindFrame("LeftFront");
+	//m_pWheelRightFrontFrame = FindFrame("RightFront");
+	//m_pWheelLeftRearFrame = FindFrame("LeftBack");
+	//m_pWheelRightRearFrame = FindFrame("RightBack");
+
+	m_pWheelLeftFrontFrame = FindFrame("LF");
+	m_pWheelRightFrontFrame = FindFrame("RF");
+	m_pWheelLeftRearFrame = FindFrame("LB");
+	m_pWheelRightRearFrame = FindFrame("RB");
+
+	if (m_pWheelLeftFrontFrame) m_xmf4x4OriginalFL = m_pWheelLeftFrontFrame->m_xmf4x4Transform;
+	if (m_pWheelRightFrontFrame) m_xmf4x4OriginalFR = m_pWheelRightFrontFrame->m_xmf4x4Transform;
+	if (m_pWheelLeftRearFrame) m_xmf4x4OriginalBL = m_pWheelLeftRearFrame->m_xmf4x4Transform;
+	if (m_pWheelRightRearFrame) m_xmf4x4OriginalBR = m_pWheelRightRearFrame->m_xmf4x4Transform;
+
+	if (m_pWheelLeftFrontFrame)
+	{
+		char szDebugBuffer[256];
+		sprintf_s(szDebugBuffer, "[Debug] WheelFL Original Pos - X: %.4f, Y: %.4f, Z: %.4f\n",
+			m_xmf4x4OriginalFL._41,
+			m_xmf4x4OriginalFL._42,
+			m_xmf4x4OriginalFL._43);
+		OutputDebugStringA(szDebugBuffer);
+	}
 }
 
 void CCarPlayer::Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent)
 {
+	XMVECTOR vVelocity = XMLoadFloat3(&m_xmf3Velocity);
+	XMVECTOR vLook = XMLoadFloat3(&m_xmf3Look);
+	float fForwardSpeed = XMVectorGetX(XMVector3Dot(vVelocity, vLook));
+
+	m_fTireRotationAngle -= fForwardSpeed * fTimeElapsed * 5.f;
+
+	XMMATRIX xmmtxRoll = XMMatrixRotationX(XMConvertToRadians(m_fTireRotationAngle));
+	XMMATRIX xmmtxSteer = XMMatrixRotationY(XMConvertToRadians(m_fSteeringAngle));
+
+	XMMATRIX xmmtxFront = xmmtxRoll * xmmtxSteer;
+
+	XMMATRIX xmmtxRear = xmmtxRoll;
+
 	if (m_pWheelLeftFrontFrame)
-	{
-		XMMATRIX xmmtxRotate = XMMatrixRotationX(XMConvertToRadians(360.0f * 2.0f) * fTimeElapsed);
-		m_pWheelLeftFrontFrame->m_xmf4x4Transform = Matrix4x4::Multiply(xmmtxRotate, m_pWheelLeftFrontFrame->m_xmf4x4Transform);
-	}
+		m_pWheelLeftFrontFrame->m_xmf4x4Transform = Matrix4x4::Multiply(xmmtxFront, m_xmf4x4OriginalFL);
 
 	if (m_pWheelRightFrontFrame)
-	{
-		XMMATRIX xmmtxRotate = XMMatrixRotationX(XMConvertToRadians(360.0f * 2.0f) * fTimeElapsed);
-		m_pWheelRightFrontFrame->m_xmf4x4Transform = Matrix4x4::Multiply(xmmtxRotate, m_pWheelRightFrontFrame->m_xmf4x4Transform);
-	}
+		m_pWheelRightFrontFrame->m_xmf4x4Transform = Matrix4x4::Multiply(xmmtxFront, m_xmf4x4OriginalFR);
 
 	if (m_pWheelLeftRearFrame)
-	{
-		XMMATRIX xmmtxRotate = XMMatrixRotationX(XMConvertToRadians(360.0f * 2.0f) * fTimeElapsed);
-		m_pWheelLeftRearFrame->m_xmf4x4Transform = Matrix4x4::Multiply(xmmtxRotate, m_pWheelLeftRearFrame->m_xmf4x4Transform);
-	}
+		m_pWheelLeftRearFrame->m_xmf4x4Transform = Matrix4x4::Multiply(xmmtxRear, m_xmf4x4OriginalBL);
 
 	if (m_pWheelRightRearFrame)
-	{
-		XMMATRIX xmmtxRotate = XMMatrixRotationX(XMConvertToRadians(360.0f * 2.0f) * fTimeElapsed);
-		m_pWheelRightRearFrame->m_xmf4x4Transform = Matrix4x4::Multiply(xmmtxRotate, m_pWheelRightRearFrame->m_xmf4x4Transform);
-	}
+		m_pWheelRightRearFrame->m_xmf4x4Transform = Matrix4x4::Multiply(xmmtxRear, m_xmf4x4OriginalBR);
 
 	CPlayer::Animate(fTimeElapsed, pxmf4x4Parent);
 }
@@ -488,3 +509,18 @@ CCamera* CCarPlayer::ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed)
 	return(m_pCamera);
 }
 
+void CCarPlayer::UpdateSteering(float fTargetSteering, float fTimeElapsed)
+{
+	float fSteerSpeed = 150.0f; 
+
+	if (m_fSteeringAngle < fTargetSteering)
+	{
+		m_fSteeringAngle += fSteerSpeed * fTimeElapsed;
+		if (m_fSteeringAngle > fTargetSteering) m_fSteeringAngle = fTargetSteering;
+	}
+	else if (m_fSteeringAngle > fTargetSteering)
+	{
+		m_fSteeringAngle -= fSteerSpeed * fTimeElapsed;
+		if (m_fSteeringAngle < fTargetSteering) m_fSteeringAngle = fTargetSteering;
+	}
+}

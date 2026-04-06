@@ -117,6 +117,14 @@ public:
 	CGameObject* m_pWheelLeftRearFrame = NULL;
 	CGameObject* m_pWheelRightRearFrame = NULL;
 
+	XMFLOAT4X4 m_xmf4x4OriginalFL;
+	XMFLOAT4X4 m_xmf4x4OriginalFR;
+	XMFLOAT4X4 m_xmf4x4OriginalBL;
+	XMFLOAT4X4 m_xmf4x4OriginalBR;
+
+	float m_fSteeringAngle = 0.0f;
+	float m_fTireRotationAngle = 0.0f;
+
 private:
 	virtual void OnInitialize();
 	virtual void Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent = NULL);
@@ -124,4 +132,6 @@ private:
 public:
 	virtual CCamera* ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed);
 	virtual void OnPrepareRender();
+
+	void UpdateSteering(float fTargetSteering, float fTimeElapsed);
 };

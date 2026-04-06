@@ -351,36 +351,6 @@ void CScene::ApplyMeshTextures(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLi
 	ApplyMeshTextures(pd3dDevice, pd3dCommandList, pObject->m_pSibling);
 }
 
-//void SetTerrainRecursive(CGameObject* pObject, D3D12_PRIMITIVE_TOPOLOGY topology, CMaterial* pMaterial)
-//{
-//	if (!pObject) return;
-//	if (pObject->m_pMesh)
-//	{
-//		pObject->m_pMesh->SetPrimitiveTopology(topology);
-//
-//		if (pMaterial)
-//		{
-//			if (pObject->m_ppMaterials)
-//			{
-//				for (int i = 0; i < pObject->m_nMaterials; i++)
-//				{
-//					if (pObject->m_ppMaterials[i]) pObject->m_ppMaterials[i]->Release();
-//				}
-//				delete[] pObject->m_ppMaterials;
-//				pObject->m_ppMaterials = NULL;
-//			}
-//
-//			pObject->m_nMaterials = 1;
-//			pObject->m_ppMaterials = new CMaterial * [1];
-//			pObject->m_ppMaterials[0] = NULL;
-//			pObject->SetMaterial(0, pMaterial);
-//		}
-//	}
-//
-//	if (pObject->m_pSibling) SetTerrainRecursive(pObject->m_pSibling, topology, pMaterial);
-//	if (pObject->m_pChild) SetTerrainRecursive(pObject->m_pChild, topology, pMaterial);
-//}
-
 void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
 	m_pd3dGraphicsRootSignature = CreateGraphicsRootSignature(pd3dDevice);
@@ -571,7 +541,7 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 	}
 
 
-	CreateMirror(pd3dDevice, pd3dCommandList);
+	//CreateMirror(pd3dDevice, pd3dCommandList);
 	CreateWireFrameBox(pd3dDevice, pd3dCommandList);
 	CreateAABBWireFrameBox(pd3dDevice, pd3dCommandList);
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
@@ -702,46 +672,6 @@ void CScene::CreateRockBillboard(ID3D12Device* pd3dDevice, ID3D12GraphicsCommand
 		pRockObject->SetPosition(2750.0f, 10.0f, -2750.0f + 500 * i);
 
 		m_ppGameObjects[26 + i] = pRockObject; // index = 13
-	}
-}
-
-
-
-void CScene::CreateMirror(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
-{
-	m_pReflectedShader = new CReflectedObjectShader();
-	m_pReflectedShader->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature);
-	m_pReflectedShader->CreateShaderVariables(pd3dDevice, pd3dCommandList);
-	{
-		CGameObject* pMirrorModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/MirrorObject.bin");
-
-		if (pMirrorModel->GetMesh() == NULL && pMirrorModel->m_pChild != NULL)
-		{
-			m_pMirrorObject = pMirrorModel->m_pChild;
-		}
-		else
-		{
-			m_pMirrorObject = pMirrorModel;
-		}
-
-		m_pMirrorObject->SetPosition(0.0f, 50.0f, 2500.0f);
-		m_pMirrorObject->SetScale(600.0f, 10.0f, 10.0f);
-		m_pMirrorObject->Rotate(90.0f, 180.0f, 0.0f);
-
-		CMirrorShader* pMirrorSurfaceShader = new CMirrorShader();
-		pMirrorSurfaceShader->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature);
-
-		CMaterial* pMirrorMaterial = new CMaterial();
-		CMaterialColors* pMirrorColors = new CMaterialColors();
-
-		pMirrorColors->m_xmf4Diffuse = XMFLOAT4(0.0f, 0.1f, 0.5f, 0.5f);
-		pMirrorMaterial->SetMaterialColors(pMirrorColors);
-		pMirrorMaterial->SetShader(pMirrorSurfaceShader);
-
-		m_pMirrorObject->m_nMaterials = 1;
-		m_pMirrorObject->m_ppMaterials = new CMaterial * [1];
-		m_pMirrorObject->m_ppMaterials[0] = NULL;
-		m_pMirrorObject->SetMaterial(0, pMirrorMaterial);
 	}
 }
 
@@ -1634,44 +1564,6 @@ void CScene::RenderItemUI(ID3D12GraphicsCommandList* pd3dCommandList, int nItemI
 	m_pUIMesh->Render(pd3dCommandList);
 }
 
-void RenderReflectedObject(ID3D12GraphicsCommandList* pd3dCommandList, CGameObject* pObject, XMMATRIX matReflect)
-{
-	if (!pObject || !pObject->m_bIsActive) return;
-
-	bool bIsBillboard = false;
-	if (pObject->m_nMaterials > 0 && pObject->m_ppMaterials && pObject->m_ppMaterials[0] &&
-		pObject->m_ppMaterials[0]->m_pShader == CMaterial::m_pBillboardShader)
-	{
-		bIsBillboard = true;
-	}
-
-	if (!bIsBillboard)
-	{
-		XMFLOAT4X4 originalWorld = pObject->m_xmf4x4World;
-		XMMATRIX world = XMLoadFloat4x4(&originalWorld);
-
-		XMMATRIX reflectedWorld = world * matReflect;
-		XMFLOAT4X4 xmfReflectedWorld;
-		XMStoreFloat4x4(&xmfReflectedWorld, reflectedWorld);
-
-		pObject->UpdateShaderVariable(pd3dCommandList, &xmfReflectedWorld);
-
-		if (pObject->m_nMaterials > 0 && pObject->m_ppMaterials && pObject->m_ppMaterials[0])
-		{
-			pObject->m_ppMaterials[0]->UpdateShaderVariable(pd3dCommandList);
-		}
-
-		if (pObject->m_pMesh)
-		{
-			pObject->m_pMesh->Render(pd3dCommandList, 0);
-		}
-	}
-
-	if (pObject->m_pSibling) RenderReflectedObject(pd3dCommandList, pObject->m_pSibling, matReflect);
-	if (pObject->m_pChild) RenderReflectedObject(pd3dCommandList, pObject->m_pChild, matReflect);
-}
-
-
 void CScene::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
 {
 	pd3dCommandList->SetGraphicsRootSignature(m_pd3dGraphicsRootSignature);
@@ -1710,62 +1602,6 @@ void CScene::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera
 	}
 
 	RenderSkybox(pd3dCommandList, pCamera);
-
-	if (m_pReflectedShader) m_pReflectedShader->UpdateShaderVariables(pd3dCommandList);
-
-	if (m_pMirrorObject && m_pMirrorObject->m_bIsActive)
-	{
-		m_pMirrorObject->UpdateTransform(NULL);
-
-		pd3dCommandList->OMSetStencilRef(1);
-
-		if (m_pMirrorObject->m_ppMaterials[0] && m_pMirrorObject->m_ppMaterials[0]->m_pShader)
-		{
-			m_pMirrorObject->m_ppMaterials[0]->m_pShader->Render(pd3dCommandList, pCamera, 0);
-
-			m_pMirrorObject->UpdateShaderVariable(pd3dCommandList, &m_pMirrorObject->m_xmf4x4World);
-			m_pMirrorObject->m_ppMaterials[0]->UpdateShaderVariable(pd3dCommandList);
-
-			if (m_pMirrorObject->m_pMesh)
-				m_pMirrorObject->m_pMesh->Render(pd3dCommandList, 0);
-		}
-
-		XMFLOAT3 mirrorPos = m_pMirrorObject->GetPosition();
-		XMFLOAT3 mirrorNormal = m_pMirrorObject->GetUp();
-		XMVECTOR vMirrorPlane = XMPlaneFromPointNormal(XMLoadFloat3(&mirrorPos), XMLoadFloat3(&mirrorNormal));
-		XMMATRIX matReflect = XMMatrixReflect(vMirrorPlane);
-
-		if (m_pReflectedShader)
-		{
-			m_pReflectedShader->Render(pd3dCommandList, pCamera, 0);
-
-			for (int i = 0; i < m_nGameObjects; i++)
-			{
-				if (!m_ppGameObjects[i] || m_ppGameObjects[i] == m_pMirrorObject) continue;
-
-				if (0 == i) continue;
-
-				RenderReflectedObject(pd3dCommandList, m_ppGameObjects[i], matReflect);
-			}
-
-			if (m_pPlayer)
-			{
-				RenderReflectedObject(pd3dCommandList, m_pPlayer, matReflect);
-			}
-		}
-		if (m_pMirrorObject->m_ppMaterials[0] && m_pMirrorObject->m_ppMaterials[0]->m_pShader)
-		{
-			m_pMirrorObject->m_ppMaterials[0]->m_pShader->Render(pd3dCommandList, pCamera, 1);
-
-			m_pMirrorObject->UpdateShaderVariable(pd3dCommandList, &m_pMirrorObject->m_xmf4x4World);
-			m_pMirrorObject->m_ppMaterials[0]->UpdateShaderVariable(pd3dCommandList);
-
-			if (m_pMirrorObject->m_pMesh)
-				m_pMirrorObject->m_pMesh->Render(pd3dCommandList, 0);
-		}
-
-		pd3dCommandList->OMSetStencilRef(0);
-	}
 
 	if (m_bShowCombinedAABB && m_pCombinedAABBBoxObject)
 	{
