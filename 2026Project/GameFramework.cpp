@@ -830,9 +830,13 @@ void CGameFramework::ProcessInputGameStage()
 		XMFLOAT3 vCurrentVelocity = m_pPlayer->GetVelocity();
 		XMVECTOR vVel = XMLoadFloat3(&vCurrentVelocity);
 
-		float fTurnSpeed = 150.0f;
-		if (bLeft) m_pPlayer->Rotate(0.0f, -fTurnSpeed * fTimeElapsed, 0.0f);
-		if (bRight) m_pPlayer->Rotate(0.0f, fTurnSpeed * fTimeElapsed, 0.0f);
+		float fCurrentSpeed = XMVectorGetX(XMVector3Length(vVel));
+
+		if (fCurrentSpeed > 1.0f) {
+			float fTurnSpeed = 150.0f;
+			if (bLeft) m_pPlayer->Rotate(0.0f, -fTurnSpeed * fTimeElapsed, 0.0f);
+			if (bRight) m_pPlayer->Rotate(0.0f, fTurnSpeed * fTimeElapsed, 0.0f);
+		}
 
 		XMFLOAT3 vLook = m_pPlayer->GetLookVector();
 		XMVECTOR vForwardDir = XMLoadFloat3(&vLook);
