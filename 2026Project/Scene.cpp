@@ -164,7 +164,7 @@ void CScene::BuildObjectsGameStart(ID3D12Device* pd3dDevice, ID3D12GraphicsComma
 
 	LoadTexture(pd3dDevice, pd3dCommandList);
 
-	m_nGameObjects = 1 + 1;
+	m_nGameObjects = 1;
 	m_ppGameObjects = new CGameObject * [m_nGameObjects];
 
 	CGameObject* pGameStartModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/GameStart.bin");
@@ -179,15 +179,14 @@ void CScene::BuildObjectsGameStart(ID3D12Device* pd3dDevice, ID3D12GraphicsComma
 	//  (=material only) (white)   
 	ApplyMeshTextures(pd3dDevice, pd3dCommandList, pGameStartObject);
 
-	CGameObject* pNewPropModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/SSC_TUATARA.bin");
-	CGameObject* pGamePropObject = new CGameObject();
-	pGamePropObject->SetChild(pNewPropModel);
-	pGamePropObject->SetPosition(-100.0f, 0.0f, 50.0f);
-	pGamePropObject->Rotate(-90.0f, 0.0f, 0.0f);
-	pGamePropObject->SetScale(15, 15, 15);
-	m_ppGameObjects[1] = pGamePropObject;
-
-	ApplyMeshTextures(pd3dDevice, pd3dCommandList, pGamePropObject);
+	//CGameObject* pNewPropModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/untitled.bin");
+	//CGameObject* pGamePropObject = new CGameObject();
+	//pGamePropObject->SetChild(pNewPropModel);
+	//pGamePropObject->SetPosition(.0f, -500.0f, 0.0f);
+	//pGamePropObject->Rotate(0.0f, 0.0f, 0.0f);
+	//pGamePropObject->SetScale(10, 10, 10);
+	//m_ppGameObjects[1] = pGamePropObject;
+	//ApplyMeshTextures(pd3dDevice, pd3dCommandList, pGamePropObject);
 
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
 }//
@@ -367,41 +366,43 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 	BuildUIResources(pd3dDevice, pd3dCommandList);
 
 	// 
-	m_nGameObjects = 1 + 1 + 12 + 12 + 12 + 1 + 20 + 20 + 15 + 15 + 4 + 1 + 1;
+	m_nGameObjects = 1 + 1 + 12 + 12 + 12 + 1 + 20 + 20 + 15 + 15 + 4 + 1;// +1;
 	m_ppGameObjects = new CGameObject * [m_nGameObjects];
 
-	CGameObject* pGroundModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/city_map_01.bin");
+	// 맵 모델링
+	CGameObject* pGroundModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/untitled.bin");
 	ApplyMeshTextures(pd3dDevice, pd3dCommandList, pGroundModel);
 	CGameObject* pGroundObject = new CGameObject();
 	pGroundObject->SetChild(pGroundModel);
-	pGroundObject->SetPosition(0.0f, 0.0f, 0.0f);
-	pGroundObject->Rotate(0.0f, 90.0f, 0.0f);
+	pGroundObject->SetPosition(0.0f, -500.0f, 0.0f);
+	pGroundObject->Rotate(0.0f, 0.0f, 0.0f);
 	pGroundObject->SetScale(10, 10, 10);
-	pGroundObject->ComputeNewLocalAABB();
+	//pGroundObject->ComputeNewLocalAABB();
 	pGroundObject->m_bIsGround = true;
 	m_ppGameObjects[0] = pGroundObject;
 
-	CGameObject* pGroundModel1 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/city_map_02.bin");
+	// 바닥 모델링
+	CGameObject* pGroundModel1 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/MapGround.bin");
 	ApplyMeshTextures(pd3dDevice, pd3dCommandList, pGroundModel1);
 	CGameObject* pGroundObject1 = new CGameObject();
 	pGroundObject1->SetChild(pGroundModel1);
 	pGroundObject1->SetPosition(0.0f, 0.0f, 0.0f);
-	pGroundObject1->Rotate(0.0f, 90.0f, 0.0f);
+	pGroundObject1->Rotate(0.0f, 0.0f, 0.0f);
 	pGroundObject1->SetScale(10, 10, 10);
 	pGroundObject1->ComputeNewLocalAABB();
 	pGroundObject1->m_bIsGround = true;
 	m_ppGameObjects[113] = pGroundObject1;
-
-	CGameObject* pGroundModel2 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/city_map_03.bin");
-	ApplyMeshTextures(pd3dDevice, pd3dCommandList, pGroundModel2);
-	CGameObject* pGroundObject2 = new CGameObject();
-	pGroundObject2->SetChild(pGroundModel2);
-	pGroundObject2->SetPosition(0.0f, 0.0f, 0.0f);
-	pGroundObject2->Rotate(0.0f, 90.0f, 0.0f);
-	pGroundObject2->SetScale(10, 10, 10);
-	pGroundObject2->ComputeNewLocalAABB();
-	pGroundObject2->m_bIsGround = true;
-	m_ppGameObjects[114] = pGroundObject2;
+	
+	//CGameObject* pGroundModel2 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/city_map_03.bin");
+	//ApplyMeshTextures(pd3dDevice, pd3dCommandList, pGroundModel2);
+	//CGameObject* pGroundObject2 = new CGameObject();
+	//pGroundObject2->SetChild(pGroundModel2);
+	//pGroundObject2->SetPosition(0.0f, 0.0f, 0.0f);
+	//pGroundObject2->Rotate(0.0f, 90.0f, 0.0f);
+	//pGroundObject2->SetScale(10, 10, 10);
+	//pGroundObject2->ComputeNewLocalAABB();
+	//pGroundObject2->m_bIsGround = true;
+	//m_ppGameObjects[114] = pGroundObject2;
 
 	///////////////////////////////////////////////////
 
@@ -416,6 +417,8 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 	pSuperCobraObject->Rotate(0.0f, -90.0f, 0.0f);
 	pSuperCobraObject->ComputeNewLocalAABB();
 	m_ppGameObjects[1] = pSuperCobraObject;
+	
+	// 빌보드 사각형 다 지울거임
 	{
 		CreateTreeBillboard(pd3dDevice, pd3dCommandList);
 		CreateFlowerBillboard(pd3dDevice, pd3dCommandList);
