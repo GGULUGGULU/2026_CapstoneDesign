@@ -881,8 +881,43 @@ void CGameFramework::ProcessInputGameStage()
 
 		vVel += vAcceleration * fTimeElapsed;
 
-		float fDrag = bHasDriveInput ? 1.5f : 4.0f;
-		vVel -= vVel * fDrag * fTimeElapsed;
+	/*	float fDrag = bHasDriveInput ? 1.5f : 4.0f;
+		vVel -= vVel * fDrag * fTimeElapsed;*/
+
+		float fHorizontalSpeed = XMVectorGetX(XMVector3Length(vVel));
+
+		if (fHorizontalSpeed > 0.0f)
+		{
+			XMVECTOR vDir = XMVector3Normalize(vVel);
+
+			float fDecel = 0.0f;
+
+			if (bHasDriveInput)
+			{
+				
+				fDecel = 10.0f;
+			}
+			else
+			{
+				
+				if (fHorizontalSpeed > 250.0f)
+					fDecel = 10.0f;
+				else if (fHorizontalSpeed > 150.0f)
+					fDecel = 10.0f;
+				else if (fHorizontalSpeed > 80.0f)
+					fDecel = 20.0f;
+				else
+					fDecel = 20.0f;
+			}
+
+			float fDeltaSpeed = fDecel * fTimeElapsed;
+
+			if (fDeltaSpeed > fHorizontalSpeed)
+				fDeltaSpeed = fHorizontalSpeed;
+
+			vVel -= vDir * fDeltaSpeed;
+		}
+
 
 		XMVECTOR vRightDir = XMLoadFloat3(&m_pPlayer->GetRightVector());
 		float fRightVelocity = XMVectorGetX(XMVector3Dot(vVel, vRightDir));
