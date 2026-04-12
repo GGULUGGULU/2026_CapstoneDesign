@@ -415,26 +415,30 @@ void CCarPlayer::Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent)
 	XMVECTOR vLook = XMLoadFloat3(&m_xmf3Look);
 	float fForwardSpeed = XMVectorGetX(XMVector3Dot(vVelocity, vLook));
 
-	m_fTireRotationAngle -= fForwardSpeed * fTimeElapsed * 5.f;
+	m_fTireRotationAngle += fForwardSpeed * fTimeElapsed * 5.f;
 
-	XMMATRIX xmmtxRoll = XMMatrixRotationX(XMConvertToRadians(m_fTireRotationAngle));
+	XMMATRIX xmmtxRollLeft = XMMatrixRotationX(XMConvertToRadians(m_fTireRotationAngle));
+	XMMATRIX xmmtxRollRight = XMMatrixRotationX(XMConvertToRadians(-m_fTireRotationAngle));
+
 	XMMATRIX xmmtxSteer = XMMatrixRotationY(XMConvertToRadians(m_fSteeringAngle));
 
-	XMMATRIX xmmtxFront = xmmtxRoll * xmmtxSteer;
+	XMMATRIX xmmtxFrontLeft = xmmtxRollLeft * xmmtxSteer;
+	XMMATRIX xmmtxFrontRight = xmmtxRollRight * xmmtxSteer;
 
-	XMMATRIX xmmtxRear = xmmtxRoll;
+	XMMATRIX xmmtxRearLeft = xmmtxRollLeft;
+	XMMATRIX xmmtxRearRight = xmmtxRollRight;
 
 	if (m_pWheelLeftFrontFrame)
-		m_pWheelLeftFrontFrame->m_xmf4x4Transform = Matrix4x4::Multiply(xmmtxFront, m_xmf4x4OriginalFL);
+		m_pWheelLeftFrontFrame->m_xmf4x4Transform = Matrix4x4::Multiply(xmmtxFrontLeft, m_xmf4x4OriginalFL);
 
 	if (m_pWheelRightFrontFrame)
-		m_pWheelRightFrontFrame->m_xmf4x4Transform = Matrix4x4::Multiply(xmmtxFront, m_xmf4x4OriginalFR);
+		m_pWheelRightFrontFrame->m_xmf4x4Transform = Matrix4x4::Multiply(xmmtxFrontRight, m_xmf4x4OriginalFR);
 
 	if (m_pWheelLeftRearFrame)
-		m_pWheelLeftRearFrame->m_xmf4x4Transform = Matrix4x4::Multiply(xmmtxRear, m_xmf4x4OriginalBL);
+		m_pWheelLeftRearFrame->m_xmf4x4Transform = Matrix4x4::Multiply(xmmtxRearLeft, m_xmf4x4OriginalBL);
 
 	if (m_pWheelRightRearFrame)
-		m_pWheelRightRearFrame->m_xmf4x4Transform = Matrix4x4::Multiply(xmmtxRear, m_xmf4x4OriginalBR);
+		m_pWheelRightRearFrame->m_xmf4x4Transform = Matrix4x4::Multiply(xmmtxRearRight, m_xmf4x4OriginalBR);
 
 	CPlayer::Animate(fTimeElapsed, pxmf4x4Parent);
 }

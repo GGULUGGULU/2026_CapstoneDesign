@@ -456,7 +456,7 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 			if (m_nStage != 2 || !m_pPlayer || !m_pScene) break;
 
 			const float fFirstJumpVelocity = 150.0f;
-			const float fSecondJumpVelocity = 300.0f;
+			const float fSecondJumpVelocity = 200.0f;
 			const float fNow = m_GameTimer.GetTotalTime();
 
 			const bool bOnGround = m_pScene->CheckGroundCollision();
