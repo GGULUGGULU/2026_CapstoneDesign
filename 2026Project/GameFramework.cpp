@@ -816,26 +816,52 @@ void CGameFramework::ProcessInputGameStage()
 
 	if (!bProcessedByScene)
 	{
-		float fTargetSteering = 0.0f;
-		float fMaxSteeringAngle = 35.0f; 
+		XMFLOAT3 vCurrentVelocity = m_pPlayer->GetVelocity();
+		XMVECTOR vVel = XMLoadFloat3(&vCurrentVelocity);
 
-		if (bLeft) fTargetSteering = -fMaxSteeringAngle;
+		float fCurrentSpeed = XMVectorGetX(XMVector3Length(vVel));
+		float fMaxSpeed = max(1.0f, GetPlayerEffectiveMaxSpeed());
+		float fSpeedRatio = fCurrentSpeed / fMaxSpeed;
+		if (fSpeedRatio > 1.0f) fSpeedRatio = 1.0f;
+
+		// 속도 높을수록 바퀴 최대 각 감소
+		float fMaxSteeringAngle = 35.0f - (15.0f * fSpeedRatio); // 35 -> 20
+		if (m_bIsDashing)
+		{
+			fMaxSteeringAngle *= 0.8f;
+		}
+
+		float fTargetSteering = 0.0f;
+		if (bLeft)      fTargetSteering = -fMaxSteeringAngle;
 		else if (bRight) fTargetSteering = fMaxSteeringAngle;
-		
+
 		if (m_pPlayer)
 		{
 			((CCarPlayer*)m_pPlayer)->UpdateSteering(fTargetSteering, fTimeElapsed);
 		}
 
-		XMFLOAT3 vCurrentVelocity = m_pPlayer->GetVelocity();
-		XMVECTOR vVel = XMLoadFloat3(&vCurrentVelocity);
+		// 속도가 높을수록 조향 성능 감소
+		float fSteeringFactor = 1.0f - (fSpeedRatio * 0.55f);
+		if (fSteeringFactor < 0.45f) fSteeringFactor = 0.45f;
 
-		float fCurrentSpeed = XMVectorGetX(XMVector3Length(vVel));
+		if (m_bIsDashing)
+		{
+			fSteeringFactor *= 0.75f;
+		}
 
-		if (fCurrentSpeed > 1.0f) {
-			float fTurnSpeed = 150.0f;
-			if (bLeft) m_pPlayer->Rotate(0.0f, -fTurnSpeed * fTimeElapsed, 0.0f);
-			if (bRight) m_pPlayer->Rotate(0.0f, fTurnSpeed * fTimeElapsed, 0.0f);
+		float fBaseTurnSpeed = 150.0f;
+		float fTurnSpeed = fBaseTurnSpeed * fSteeringFactor;
+
+		if (fCurrentSpeed > 1.0f)
+		{
+			if (bLeft)  m_pPlayer->Rotate(0.0f, -fTurnSpeed * fTimeElapsed, 0.0f);
+			if (bRight) m_pPlayer->Rotate(0.0f, +fTurnSpeed * fTimeElapsed, 0.0f);
+		}
+		else
+		{
+			float fLowSpeedTurn = 90.0f;
+			if (bLeft)  m_pPlayer->Rotate(0.0f, -fLowSpeedTurn * fTimeElapsed, 0.0f);
+			if (bRight) m_pPlayer->Rotate(0.0f, +fLowSpeedTurn * fTimeElapsed, 0.0f);
 		}
 
 		XMFLOAT3 vLook = m_pPlayer->GetLookVector();
@@ -896,6 +922,7 @@ void CGameFramework::ProcessInputGameStage()
 			}
 		}
 	}
+
 	m_pPlayer->Update(fTimeElapsed);
 }
 
