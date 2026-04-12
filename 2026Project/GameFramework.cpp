@@ -455,8 +455,8 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 
 			if (m_nStage != 2 || !m_pPlayer || !m_pScene) break;
 
-			const float fFirstJumpVelocity = 100.0f;
-			const float fSecondJumpVelocity = 200.0f;
+			const float fFirstJumpVelocity = 150.0f;
+			const float fSecondJumpVelocity = 300.0f;
 			const float fNow = m_GameTimer.GetTotalTime();
 
 			const bool bOnGround = m_pScene->CheckGroundCollision();
@@ -852,20 +852,17 @@ void CGameFramework::ProcessInputGameStage()
 		float fBaseTurnSpeed = 150.0f;
 		float fTurnSpeed = fBaseTurnSpeed * fSteeringFactor;
 
-		if (fCurrentSpeed > 1.0f)
-		{
-			if (bLeft)  m_pPlayer->Rotate(0.0f, -fTurnSpeed * fTimeElapsed, 0.0f);
-			if (bRight) m_pPlayer->Rotate(0.0f, +fTurnSpeed * fTimeElapsed, 0.0f);
-		}
-		else
-		{
-			float fLowSpeedTurn = 90.0f;
-			if (bLeft)  m_pPlayer->Rotate(0.0f, -fLowSpeedTurn * fTimeElapsed, 0.0f);
-			if (bRight) m_pPlayer->Rotate(0.0f, +fLowSpeedTurn * fTimeElapsed, 0.0f);
-		}
-
 		XMFLOAT3 vLook = m_pPlayer->GetLookVector();
 		XMVECTOR vForwardDir = XMLoadFloat3(&vLook);
+
+		float fForwardDirectionSpeed = XMVectorGetX(XMVector3Dot(vVel, XMLoadFloat3(&vLook)));
+		float fDirMult = (fForwardDirectionSpeed >= 0.0f) ? 1.0f : -1.0f;
+
+		if (fCurrentSpeed > 1.0f)
+		{
+			if (bLeft)  m_pPlayer->Rotate(0.0f, -fTurnSpeed * fDirMult * fTimeElapsed, 0.0f);
+			if (bRight) m_pPlayer->Rotate(0.0f, +fTurnSpeed * fDirMult * fTimeElapsed, 0.0f);
+		}
 
 		float fAccelValue = m_bIsDashing ? 1000.0f : 600.0f;
 		XMVECTOR vAcceleration = XMVectorZero();
