@@ -820,12 +820,13 @@ void CGameFramework::ProcessInputGameStage()
 		XMVECTOR vVel = XMLoadFloat3(&vCurrentVelocity);
 
 		float fCurrentSpeed = XMVectorGetX(XMVector3Length(vVel));
-		float fMaxSpeed = max(1.0f, GetPlayerEffectiveMaxSpeed());
+		float fMaxSpeed = max(1.0f, m_pPlayer->m_fMaxVelocityXZ);
+
 		float fSpeedRatio = fCurrentSpeed / fMaxSpeed;
 		if (fSpeedRatio > 1.0f) fSpeedRatio = 1.0f;
 
-		// 속도 높을수록 바퀴 최대 각 감소
-		float fMaxSteeringAngle = 35.0f - (15.0f * fSpeedRatio); // 35 -> 20
+
+		float fMaxSteeringAngle = 35.0f - (15.0f * fSpeedRatio);
 		if (m_bIsDashing)
 		{
 			fMaxSteeringAngle *= 0.8f;
@@ -840,7 +841,7 @@ void CGameFramework::ProcessInputGameStage()
 			((CCarPlayer*)m_pPlayer)->UpdateSteering(fTargetSteering, fTimeElapsed);
 		}
 
-		// 속도가 높을수록 조향 성능 감소
+	
 		float fSteeringFactor = 1.0f - (fSpeedRatio * 0.55f);
 		if (fSteeringFactor < 0.45f) fSteeringFactor = 0.45f;
 
@@ -922,12 +923,13 @@ void CGameFramework::ProcessInputGameStage()
 		float fGripStrength = 8.0f;
 		vVel -= vRightDir * fRightVelocity * fGripStrength * fTimeElapsed;
 
-		float fCurrentMaxSpeed = GetPlayerEffectiveMaxSpeed();
+		float fCurrentMaxSpeed = max(1.0f, m_pPlayer->m_fMaxVelocityXZ);
 		float fSpeedSq = XMVectorGetX(XMVector3LengthSq(vVel));
 		if (fSpeedSq > fCurrentMaxSpeed * fCurrentMaxSpeed)
 		{
 			vVel = XMVector3Normalize(vVel) * fCurrentMaxSpeed;
 		}
+
 
 		XMStoreFloat3(&vCurrentVelocity, vVel);
 		m_pPlayer->SetVelocity(vCurrentVelocity);
@@ -1176,8 +1178,8 @@ void CGameFramework::ApplyItemReward(ITEM_TYPE eItemType)
 
 	m_pPlayer->m_fMaxVelocityXZ = GetPlayerEffectiveMaxSpeed();
 
-	if ((float)m_nPlayerCurrentSpeed > m_pPlayer->m_fMaxVelocityXZ)
-		m_nPlayerCurrentSpeed = (int)m_pPlayer->m_fMaxVelocityXZ;
+	/*if ((float)m_nPlayerCurrentSpeed > m_pPlayer->m_fMaxVelocityXZ)
+		m_nPlayerCurrentSpeed = (int)m_pPlayer->m_fMaxVelocityXZ;*/
 }
 
 // 아이템 + 대시 
@@ -1209,10 +1211,40 @@ void CGameFramework::UpdateDashSystem(float fTimeElapsed, bool bDashKeyDown, boo
 			m_fCurrentDashGauge = m_fMaxDashGauge;
 	}
 
-	m_pPlayer->m_fMaxVelocityXZ = GetPlayerEffectiveMaxSpeed();
 
+	float fTargetMaxSpeed = GetPlayerEffectiveMaxSpeed();
+
+	
+	float fCurrentMaxSpeed = m_pPlayer->m_fMaxVelocityXZ;
+
+
+	const float fMaxSpeedFallRate = 200.0f; //
+
+	if (fCurrentMaxSpeed < fTargetMaxSpeed)
+	{
+		
+		fCurrentMaxSpeed = fTargetMaxSpeed;
+	}
+	else if (fCurrentMaxSpeed > fTargetMaxSpeed)
+	{
+		
+		fCurrentMaxSpeed -= (fMaxSpeedFallRate * fTimeElapsed);
+		if (fCurrentMaxSpeed < fTargetMaxSpeed)
+			fCurrentMaxSpeed = fTargetMaxSpeed;
+	}
+
+	m_pPlayer->m_fMaxVelocityXZ = fCurrentMaxSpeed;
+
+
+	const float fCurrentSpeedFallRate = 300.0f; //
 	if ((float)m_nPlayerCurrentSpeed > m_pPlayer->m_fMaxVelocityXZ)
-		m_nPlayerCurrentSpeed = (int)m_pPlayer->m_fMaxVelocityXZ;
+	{
+		m_nPlayerCurrentSpeed -= (int)(fCurrentSpeedFallRate * fTimeElapsed);
+		if ((float)m_nPlayerCurrentSpeed < m_pPlayer->m_fMaxVelocityXZ)
+			m_nPlayerCurrentSpeed = (int)m_pPlayer->m_fMaxVelocityXZ;
+		if (m_nPlayerCurrentSpeed < 0)
+			m_nPlayerCurrentSpeed = 0;
+	}
 
 	CEffectLibrary::Instance()->ToggleBooster(m_bIsDashing);
 }
