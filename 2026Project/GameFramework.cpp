@@ -1400,28 +1400,29 @@ void CGameFramework::CollisionProcess()
 
 			XMFLOAT3 vWallPos = pCollidedObject->GetPosition();
 			XMFLOAT3 vNormal = XMFLOAT3(vPos.x - vWallPos.x, 0.0f, vPos.z - vWallPos.z);
-			vNormal = Vector3::Normalize(vNormal);
+			XMVECTOR xvNormal = XMVector3Normalize(XMLoadFloat3(&vNormal));
+			XMStoreFloat3(&vNormal, xvNormal);
 
-			XMFLOAT3 vLook = m_pPlayer->GetLookVector();
+			float pushOutDistance = 15.0f + (m_nPlayerCurrentSpeed * 0.05f);
 
-			float dotProduct = (vLook.x * vNormal.x) + (vLook.z * vNormal.z);
+			XMFLOAT3 correctedPos = m_pPlayer->GetPosition();
+			correctedPos.x += vNormal.x * pushOutDistance;
+			correctedPos.z += vNormal.z * pushOutDistance;
+			m_pPlayer->SetPosition(correctedPos);
 
-			if (dotProduct < 0.0f)
+			XMFLOAT3 vVelocity = m_pPlayer->GetVelocity();
+			XMVECTOR xvVelocity = XMLoadFloat3(&vVelocity);
+
+			float fDot = XMVectorGetX(XMVector3Dot(xvVelocity, xvNormal));
+
+			if (fDot < 0.0f)
 			{
-				float penetrationPower = abs(dotProduct) * (m_nPlayerCurrentSpeed * 0.05f);
-
-				float pushOutDistance = max(3.0f, penetrationPower);
-
-				XMFLOAT3 correctedPos = m_pPlayer->GetPosition();
-				correctedPos.x += vNormal.x * pushOutDistance;
-				correctedPos.z += vNormal.z * pushOutDistance;
-
-				m_pPlayer->SetPosition(correctedPos);
-
-				m_nPlayerCurrentSpeed *= (1.0f - abs(dotProduct) * 0.1f);
+				xvVelocity = xvVelocity - (1.5f * fDot * xvNormal);
+				XMStoreFloat3(&vVelocity, xvVelocity);
+				m_pPlayer->SetVelocity(vVelocity);
 			}
 
-			m_nPlayerCurrentSpeed *= 0.99f;
+			m_nPlayerCurrentSpeed *= 0.6f;
 		}
 		else if (pCollidedObject != m_pScene->m_ppGameObjects[38])
 		{
@@ -2209,7 +2210,6 @@ void CGameFramework::FrameAdvance()
 	if (0 != m_nStage)
 	{
 		RenderUI();
-
 
 	}
 	hResult = m_pd3dCommandList->Reset(m_d3dCommandAllocators[m_nSwapChainBufferIndex].Get(), NULL);
