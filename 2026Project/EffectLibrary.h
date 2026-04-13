@@ -98,7 +98,7 @@ private:
 		/////////////////////////////////////////////////
 		L"Asset/DDS_File/Booster.dds",
 		L"Asset/DDS_File/WindShield.dds",
-		L"Asset/DDS_File/SpeedLine.dds"
+		L"Asset/DDS_File/SpeedLine1.dds"
 	};
 
 	UINT m_nSrvDescriptorIncrementSize = 0;

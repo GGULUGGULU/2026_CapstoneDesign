@@ -494,7 +494,7 @@ CCamera* CCarPlayer::ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed)
 	case THIRD_PERSON_CAMERA:
 		SetFriction(100.0f);
 		SetGravity(XMFLOAT3(0.0f, 0.0f, 0.0f));
-		SetMaxVelocityXZ(250.0f);
+		SetMaxVelocityXZ(500.0f);
 		SetMaxVelocityY(500.0f);
 		m_pCamera = OnChangeCamera(THIRD_PERSON_CAMERA, nCurrentCameraMode);
 		m_pCamera->SetTimeLag(0.25f);

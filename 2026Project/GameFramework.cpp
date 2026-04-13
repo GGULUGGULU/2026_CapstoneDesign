@@ -870,7 +870,7 @@ void CGameFramework::ProcessInputGameStage()
 			if (bRight) m_pPlayer->Rotate(0.0f, +fTurnSpeed * fDirMult * fTimeElapsed, 0.0f);
 		}
 
-		float fAccelValue = m_bIsDashing ? 1000.0f : 600.0f;
+		float fAccelValue = m_bIsDashing ? 1000.0f : 250.0f;
 		XMVECTOR vAcceleration = XMVectorZero();
 
 		if (bForward)
@@ -1668,7 +1668,7 @@ void CGameFramework::RenderUI()
 		m_speedBuffer,
 		1024,
 		L"%d Km/h  Dash : %.0f / %.0f  Net : %s  [Res: %d x %d]",
-		m_nPlayerCurrentSpeed,
+		m_nPlayerCurrentSpeed/2,
 		m_fCurrentDashGauge,
 		m_fMaxDashGauge,
 		pwszNetStatus,

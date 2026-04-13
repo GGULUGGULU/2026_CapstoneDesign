@@ -325,16 +325,22 @@ void CS_RadialBlur(uint3 dispatchThreadID : SV_DispatchThreadID)
     if (gSpeedLineAlpha > 0.0f)
     {
         float2 centeredUV = uv - 0.5f;
-        float2x2 rotMatrix = float2x2(gSpeedLineCos, -gSpeedLineSin, gSpeedLineSin, gSpeedLineCos);
-        float2 animatedUV = mul(centeredUV, rotMatrix) / gSpeedLineScale + 0.5f;
+        centeredUV.x *= aspectRatio;
+
+        float2x2 rotMatrix = float2x2(gSpeedLineCos, -gSpeedLineSin,
+                                      gSpeedLineSin, gSpeedLineCos);
+        float2 rotatedUV = mul(centeredUV, rotMatrix);
+
+        float2 finalUV = (rotatedUV * 0.4f / gSpeedLineScale) + 0.5f;
+
+        float4 speedColor = gSpeedLineTex.SampleLevel(gComputeSampler, finalUV, 0);
+
+        speedColor.rgb = pow(abs(speedColor.rgb), 1.2f);
+
+        float softAlpha = smoothstep(0.1f, 0.5f, speedColor.a);
         
-        if (animatedUV.x >= 0.0f && animatedUV.x <= 1.0f && animatedUV.y >= 0.0f && animatedUV.y <= 1.0f)
-        {
-            float4 speedColor = gSpeedLineTex.SampleLevel(gComputeSampler, animatedUV, 0);
-            
-            float finalAlpha = speedColor.a * gSpeedLineAlpha;
-            color.rgb = (color.rgb * (1.0f - finalAlpha)) + (speedColor.rgb * finalAlpha);
-        }
+        float finalAlpha = softAlpha * gSpeedLineAlpha;
+        color.rgb = (color.rgb * (1.0f - finalAlpha)) + (speedColor.rgb * finalAlpha);
     }
 
     gOutputColor[pixelCoord] = color;
