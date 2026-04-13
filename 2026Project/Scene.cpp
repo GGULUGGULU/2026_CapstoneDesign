@@ -152,6 +152,7 @@ void CScene::BuildDefaultLightsAndMaterials()
 	m_pLights[3].m_fFalloff = 8.0f;
 	m_pLights[3].m_fPhi = (float)cos(XMConvertToRadians(90.0f));
 	m_pLights[3].m_fTheta = (float)cos(XMConvertToRadians(30.0f));
+
 }
 
 void CScene::BuildObjectsGameStart(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
@@ -366,7 +367,7 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 	BuildUIResources(pd3dDevice, pd3dCommandList);
 
 	// 
-	m_nGameObjects = 1 + 1 + 12 + 12 + 12 + 1 + 20 + 20 + 15 + 15 + 4 + 1;// +1;
+	m_nGameObjects = 1 + 1 + 12 + 12 + 12 + 1 + 20 + 20 + 15 + 15 + 4 + 1 +1;
 	m_ppGameObjects = new CGameObject * [m_nGameObjects];
 
 	// 맵 모델링
@@ -388,21 +389,20 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 	pGroundObject1->SetChild(pGroundModel1);
 	pGroundObject1->SetPosition(0.0f, 0.0f, 0.0f);
 	pGroundObject1->Rotate(0.0f, 0.0f, 0.0f);
-	pGroundObject1->SetScale(10, 10, 10);
+	pGroundObject1->SetScale(1, 1, 1);
 	pGroundObject1->ComputeNewLocalAABB();
 	pGroundObject1->m_bIsGround = true;
 	m_ppGameObjects[113] = pGroundObject1;
 	
-	//CGameObject* pGroundModel2 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/city_map_03.bin");
-	//ApplyMeshTextures(pd3dDevice, pd3dCommandList, pGroundModel2);
-	//CGameObject* pGroundObject2 = new CGameObject();
-	//pGroundObject2->SetChild(pGroundModel2);
-	//pGroundObject2->SetPosition(0.0f, 0.0f, 0.0f);
-	//pGroundObject2->Rotate(0.0f, 90.0f, 0.0f);
-	//pGroundObject2->SetScale(10, 10, 10);
-	//pGroundObject2->ComputeNewLocalAABB();
-	//pGroundObject2->m_bIsGround = true;
-	//m_ppGameObjects[114] = pGroundObject2;
+	// 사이드 벽 모델링
+	CGameObject* pGroundModel2 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/MapSideWall.bin");
+	ApplyMeshTextures(pd3dDevice, pd3dCommandList, pGroundModel2);
+	CGameObject* pGroundObject2 = new CGameObject();
+	pGroundObject2->SetChild(pGroundModel2);
+	pGroundObject2->SetPosition(0.0f, -500.0f, 0.0f);
+	pGroundObject2->SetScale(1, 1, 1);
+	pGroundObject2->m_bIsInvisibleWall = true;
+	m_ppGameObjects[114] = pGroundObject2;
 
 	///////////////////////////////////////////////////
 
@@ -959,38 +959,115 @@ void CScene::PickObject(XMFLOAT3& fWorldRayOrigin, XMFLOAT3& fWorldRayDirection)
 	m_pSelectedObject = pSelectedObject;
 }
 
+//bool CScene::CheckCollision()
+//{
+//	if (!m_pPlayer) return false;
+//
+//	BoundingBox localPlayerAABB = m_pPlayer->GetCombinedAABB();
+//
+//	BoundingBox worldPlayerAABB;
+//	localPlayerAABB.Transform(worldPlayerAABB, XMLoadFloat4x4(&m_pPlayer->GetWorldMatrix()));
+//
+//	m_pCollidedObject = NULL;
+//
+//	for (int i = 1; i < m_nGameObjects; i++)
+//	{
+//		CGameObject* pObject = m_ppGameObjects[i];
+//		if (!pObject || !pObject->m_bIsActive) continue;
+//		if (pObject->m_bIsGround) continue;
+//
+//		BoundingBox localObjectAABB = pObject->GetCombinedAABB();
+//
+//		if (localObjectAABB.Extents.x == 0 && localObjectAABB.Extents.y == 0 && localObjectAABB.Extents.z == 0) continue;
+//
+//		BoundingBox worldObjectAABB;
+//		localObjectAABB.Transform(worldObjectAABB, XMLoadFloat4x4(&pObject->GetWorldMatrix()));
+//
+//		if (worldPlayerAABB.Intersects(worldObjectAABB))
+//		{
+//			m_pCollidedObject = pObject;
+//
+//			return true;
+//		}
+//	}
+//	return false;
+//}
+
+bool CheckRecursiveCollision(CGameObject* pObject, BoundingOrientedBox& worldPlayerOBB, XMFLOAT3 playerPos, CGameObject** ppCollidedObject)
+{
+	if (!pObject) return false;
+
+	if (pObject->m_pMesh)
+	{
+		BoundingBox pureMeshAABB = pObject->m_pMesh->GetBoundingBox();
+
+		BoundingOrientedBox meshOBB;
+		BoundingOrientedBox::CreateFromBoundingBox(meshOBB, pureMeshAABB);
+
+		meshOBB.Transform(meshOBB, XMLoadFloat4x4(&pObject->GetWorldMatrix()));
+
+		if (worldPlayerOBB.Intersects(meshOBB))
+		{
+			*ppCollidedObject = pObject;
+			return true;
+		}
+	}
+
+	if (pObject->m_pChild)
+	{
+		if (CheckRecursiveCollision(pObject->m_pChild, worldPlayerOBB, playerPos, ppCollidedObject))
+			return true;
+	}
+
+	if (pObject->m_pSibling)
+	{
+		if (CheckRecursiveCollision(pObject->m_pSibling, worldPlayerOBB, playerPos, ppCollidedObject))
+			return true;
+	}
+
+	return false;
+}
 
 bool CScene::CheckCollision()
 {
 	if (!m_pPlayer) return false;
 
-	BoundingBox localPlayerAABB = m_pPlayer->GetCombinedAABB();
-
-	BoundingBox worldPlayerAABB;
-	localPlayerAABB.Transform(worldPlayerAABB, XMLoadFloat4x4(&m_pPlayer->GetWorldMatrix()));
+	BoundingOrientedBox worldPlayerOBB = m_pPlayer->GetWorldOBB();
+	XMFLOAT3 playerPos = m_pPlayer->GetPosition(); 
 
 	m_pCollidedObject = NULL;
 
 	for (int i = 1; i < m_nGameObjects; i++)
 	{
 		CGameObject* pObject = m_ppGameObjects[i];
+
 		if (!pObject || !pObject->m_bIsActive) continue;
 		if (pObject->m_bIsGround) continue;
 
-		BoundingBox localObjectAABB = pObject->GetCombinedAABB();
-
-		if (localObjectAABB.Extents.x == 0 && localObjectAABB.Extents.y == 0 && localObjectAABB.Extents.z == 0) continue;
-
-		BoundingBox worldObjectAABB;
-		localObjectAABB.Transform(worldObjectAABB, XMLoadFloat4x4(&pObject->GetWorldMatrix()));
-
-		if (worldPlayerAABB.Intersects(worldObjectAABB))
+		if (pObject->m_bIsInvisibleWall)
 		{
-			m_pCollidedObject = pObject;
+			if (CheckRecursiveCollision(pObject, worldPlayerOBB, playerPos, &m_pCollidedObject))
+			{
+				m_pCollidedObject->m_bIsInvisibleWall = true;
+				return true;
+			}
+		}
+		else
+		{
+			BoundingBox localObjectAABB = pObject->GetCombinedAABB();
 
-			return true;
+			if (localObjectAABB.Extents.x == 0 && localObjectAABB.Extents.y == 0 && localObjectAABB.Extents.z == 0) continue;
+
+			BoundingOrientedBox worldObjectOBB = pObject->GetWorldOBB();
+
+			if (worldPlayerOBB.Intersects(worldObjectOBB))
+			{
+				m_pCollidedObject = pObject;
+				return true;
+			}
 		}
 	}
+
 	return false;
 }
 
@@ -1272,22 +1349,22 @@ bool CScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 		switch (wParam)
 		{
 		case 'R':
-			m_ppGameObjects[1]->MoveUp(10);
+			m_ppGameObjects[114]->MoveUp(-10);
 			break;
 		case 'W':
-			m_ppGameObjects[1]->MoveForward(10);
+			m_ppGameObjects[114]->MoveForward(10);
 			break;
 		case 'S':
-			m_ppGameObjects[1]->MoveForward(-10);
+			m_ppGameObjects[114]->MoveForward(-10);
 			break;
 		case 'A':
-			m_ppGameObjects[1]->MoveStrafe(-10);
+			m_ppGameObjects[114]->MoveStrafe(-10);
 			break;
 		case 'D':
-			m_ppGameObjects[1]->MoveStrafe(10);
+			m_ppGameObjects[114]->MoveStrafe(10);
 			break;
 		case 'Z':
-			m_ppGameObjects[1]->Rotate(0, 10, 0);
+			//m_ppGameObjects[114]->Rotate(0, 10, 0);
 			break;
 		case VK_F7:
 			m_bShowWireframeBox = !m_bShowWireframeBox;
@@ -1596,7 +1673,7 @@ void CScene::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera
 	for (int i = 0; i < m_nGameObjects; i++)
 	{
 
-		if (m_ppGameObjects[i] && m_ppGameObjects[i] != m_pMirrorObject)
+		if (m_ppGameObjects[i]  && i != 114)
 		{
 			m_ppGameObjects[i]->Animate(m_fElapsedTime, NULL);
 			m_ppGameObjects[i]->UpdateTransform(NULL);

@@ -8,10 +8,15 @@
 #include "NetworkManager.h"
 
 namespace {
-	const XMFLOAT3 SINGLE_PLAYER_SPAWN = XMFLOAT3(0.0f, 10.0f, 0.0f);
-	const XMFLOAT3 HOST_PLAYER_SPAWN = XMFLOAT3(-35.0f, 10.0f, 0.0f);
-	const XMFLOAT3 CLIENT_PLAYER_SPAWN = XMFLOAT3(35.0f, 10.0f, 0.0f);
-	constexpr float PLAYER_SPAWN_YAW = 180.0f;
+	//const XMFLOAT3 SINGLE_PLAYER_SPAWN = XMFLOAT3(0.0f, 10.0f, 0.0f);
+	//const XMFLOAT3 HOST_PLAYER_SPAWN = XMFLOAT3(-35.0f, 10.0f, 0.0f);
+	//const XMFLOAT3 CLIENT_PLAYER_SPAWN = XMFLOAT3(35.0f, 10.0f, 0.0f);
+	//constexpr float PLAYER_SPAWN_YAW = 180.0f;
+
+	const XMFLOAT3 SINGLE_PLAYER_SPAWN = XMFLOAT3(-1938.0f, 10.0f, 188.0f);
+	const XMFLOAT3 HOST_PLAYER_SPAWN = XMFLOAT3(-1950.0f, 10.0f, 188.0f);
+	const XMFLOAT3 CLIENT_PLAYER_SPAWN = XMFLOAT3(-1920.0f, 10.0f, 188.0f);
+	constexpr float PLAYER_SPAWN_YAW = 0.0f;
 };
 
 CGameFramework::CGameFramework()
@@ -639,8 +644,8 @@ void CGameFramework::BuildObjectGameStart()
 
 	if (m_pScene) m_pScene->BuildObjectsGameStart(m_pd3dDevice, m_pd3dCommandList);
 
-	CCarPlayer* pCarPlayer = new CCarPlayer(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature());
-	pCarPlayer->SetPosition(XMFLOAT3(0.0f, 0.0f, 0.0f));
+	CAirplanePlayer* pCarPlayer = new CAirplanePlayer(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature());
+	pCarPlayer->SetPosition(XMFLOAT3(.0f, .0f, .0f));
 	m_pScene->m_pPlayer = m_pPlayer = pCarPlayer;
 	m_pCamera = m_pPlayer->GetCamera();
 
@@ -1084,6 +1089,7 @@ void CGameFramework::BuildGameObjects()
 	CreateShadowMap();
 
 	CCarPlayer* pCarPlayer = new CCarPlayer(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature());
+	//pCarPlayer->SetPosition(XMFLOAT3(-1938.0f, -180.0f, 188.0f));
 	pCarPlayer->SetScale(10.2f, 10.2f, 10.2f);
 	m_pScene->ApplyMeshTextures(m_pd3dDevice, m_pd3dCommandList, pCarPlayer);
 	m_pScene->m_pPlayer = m_pPlayer = pCarPlayer;
@@ -1384,6 +1390,38 @@ void CGameFramework::CollisionProcess()
 			if (randItem == 0) m_eHoldItem = ITEM_DASH_POTION;
 			else if (randItem == 1) m_eHoldItem = ITEM_MAX_SPEED_UP;
 			else if (randItem == 2) m_eHoldItem = ITEM_MAX_DASH_GAUGE_UP;
+		}
+		else if (pCollidedObject->m_bIsInvisibleWall)
+		{
+			XMFLOAT3 vPos = m_pPlayer->GetPosition();
+			PlayAndSyncEffect(EFFECT_TYPE::COLLISION, XMFLOAT3(vPos.x, vPos.y + 10, vPos.z), XMFLOAT2(25, 25), XMFLOAT3(1, 1, 0));
+			PlayAndSyncEffect(EFFECT_TYPE::COLLISION, XMFLOAT3(vPos.x + 10, vPos.y, vPos.z), XMFLOAT2(25, 25), XMFLOAT3(1, 0, 1));
+			PlayAndSyncEffect(EFFECT_TYPE::COLLISION, XMFLOAT3(vPos.x, vPos.y, vPos.z + 10), XMFLOAT2(25, 25), XMFLOAT3(0, 1, 1));
+
+			XMFLOAT3 vWallPos = pCollidedObject->GetPosition();
+			XMFLOAT3 vNormal = XMFLOAT3(vPos.x - vWallPos.x, 0.0f, vPos.z - vWallPos.z);
+			vNormal = Vector3::Normalize(vNormal);
+
+			XMFLOAT3 vLook = m_pPlayer->GetLookVector();
+
+			float dotProduct = (vLook.x * vNormal.x) + (vLook.z * vNormal.z);
+
+			if (dotProduct < 0.0f)
+			{
+				float penetrationPower = abs(dotProduct) * (m_nPlayerCurrentSpeed * 0.05f);
+
+				float pushOutDistance = max(3.0f, penetrationPower);
+
+				XMFLOAT3 correctedPos = m_pPlayer->GetPosition();
+				correctedPos.x += vNormal.x * pushOutDistance;
+				correctedPos.z += vNormal.z * pushOutDistance;
+
+				m_pPlayer->SetPosition(correctedPos);
+
+				m_nPlayerCurrentSpeed *= (1.0f - abs(dotProduct) * 0.1f);
+			}
+
+			m_nPlayerCurrentSpeed *= 0.99f;
 		}
 		else if (pCollidedObject != m_pScene->m_ppGameObjects[38])
 		{

@@ -205,6 +205,7 @@ public:
 
 	bool m_bIsActive{ true };
 	bool m_bIsGround{ false };
+	bool m_bIsInvisibleWall{ false };
 
 	virtual void Disable() { m_bIsActive = false; if (m_pChild) m_pChild->Disable(); }
 
