@@ -80,8 +80,9 @@ void CEffectLibrary::Initialize(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandL
 				L"Asset/DDS_File/noise.dds"
 			};
 			pShield->CreateTextures(pd3dDevice, pd3dCommandList, windTex);
-			pShield->SetScale(XMFLOAT3(1.5f, 15.5f, 1.5f));
-			pShield->SetScrollSpeed(XMFLOAT3(0.0f, -3.0f, 0.0f));
+			pShield->SetScale(XMFLOAT3(3.f, 10.5f, 1.5f));
+			//pShield->SetScale(XMFLOAT3(12.0f, 4.0f, 8.0f));
+			pShield->SetScrollSpeed(XMFLOAT3(0.0f, -6.0f, 0.0f));
 
 			ActiveEffect* pEffect = new ActiveEffect;
 			pEffect->type = (EFFECT_TYPE)typeIndex;
@@ -708,7 +709,8 @@ void CEffectLibrary::UpdateBoosterPosition(const XMFLOAT3& pos, const XMFLOAT3& 
 
 	if (m_pWindShieldEffect && m_pWindShieldEffect->pMeshEffect)
 	{
-		XMVECTOR vFrontPos = XMLoadFloat3(&pos) - (vLook * 150.0f);
+		//XMVECTOR vFrontPos = XMLoadFloat3(&pos) - (vLook * 150.0f);
+		XMVECTOR vFrontPos = XMLoadFloat3(&pos) - (vLook * 50.0f);
 		XMFLOAT3 fFrontPos;
 		XMStoreFloat3(&fFrontPos, vFrontPos);
 

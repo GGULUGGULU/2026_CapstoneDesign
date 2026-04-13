@@ -604,9 +604,22 @@ VS_SHIELD_OUTPUT VS_WindShield(VS_SHIELD_INPUT input)
 
 float4 PS_WindShield(VS_SHIELD_OUTPUT input) : SV_TARGET
 {
+    //float4 color = gParticleTexture.Sample(gParticleSampler, input.uv);
+    //
+    //return float4(color.rgb, color.a * 0.7f);
     float4 color = gParticleTexture.Sample(gParticleSampler, input.uv);
     
-    return float4(color.rgb, color.a * 0.7f);
+    float2 staticUV = input.uv - (gvShieldScrollSpeed.xy * gfShieldTime);
+    
+    float fadeY = 1.0f - staticUV.y;
+    float fadeX = sin(staticUV.x * 3.141592f);
+    float edgeFade = fadeY * fadeX;
+    
+    color.rgb = color.rgb * 1.5f;
+    
+    float finalAlpha = saturate(color.a * edgeFade * 2.5f);
+    
+    return float4(color.rgb, finalAlpha);
 }
 
 ///////////////////////////////////////////////////////////////
