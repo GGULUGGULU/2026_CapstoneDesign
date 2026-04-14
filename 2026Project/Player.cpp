@@ -367,7 +367,6 @@ CCarPlayer::CCarPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3d
 	CGameObject* pGameObject = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/FINAL_MODEL_24.bin");
 
 	pGameObject->SetPosition(0.0f, 0.0f, 0.0f);
-	//pGameObject->Rotate(-90.0f, 90.0f, 0.0f);
 	pGameObject->SetScale(8.0f, 8.0f, 8.0f);
 
 	SetChild(pGameObject, true);
@@ -383,11 +382,6 @@ CCarPlayer::~CCarPlayer()
 
 void CCarPlayer::OnInitialize()
 {
-	//m_pWheelLeftFrontFrame = FindFrame("LeftFront");
-	//m_pWheelRightFrontFrame = FindFrame("RightFront");
-	//m_pWheelLeftRearFrame = FindFrame("LeftBack");
-	//m_pWheelRightRearFrame = FindFrame("RightBack");
-
 	m_pWheelLeftFrontFrame = FindFrame("LF");
 	m_pWheelRightFrontFrame = FindFrame("RF");
 	m_pWheelLeftRearFrame = FindFrame("LB");
@@ -397,16 +391,6 @@ void CCarPlayer::OnInitialize()
 	if (m_pWheelRightFrontFrame) m_xmf4x4OriginalFR = m_pWheelRightFrontFrame->m_xmf4x4Transform;
 	if (m_pWheelLeftRearFrame) m_xmf4x4OriginalBL = m_pWheelLeftRearFrame->m_xmf4x4Transform;
 	if (m_pWheelRightRearFrame) m_xmf4x4OriginalBR = m_pWheelRightRearFrame->m_xmf4x4Transform;
-
-	if (m_pWheelLeftFrontFrame)
-	{
-		char szDebugBuffer[256];
-		sprintf_s(szDebugBuffer, "[Debug] WheelFL Original Pos - X: %.4f, Y: %.4f, Z: %.4f\n",
-			m_xmf4x4OriginalFL._41,
-			m_xmf4x4OriginalFL._42,
-			m_xmf4x4OriginalFL._43);
-		OutputDebugStringA(szDebugBuffer);
-	}
 }
 
 void CCarPlayer::Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent)

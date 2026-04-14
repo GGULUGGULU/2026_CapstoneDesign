@@ -1392,23 +1392,37 @@ void CGameFramework::CollisionProcess()
 			else if (randItem == 2) m_eHoldItem = ITEM_MAX_DASH_GAUGE_UP;
 		}
 		else if (pCollidedObject->m_bIsInvisibleWall)
-		{
+		{// 벽에 박을때
 			XMFLOAT3 vPos = m_pPlayer->GetPosition();
 			PlayAndSyncEffect(EFFECT_TYPE::COLLISION, XMFLOAT3(vPos.x, vPos.y + 10, vPos.z), XMFLOAT2(25, 25), XMFLOAT3(1, 1, 0));
 			PlayAndSyncEffect(EFFECT_TYPE::COLLISION, XMFLOAT3(vPos.x + 10, vPos.y, vPos.z), XMFLOAT2(25, 25), XMFLOAT3(1, 0, 1));
 			PlayAndSyncEffect(EFFECT_TYPE::COLLISION, XMFLOAT3(vPos.x, vPos.y, vPos.z + 10), XMFLOAT2(25, 25), XMFLOAT3(0, 1, 1));
 
-			XMFLOAT3 vWallPos = pCollidedObject->GetPosition();
-			XMFLOAT3 vNormal = XMFLOAT3(vPos.x - vWallPos.x, 0.0f, vPos.z - vWallPos.z);
-			XMVECTOR xvNormal = XMVector3Normalize(XMLoadFloat3(&vNormal));
-			XMStoreFloat3(&vNormal, xvNormal);
+			XMMATRIX mWallWorld = XMLoadFloat4x4(&pCollidedObject->GetWorldMatrix());
+			XMVECTOR vDet;
+			XMMATRIX mWallInv = XMMatrixInverse(&vDet, mWallWorld);
 
-			float pushOutDistance = 15.0f + (m_nPlayerCurrentSpeed * 0.05f);
+			XMVECTOR xvPlayerLocal = XMVector3TransformCoord(XMLoadFloat3(&vPos), mWallInv);
+			XMFLOAT3 vPlayerLocal;
+			XMStoreFloat3(&vPlayerLocal, xvPlayerLocal);
 
-			XMFLOAT3 correctedPos = m_pPlayer->GetPosition();
-			correctedPos.x += vNormal.x * pushOutDistance;
-			correctedPos.z += vNormal.z * pushOutDistance;
-			m_pPlayer->SetPosition(correctedPos);
+			BoundingBox wallBox = pCollidedObject->m_pMesh->GetBoundingBox();
+
+			float ratioX = abs(vPlayerLocal.x / wallBox.Extents.x);
+			float ratioZ = abs(vPlayerLocal.z / wallBox.Extents.z);
+
+			XMVECTOR xvLocalNormal = XMVectorZero();
+			if (ratioX > ratioZ)
+			{
+				xvLocalNormal = XMVectorSet((vPlayerLocal.x > 0.0f) ? 1.0f : -1.0f, 0.0f, 0.0f, 0.0f);
+			}
+			else
+			{
+				xvLocalNormal = XMVectorSet(0.0f, 0.0f, (vPlayerLocal.z > 0.0f) ? 1.0f : -1.0f, 0.0f);
+			}
+
+			XMVECTOR xvNormal = XMVector3TransformNormal(xvLocalNormal, mWallWorld);
+			xvNormal = XMVector3Normalize(xvNormal);
 
 			XMFLOAT3 vVelocity = m_pPlayer->GetVelocity();
 			XMVECTOR xvVelocity = XMLoadFloat3(&vVelocity);
@@ -1417,12 +1431,21 @@ void CGameFramework::CollisionProcess()
 
 			if (fDot < 0.0f)
 			{
-				xvVelocity = xvVelocity - (1.5f * fDot * xvNormal);
-				XMStoreFloat3(&vVelocity, xvVelocity);
-				m_pPlayer->SetVelocity(vVelocity);
-			}
+				float pushOutDistance = 4.0f;
+				XMFLOAT3 correctedPos = m_pPlayer->GetPosition();
+				correctedPos.x += XMVectorGetX(xvNormal) * pushOutDistance;
+				correctedPos.z += XMVectorGetZ(xvNormal) * pushOutDistance;
+				m_pPlayer->SetPosition(correctedPos);
 
-			m_nPlayerCurrentSpeed *= 0.6f;
+				XMVECTOR xvReflection = xvVelocity - (2.0f * fDot * xvNormal);
+
+				xvReflection = xvReflection * 0.3f;
+
+				XMStoreFloat3(&vVelocity, xvReflection);
+				m_pPlayer->SetVelocity(vVelocity);
+
+				m_nPlayerCurrentSpeed = (int)XMVectorGetX(XMVector3Length(xvReflection));
+			}
 		}
 		else if (pCollidedObject != m_pScene->m_ppGameObjects[38])
 		{
