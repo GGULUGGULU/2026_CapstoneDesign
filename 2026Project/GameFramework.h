@@ -3,6 +3,7 @@
 #define FRAME_BUFFER_WIDTH		640
 #define FRAME_BUFFER_HEIGHT		480
 
+#include <wincodec.h>
 #include "Timer.h"
 #include "Player.h"
 #include "Scene.h"
@@ -10,7 +11,22 @@
 #include "EffectLibrary.h"
 #include "NetworkManager.h"
 
+struct UIButton {
+	float xRatio, yRatio, wRatio, hRatio; 
+	D2D1_RECT_F rect;                     
 
+	void Update(int screenWidth, int screenHeight) {
+		float centerX = screenWidth * xRatio;
+		float centerY = screenHeight * yRatio;
+		float halfW = (screenWidth * wRatio) * 0.5f;
+		float halfH = (screenHeight * hRatio) * 0.5f;
+		rect = D2D1::RectF(centerX - halfW, centerY - halfH, centerX + halfW, centerY + halfH);
+	}
+
+	bool IsMouseOver(POINT pt) {
+		return (pt.x >= rect.left && pt.x <= rect.right && pt.y >= rect.top && pt.y <= rect.bottom);
+	}
+};
 
 class CGameFramework
 {
@@ -78,6 +94,8 @@ public:
 	void PlayAndSyncEffect(EFFECT_TYPE eType, const XMFLOAT3& xmf3Position, const XMFLOAT2& xmf2Size, const XMFLOAT3& xmf3Color = XMFLOAT3(1.0f, 1.0f, 1.0f));
 	void SendEffectEvent(EFFECT_TYPE eType, const XMFLOAT3& xmf3Position, const XMFLOAT2& xmf2Size, const XMFLOAT3& xmf3Color = XMFLOAT3(1.0f, 1.0f, 1.0f));
 	void ConsumeNetworkEffectEvents();
+
+	void LoadLobbyUIResource();
 	//
 private:
 	HINSTANCE					m_hInstance;
@@ -156,6 +174,11 @@ private:
 	ComPtr<ID2D1SolidColorBrush> m_dashGaugeBGBrush; // 대시게이지 배경 색상
 	ComPtr<ID2D1SolidColorBrush> m_dashGaugeBorderBrush; // 대시게이지 경계선 색상
 
+	ComPtr<ID2D1SolidColorBrush> m_pBtnHoverBrush;
+
+	ComPtr<IWICImagingFactory> m_pWICFactory;
+	ComPtr<ID2D1Bitmap> m_pLobbyD2DBitmap;
+
 	ID3D12Resource* m_pd3dShadowMap;
 	ID3D12DescriptorHeap* m_pd3dShadowDSVHeap;
 	D3D12_CPU_DESCRIPTOR_HANDLE m_d3dCPUShadowDSVHandle;
@@ -214,5 +237,17 @@ public:
 	float m_fSecondJumpWindow = 0.35f;   // 2단 범위
 	float m_fFirstJumpTime = 0.0f;
 	unsigned m_cnt{ 0 };
+
+	POINT m_ptMousePos;
+	int m_nHoveredButtonIndex{ -1 };
+
+	UIButton m_LobbyButtons[3] = {
+		// 방 만들기
+		{ 0.7908f+0.01, 0.5962f, 0.2523f, 0.0986f },
+		// 방 들어가기
+		{ 0.7908f+0.01, 0.7692f, 0.2523f, 0.0962f },
+		// 게임 종료
+		{ 0.7908f+0.01, 0.9282f, 0.2523f, 0.0968f }
+	};
 };
 

@@ -389,45 +389,38 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 	int mouseX = LOWORD(lParam);
 	int mouseY = HIWORD(lParam);
 
-	float ndcX = (2.0f * mouseX / m_pCamera->GetViewport().Width) - 1.0f;
-	float ndcY = 1.0f - (2.0f * mouseY / m_pCamera->GetViewport().Height);
+	m_ptMousePos.x = mouseX;
+	m_ptMousePos.y = mouseY;
 
-	XMFLOAT4X4 fMatProj = m_pCamera->GetProjectionMatrix();
-	XMMATRIX matProj = XMLoadFloat4x4(&fMatProj);
-	XMMATRIX matInvProj = XMMatrixInverse(NULL, matProj);
+	m_ptMousePos.x = LOWORD(lParam);
+	m_ptMousePos.y = HIWORD(lParam);
 
-	XMVECTOR vViewRayTarget = XMVectorSet(ndcX, ndcY, 1.0f, 1.0f);
-
-	vViewRayTarget = XMVector3TransformCoord(vViewRayTarget, matInvProj);
-
-	XMFLOAT4X4 fMatView = m_pCamera->GetViewMatrix();
-	XMMATRIX matView = XMLoadFloat4x4(&fMatView);
-	XMMATRIX matInvView = XMMatrixInverse(NULL, matView);
-
-	XMVECTOR vWorldRayOrigin = XMLoadFloat3(&m_pCamera->GetPosition());
-
-	XMVECTOR vWorldRayTarget = XMVector3TransformCoord(vViewRayTarget, matInvView);
-
-	XMVECTOR vWorldRayDirection = XMVector3Normalize(vWorldRayTarget - vWorldRayOrigin);
-
-	XMFLOAT3 fWorldRayOrigin, fWorldRayDirection;
-	XMStoreFloat3(&fWorldRayOrigin, vWorldRayOrigin);
-	XMStoreFloat3(&fWorldRayDirection, vWorldRayDirection);
-
-	if (m_pScene)
+	if (m_nStage == 0)
 	{
+		m_nHoveredButtonIndex = -1;
+
+		for (int i = 0; i < 3; ++i) {
+			if (m_LobbyButtons[i].IsMouseOver(m_ptMousePos)) {
+				m_nHoveredButtonIndex = i;
+				break;
+			}
+		}
+
 		if (nMessageID == WM_LBUTTONDOWN)
 		{
-			m_pScene->PickObject(fWorldRayOrigin, fWorldRayDirection);
-
-			if (m_pScene->m_pSelectedObject != NULL && m_nStage == 0)
+			if (m_nHoveredButtonIndex == 0) {
 				m_nStage = 1;
+			}
+			else if (m_nHoveredButtonIndex == 1) {
+				m_nStage = 1;
+			}
+			else if (m_nHoveredButtonIndex == 2) {
+				::PostQuitMessage(0);
+			}
 		}
-		else
-		{
-			m_pScene->OnProcessingMouseMessage(hWnd, nMessageID, wParam, lParam);
-		}
+		return;
 	}
+
 	switch (nMessageID)
 	{
 	case WM_LBUTTONDOWN:
@@ -596,6 +589,9 @@ LRESULT CALLBACK CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMess
 
 void CGameFramework::OnDestroy()
 {
+	if (m_pLobbyD2DBitmap) m_pLobbyD2DBitmap.Reset();
+	if (m_pWICFactory) m_pWICFactory.Reset();
+
 	ReleaseObjects();
 
 	if (m_pNetwork)
@@ -639,27 +635,29 @@ void CGameFramework::OnDestroy()
 void CGameFramework::BuildObjectGameStart()
 {
 	m_pd3dCommandList->Reset(m_d3dCommandAllocators[0].Get(), NULL);
-
+	
 	m_pScene = new CScene();
-
+	
 	if (m_pScene) m_pScene->BuildObjectsGameStart(m_pd3dDevice, m_pd3dCommandList);
-
-	CAirplanePlayer* pCarPlayer = new CAirplanePlayer(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature());
+	
+	CCarPlayer* pCarPlayer = new CCarPlayer(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature());
 	pCarPlayer->SetPosition(XMFLOAT3(.0f, .0f, .0f));
 	m_pScene->m_pPlayer = m_pPlayer = pCarPlayer;
 	m_pCamera = m_pPlayer->GetCamera();
-
+	
 	m_pd3dCommandList->Close();
 	ID3D12CommandList* ppd3dCommandLists[] = { m_pd3dCommandList };
 	m_pd3dCommandQueue->ExecuteCommandLists(1, ppd3dCommandLists);
-
+	
 	WaitForGpuComplete();
-
+	
 	if (m_pScene) m_pScene->ReleaseUploadBuffers();
 	if (m_pPlayer) m_pPlayer->ReleaseUploadBuffers();
 	if (m_pRemotePlayer) m_pRemotePlayer->ReleaseUploadBuffers();
-
+	
 	m_GameTimer.Reset();
+	
+	LoadLobbyUIResource();
 }
 
 void CGameFramework::ReleaseObjects()
@@ -711,93 +709,6 @@ void CGameFramework::ProcessInput()
 	}
 	m_pPlayer->Update(m_GameTimer.GetTimeElapsed());
 }
-//void CGameFramework::ProcessInputGameStage()
-//{
-//	static UCHAR pKeysBuffer[256];
-//	::ZeroMemory(pKeysBuffer, sizeof(pKeysBuffer));
-//
-//	bool bProcessedByScene = false;
-//	if (GetKeyboardState(pKeysBuffer) && m_pScene)
-//		bProcessedByScene = m_pScene->ProcessInput(pKeysBuffer);
-//
-//	const bool bForward = ((pKeysBuffer[VK_UP] & 0xF0) != 0);
-//	const bool bBackward = ((pKeysBuffer[VK_DOWN] & 0xF0) != 0);
-//	const bool bHasDriveInput = (bForward || bBackward);
-//	const bool bDashKeyDown = ((::GetAsyncKeyState('Z') & 0x8000) != 0);
-//
-//	const float fTimeElapsed = m_GameTimer.GetTimeElapsed();
-//
-//	UpdateDashSystem(fTimeElapsed, bDashKeyDown, bHasDriveInput);
-//
-//	if (!bProcessedByScene)
-//	{
-//		DWORD dwDirection = 0;
-//
-//		const int nAccel = (m_bIsDashing ? 4 : 1);
-//		const int nCurrentMaxSpeed = (int)GetPlayerEffectiveMaxSpeed();
-//
-//		if (bForward)
-//		{
-//			dwDirection |= DIR_FORWARD;
-//			m_nPlayerCurrentSpeed += nAccel;
-//			if (m_nPlayerCurrentSpeed > nCurrentMaxSpeed)
-//				m_nPlayerCurrentSpeed = nCurrentMaxSpeed;
-//		}
-//		else if (bBackward)
-//		{
-//			dwDirection |= DIR_BACKWARD;
-//			m_nPlayerCurrentSpeed += nAccel;
-//			if (m_nPlayerCurrentSpeed > nCurrentMaxSpeed)
-//				m_nPlayerCurrentSpeed = nCurrentMaxSpeed;
-//		}
-//		else
-//		{
-//			if (m_nPlayerCurrentSpeed > 0) --m_nPlayerCurrentSpeed;
-//		}
-//
-//		if (pKeysBuffer[VK_LEFT] & 0xF0) dwDirection |= DIR_LEFT;
-//		if (pKeysBuffer[VK_RIGHT] & 0xF0) dwDirection |= DIR_RIGHT;
-//		if (pKeysBuffer[VK_PRIOR] & 0xF0) dwDirection |= DIR_UP;
-//		if (pKeysBuffer[VK_NEXT] & 0xF0) dwDirection |= DIR_DOWN;
-//
-//		if (dwDirection != 0)
-//		{
-//			if (dwDirection == DIR_LEFT || dwDirection == DIR_RIGHT)
-//			{
-//				if (dwDirection == DIR_RIGHT)
-//					m_pPlayer->Rotate(0.0f, +1.0f, 0.0f);
-//				else
-//					m_pPlayer->Rotate(0.0f, -1.0f, 0.0f);
-//			}
-//			else
-//			{
-//				m_pPlayer->Move(dwDirection, (float)m_nPlayerCurrentSpeed, true);
-//			}
-//
-//			if (2 < m_cnt)
-//			{
-//				CEffectLibrary::Instance()->PlayCarDustParticle(
-//					EFFECT_TYPE::DUST,
-//					m_pPlayer->GetPosition(),
-//					m_pPlayer->GetRightVector(),
-//					m_pPlayer->GetLookVector(),
-//					XMFLOAT2(5, 5),
-//					XMFLOAT2(10, 20)
-//				);
-//				m_cnt = 0;
-//			}
-//			else
-//			{
-//				++m_cnt;
-//			}
-//		}
-//	}
-//
-//	if ((float)m_nPlayerCurrentSpeed > GetPlayerEffectiveMaxSpeed())
-//		m_nPlayerCurrentSpeed = (int)GetPlayerEffectiveMaxSpeed();
-//
-//	m_pPlayer->Update(fTimeElapsed);
-//}
 
 void CGameFramework::ProcessInputGameStage()
 {
@@ -883,9 +794,6 @@ void CGameFramework::ProcessInputGameStage()
 		}
 
 		vVel += vAcceleration * fTimeElapsed;
-
-	/*	float fDrag = bHasDriveInput ? 1.5f : 4.0f;
-		vVel -= vVel * fDrag * fTimeElapsed;*/
 
 		float fHorizontalSpeed = XMVectorGetX(XMVector3Length(vVel));
 
@@ -1531,6 +1439,13 @@ void CGameFramework::CreateD2DDevice()
 	m_d2dFactory->CreateDevice(dxgiDevice.Get(), m_d2dDevice.GetAddressOf());
 	m_d2dDevice->CreateDeviceContext(deviceOptions, m_d2dDeviceContext.GetAddressOf());
 	DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory), reinterpret_cast<IUnknown**>(m_dWriteFactory.GetAddressOf()));
+
+	HRESULT hrCom = CoInitialize(NULL);
+
+	HRESULT hr = CoCreateInstance(CLSID_WICImagingFactory,
+		NULL,
+		CLSCTX_INPROC_SERVER,
+		IID_PPV_ARGS(&m_pWICFactory));
 }
 
 void CGameFramework::CreateRenderTargetView()
@@ -1661,120 +1576,154 @@ void CGameFramework::CreateTextResources()
 		D2D1::ColorF(D2D1::ColorF::DarkGray),
 		m_dashGaugeBorderBrush.GetAddressOf()
 	);
+
+	m_d2dDeviceContext->CreateSolidColorBrush(
+		D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.3f),
+		m_pBtnHoverBrush.GetAddressOf()
+	);
 }
 
 void CGameFramework::RenderUI()
 {
-
 	m_d3d11On12Device->AcquireWrappedResources(m_wrappedBackBuffers[m_nSwapChainBufferIndex].GetAddressOf(), 1);
-
 	m_d2dDeviceContext->SetTarget(m_d2dRenderTargets[m_nSwapChainBufferIndex].Get());
 	m_d2dDeviceContext->BeginDraw();
 
-	int minutes = static_cast<int>(m_fTotalTime / 60);
-	int seconds = static_cast<int>(m_fTotalTime) % 60;
-	int milliseconds = static_cast<int>((m_fTotalTime - (minutes * 60 + seconds)) * 100);
-	swprintf_s(m_timeBuffer, 1024, L"%02d:%02d:%02d", minutes, seconds, milliseconds);
+	if (0 == m_nStage) {
+		if (m_pLobbyD2DBitmap)
+		{
+			D2D1_RECT_F destRect = D2D1::RectF(
+				0.0f,
+				0.0f,
+				(float)m_nWndClientWidth,
+				(float)m_nWndClientHeight
+			);
 
-	//swprintf_s(m_speedBuffer, 1024, L"%d Km/h", m_nPlayerCurrentSpeed);
-	//swprintf_s(m_speedBuffer, 1024, L"%d Km/h  [Res: %d x %d]", m_nPlayerCurrentSpeed, m_nWndClientWidth, m_nWndClientHeight);
-	const wchar_t* pwszNetStatus = L"OFF";
-	if (m_pNetwork)
-	{
-		if (m_pNetwork->IsHosting())
-			pwszNetStatus = (m_pNetwork->IsConnected() ? L"HOST CONNECTED" : L"HOST WAITING");
-		else
-			pwszNetStatus = (m_pNetwork->IsConnected() ? L"CLIENT CONNECTED" : L"CLIENT DISCONNECTED");
+			m_d2dDeviceContext->DrawBitmap(
+				m_pLobbyD2DBitmap.Get(),
+				destRect,
+				1.0f,
+				D2D1_BITMAP_INTERPOLATION_MODE_LINEAR
+			);
+
+			for (int i = 0; i < 3; ++i)
+			{
+				m_LobbyButtons[i].Update(m_nWndClientWidth, m_nWndClientHeight);
+
+				if (m_nHoveredButtonIndex == i)
+				{
+					m_d2dDeviceContext->FillRectangle(m_LobbyButtons[i].rect, m_pBtnHoverBrush.Get());
+				}
+			}
+		}
+
+
 	}
-
-	swprintf_s(
-		m_speedBuffer,
-		1024,
-		L"%d Km/h  Dash : %.0f / %.0f  Net : %s  [Res: %d x %d]",
-		m_nPlayerCurrentSpeed/2,
-		m_fCurrentDashGauge,
-		m_fMaxDashGauge,
-		pwszNetStatus,
-		m_nWndClientWidth,
-		m_nWndClientHeight
-	);
-
-	if (4 != m_nScore && 2 == m_nStage)
+	else
 	{
-		m_d2dDeviceContext->DrawTextW(
-			m_timeBuffer,
-			wcslen(m_timeBuffer),
-			m_textTimeFormat.Get(),
-			D2D1::RectF(10.0f, 10.0f,
-				(float)m_nWndClientWidth - 10.0f,
-				(float)m_nWndClientHeight - 10.0f),
-			m_textTimeBrush.Get()
-		);
+		int minutes = static_cast<int>(m_fTotalTime / 60);
+		int seconds = static_cast<int>(m_fTotalTime) % 60;
+		int milliseconds = static_cast<int>((m_fTotalTime - (minutes * 60 + seconds)) * 100);
+		swprintf_s(m_timeBuffer, 1024, L"%02d:%02d:%02d", minutes, seconds, milliseconds);
 
-		m_d2dDeviceContext->DrawTextW(
+		//swprintf_s(m_speedBuffer, 1024, L"%d Km/h", m_nPlayerCurrentSpeed);
+		//swprintf_s(m_speedBuffer, 1024, L"%d Km/h  [Res: %d x %d]", m_nPlayerCurrentSpeed, m_nWndClientWidth, m_nWndClientHeight);
+		const wchar_t* pwszNetStatus = L"OFF";
+		if (m_pNetwork)
+		{
+			if (m_pNetwork->IsHosting())
+				pwszNetStatus = (m_pNetwork->IsConnected() ? L"HOST CONNECTED" : L"HOST WAITING");
+			else
+				pwszNetStatus = (m_pNetwork->IsConnected() ? L"CLIENT CONNECTED" : L"CLIENT DISCONNECTED");
+		}
+
+		swprintf_s(
 			m_speedBuffer,
-			wcslen(m_speedBuffer),
-			m_textSpeedFormat.Get(),
-			D2D1::RectF(10, 10,
-				(float)m_nWndClientWidth - 10.0f,
-				(float)m_nWndClientHeight - 10.0f),
-			m_textSpeedBrush.Get()
+			1024,
+			L"%d Km/h  Dash : %.0f / %.0f  Net : %s  [Res: %d x %d]",
+			m_nPlayerCurrentSpeed / 2,
+			m_fCurrentDashGauge,
+			m_fMaxDashGauge,
+			pwszNetStatus,
+			m_nWndClientWidth,
+			m_nWndClientHeight
 		);
 
-		float gaugeWidth = 40.0f;   // 게이지 너비
-		float gaugeHeight = 200.0f; // 게이지 높이
-		float marginX = 50.0f;      // 좌측 여백
-		float marginY = 50.0f;      // 하단 여백
+		if (4 != m_nScore && 2 == m_nStage)
+		{
+			m_d2dDeviceContext->DrawTextW(
+				m_timeBuffer,
+				wcslen(m_timeBuffer),
+				m_textTimeFormat.Get(),
+				D2D1::RectF(10.0f, 10.0f,
+					(float)m_nWndClientWidth - 10.0f,
+					(float)m_nWndClientHeight - 10.0f),
+				m_textTimeBrush.Get()
+			);
 
-		float left = marginX;
-		float bottom = (float)m_nWndClientHeight - marginY;
-		float top = bottom - gaugeHeight;
-		float right = left + gaugeWidth;
+			m_d2dDeviceContext->DrawTextW(
+				m_speedBuffer,
+				wcslen(m_speedBuffer),
+				m_textSpeedFormat.Get(),
+				D2D1::RectF(10, 10,
+					(float)m_nWndClientWidth - 10.0f,
+					(float)m_nWndClientHeight - 10.0f),
+				m_textSpeedBrush.Get()
+			);
 
-		D2D1_RECT_F bgRect = D2D1::RectF(left, top, right, bottom);
-		m_d2dDeviceContext->FillRectangle(&bgRect, m_dashGaugeBGBrush.Get());
+			float gaugeWidth = 40.0f;   // 게이지 너비
+			float gaugeHeight = 200.0f; // 게이지 높이
+			float marginX = 50.0f;      // 좌측 여백
+			float marginY = 50.0f;      // 하단 여백
 
-		float dashRatio = m_fCurrentDashGauge / m_fMaxDashGauge;
-		if (dashRatio < 0.0f) dashRatio = 0.0f;
-		if (dashRatio > 1.0f) dashRatio = 1.0f;
+			float left = marginX;
+			float bottom = (float)m_nWndClientHeight - marginY;
+			float top = bottom - gaugeHeight;
+			float right = left + gaugeWidth;
 
-		float fillHeight = gaugeHeight * dashRatio;
-		float fillTop = bottom - fillHeight;
+			D2D1_RECT_F bgRect = D2D1::RectF(left, top, right, bottom);
+			m_d2dDeviceContext->FillRectangle(&bgRect, m_dashGaugeBGBrush.Get());
 
-		D2D1_RECT_F fillRect = D2D1::RectF(left, fillTop, right, bottom);
-		m_d2dDeviceContext->FillRectangle(&fillRect, m_dashGaugeFillBrush.Get());
+			float dashRatio = m_fCurrentDashGauge / m_fMaxDashGauge;
+			if (dashRatio < 0.0f) dashRatio = 0.0f;
+			if (dashRatio > 1.0f) dashRatio = 1.0f;
 
-		m_d2dDeviceContext->DrawRectangle(&bgRect, m_dashGaugeBorderBrush.Get(), 2.0f);
-		///////////////////////////
-		//float ItemWidth = 60.0f;   // 게이지 너비
-		//float ItemHeight = 90.0f; // 게이지 높이
-		//float ItemmarginX = 10.0f;      // 좌측 여백
-		//float ItemmarginY = 120.0f;      // 하단 여백
-		//
-		//float Itemleft = m_nWndClientWidth * (0.5f * (-0.97f + 1.0f));
-		//float Itemright = m_nWndClientWidth * (0.5f * (-0.78f + 1.0f));
-		//float Itemtop = m_nWndClientHeight * (0.5f * (1.0f - 0.90f));
-		//float Itembottom = m_nWndClientHeight * (0.5f * (1.0f - 0.50f));
-		//
-		//D2D1_RECT_F ItemBgRect = D2D1::RectF(Itemleft, Itemtop, Itemright, Itembottom);
-		//m_d2dDeviceContext->FillRectangle(&ItemBgRect, m_dashGaugeBGBrush.Get());
-	}
+			float fillHeight = gaugeHeight * dashRatio;
+			float fillTop = bottom - fillHeight;
 
-	if (100 == m_nStage)
-	{
-		m_d2dDeviceContext->DrawTextW(
-			m_timeBuffer,
-			wcslen(m_timeBuffer),
-			m_textEndTimeFormat.Get(),
-			D2D1::RectF(0.0f, 0.0f, (float)m_nWndClientWidth, (float)m_nWndClientHeight),
-			m_textEndTimeBrush.Get()
-		);
+			D2D1_RECT_F fillRect = D2D1::RectF(left, fillTop, right, bottom);
+			m_d2dDeviceContext->FillRectangle(&fillRect, m_dashGaugeFillBrush.Get());
+
+			m_d2dDeviceContext->DrawRectangle(&bgRect, m_dashGaugeBorderBrush.Get(), 2.0f);
+			///////////////////////////
+			//float ItemWidth = 60.0f;   // 게이지 너비
+			//float ItemHeight = 90.0f; // 게이지 높이
+			//float ItemmarginX = 10.0f;      // 좌측 여백
+			//float ItemmarginY = 120.0f;      // 하단 여백
+			//
+			//float Itemleft = m_nWndClientWidth * (0.5f * (-0.97f + 1.0f));
+			//float Itemright = m_nWndClientWidth * (0.5f * (-0.78f + 1.0f));
+			//float Itemtop = m_nWndClientHeight * (0.5f * (1.0f - 0.90f));
+			//float Itembottom = m_nWndClientHeight * (0.5f * (1.0f - 0.50f));
+			//
+			//D2D1_RECT_F ItemBgRect = D2D1::RectF(Itemleft, Itemtop, Itemright, Itembottom);
+			//m_d2dDeviceContext->FillRectangle(&ItemBgRect, m_dashGaugeBGBrush.Get());
+		}
+
+		if (100 == m_nStage)
+		{
+			m_d2dDeviceContext->DrawTextW(
+				m_timeBuffer,
+				wcslen(m_timeBuffer),
+				m_textEndTimeFormat.Get(),
+				D2D1::RectF(0.0f, 0.0f, (float)m_nWndClientWidth, (float)m_nWndClientHeight),
+				m_textEndTimeBrush.Get()
+			);
+		}
 	}
 
 	m_d2dDeviceContext->EndDraw();
-
 	m_d3d11On12Device->ReleaseWrappedResources(m_wrappedBackBuffers[m_nSwapChainBufferIndex].GetAddressOf(), 1);
-
 	m_d3d11DeviceContext->Flush();
 }
 
@@ -2109,6 +2058,62 @@ void CGameFramework::ConsumeNetworkEffectEvents()
 	}
 }
 
+void CGameFramework::LoadLobbyUIResource()
+{
+	if (!m_pWICFactory) {
+		return;
+	}
+	if (!m_d2dDeviceContext) {
+		return;
+	}
+	HRESULT hr;
+
+	ComPtr<IWICBitmapDecoder> pDecoder;
+	hr = m_pWICFactory->CreateDecoderFromFilename(
+		L"Asset/image/GameLobbyRemoved.png", 
+		NULL,
+		GENERIC_READ,
+		WICDecodeMetadataCacheOnLoad,
+		&pDecoder
+	);
+	if (FAILED(hr)) {
+		return;
+	}
+
+	ComPtr<IWICBitmapFrameDecode> pFrame;
+	hr = pDecoder->GetFrame(0, &pFrame);
+	if (FAILED(hr)) {
+		return;
+	}
+
+	ComPtr<IWICFormatConverter> pConverter;
+	hr = m_pWICFactory->CreateFormatConverter(&pConverter);
+	if (FAILED(hr)) {
+		return;
+	}
+
+	hr = pConverter->Initialize(
+		pFrame.Get(),
+		GUID_WICPixelFormat32bppPBGRA, 
+		WICBitmapDitherTypeNone,
+		NULL,
+		0.0f,
+		WICBitmapPaletteTypeMedianCut
+	);
+	if (FAILED(hr)) {
+		return;
+	}
+
+	hr = m_d2dDeviceContext->CreateBitmapFromWicBitmap(
+		pConverter.Get(),
+		NULL,
+		&m_pLobbyD2DBitmap 
+	);
+	if (FAILED(hr)) {
+		return;
+	}
+}
+
 
 //#define _WITH_PLAYER_TOP
 
@@ -2166,7 +2171,8 @@ void CGameFramework::FrameAdvance()
 		SetUIInfo();
 	}
 
-	AnimateObjects();
+	if(0!=m_nStage)
+		AnimateObjects();
 
 
 	HRESULT hResult = m_d3dCommandAllocators[m_nSwapChainBufferIndex].Get()->Reset();
@@ -2193,6 +2199,26 @@ void CGameFramework::FrameAdvance()
 		m_pd3dCommandList->OMSetRenderTargets(1, &rtvHandle, FALSE, &dsvHandle);
 
 		SetMainViewport();
+		if (m_pScene)
+		{
+			m_pd3dCommandList->SetGraphicsRootSignature(m_pScene->GetGraphicsRootSignature());
+
+			if (m_pScene->m_pd3dCbvSrvHeap) {
+				ID3D12DescriptorHeap* ppHeaps[] = { m_pScene->m_pd3dCbvSrvHeap };
+				m_pd3dCommandList->SetDescriptorHeaps(1, ppHeaps);
+			}
+
+			if (m_pCamera) m_pCamera->UpdateShaderVariables(m_pd3dCommandList);
+
+			if (m_pScene->m_pd3dcbLights) {
+				m_pd3dCommandList->SetGraphicsRootConstantBufferView(2, m_pScene->m_pd3dcbLights->GetGPUVirtualAddress());
+			}
+
+			XMMATRIX mLightViewProj = m_pScene->GetShadowLightViewProj();
+			XMFLOAT4X4 xmf4x4LightViewProj;
+			XMStoreFloat4x4(&xmf4x4LightViewProj, XMMatrixTranspose(mLightViewProj));
+			m_pd3dCommandList->SetGraphicsRoot32BitConstants(4, 16, &xmf4x4LightViewProj, 0);
+		}
 
 		if (m_pPlayer) m_pPlayer->Render(m_pd3dCommandList, NULL, m_pCamera);
 		if (m_pRemotePlayer && m_pRemotePlayer->m_bIsActive) m_pRemotePlayer->Render(m_pd3dCommandList, NULL, m_pCamera);
@@ -2229,12 +2255,8 @@ void CGameFramework::FrameAdvance()
 	ID3D12CommandList* ppd3dCommandLists[] = { m_pd3dCommandList };
 	m_pd3dCommandQueue->ExecuteCommandLists(1, ppd3dCommandLists);
 
+	RenderUI();
 
-	if (0 != m_nStage)
-	{
-		RenderUI();
-
-	}
 	hResult = m_pd3dCommandList->Reset(m_d3dCommandAllocators[m_nSwapChainBufferIndex].Get(), NULL);
 
 	if (0 == m_nStage)

@@ -36,6 +36,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 
 	hAccelTable = ::LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_2026Project));
 
+	HRESULT hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);//
 
 	while (1)
 	{
@@ -54,6 +55,8 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 		}
 	}
 	gGameFramework.OnDestroy();
+
+	CoUninitialize();//
 
 	return((int)msg.wParam);
 }
