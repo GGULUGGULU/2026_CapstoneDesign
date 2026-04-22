@@ -184,6 +184,21 @@ private:
 	D3D12_CPU_DESCRIPTOR_HANDLE m_d3dCPUShadowDSVHandle;
 
 	// 아이템 + 대시
+
+
+	// // ===== 미니맵
+	ComPtr<ID2D1Bitmap> m_pMinimapBitmap;
+
+	ComPtr<ID2D1SolidColorBrush> m_minimapBorderBrush;
+	ComPtr<ID2D1SolidColorBrush> m_minimapPlayerBrush;
+	ComPtr<ID2D1SolidColorBrush> m_minimapFrameBrush;
+
+	void LoadMinimapUIResource();
+	D2D1_POINT_2F WorldToMinimap(const XMFLOAT3& worldPos, const D2D1_RECT_F& minimapRect);
+
+
+
+
 private:
 	enum ITEM_TYPE
 	{

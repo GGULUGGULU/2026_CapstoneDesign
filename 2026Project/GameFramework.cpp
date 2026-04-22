@@ -95,6 +95,9 @@ bool CGameFramework::OnCreate(HINSTANCE hInstance, HWND hMainWnd)
 	CreateD2DDevice();
 	CreateTextResources();
 	CreateRenderTargetView();
+	LoadMinimapUIResource();
+
+
 
 	CreateDepthStencilView();
 
@@ -1581,6 +1584,24 @@ void CGameFramework::CreateTextResources()
 		D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.3f),
 		m_pBtnHoverBrush.GetAddressOf()
 	);
+
+
+
+	m_d2dDeviceContext->CreateSolidColorBrush(
+		D2D1::ColorF(1, 1, 1, 0.9f),
+		m_minimapBorderBrush.GetAddressOf()
+	);
+
+	m_d2dDeviceContext->CreateSolidColorBrush(
+		D2D1::ColorF(0, 0, 0, 0.4f),
+		m_minimapFrameBrush.GetAddressOf()
+	);
+
+	m_d2dDeviceContext->CreateSolidColorBrush(
+		D2D1::ColorF(D2D1::ColorF::Red),
+		m_minimapPlayerBrush.GetAddressOf()
+	);
+
 }
 
 void CGameFramework::RenderUI()
@@ -1708,6 +1729,90 @@ void CGameFramework::RenderUI()
 			//
 			//D2D1_RECT_F ItemBgRect = D2D1::RectF(Itemleft, Itemtop, Itemright, Itembottom);
 			//m_d2dDeviceContext->FillRectangle(&ItemBgRect, m_dashGaugeBGBrush.Get());
+		
+		
+
+		
+			/*float minimapW = 200.0f;
+			float minimapH = 200.0f;
+			const float margin = 20.0f;
+
+			if (m_pMinimapBitmap)
+			{
+				D2D1_SIZE_F bmpSize = m_pMinimapBitmap->GetSize();
+				float aspect = bmpSize.width / bmpSize.height;
+
+				minimapH = 300.0f;          
+				minimapW = minimapH * aspect;
+			}*/
+
+			float screenW = (float)m_nWndClientWidth;
+			float screenH = (float)m_nWndClientHeight;
+
+			
+			float minimapH = screenH * 0.25f;
+			float minimapW = minimapH;
+
+			minimapH = max(150.0f, min(350.0f, minimapH));
+
+			if (m_pMinimapBitmap)
+			{
+				auto size = m_pMinimapBitmap->GetSize();
+				minimapW = minimapH * (size.width / size.height);
+			}
+
+			float margin = screenH * 0.03f;
+
+
+			D2D1_RECT_F frameRect = D2D1::RectF(
+				(float)m_nWndClientWidth - minimapW - margin - 2,
+				(float)m_nWndClientHeight - minimapH - margin - 2,
+				(float)m_nWndClientWidth - margin + 2,
+				(float)m_nWndClientHeight - margin + 2
+			);
+
+			D2D1_RECT_F minimapRect = D2D1::RectF(
+				(float)m_nWndClientWidth - minimapW - margin,
+				(float)m_nWndClientHeight - minimapH - margin,
+				(float)m_nWndClientWidth - margin,
+				(float)m_nWndClientHeight - margin
+			);
+
+			
+			m_d2dDeviceContext->FillRoundedRectangle(
+				D2D1::RoundedRect(frameRect, 12, 12),
+				m_minimapFrameBrush.Get()
+			);
+
+			
+			if (m_pMinimapBitmap)
+			{
+				m_d2dDeviceContext->DrawBitmap(
+					m_pMinimapBitmap.Get(),
+					minimapRect
+				);
+			}
+
+			// 미니맵 테두리
+			m_d2dDeviceContext->DrawRoundedRectangle(
+				D2D1::RoundedRect(frameRect, 12, 12),
+				m_minimapBorderBrush.Get(),
+				4.0f
+			);
+
+			if (m_pPlayer)
+			{
+				D2D1_POINT_2F pt = WorldToMinimap(
+					m_pPlayer->GetPosition(),
+					minimapRect
+				);
+
+				m_d2dDeviceContext->FillEllipse(
+					D2D1::Ellipse(pt, 5, 5),
+					m_minimapPlayerBrush.Get()
+				);
+			}
+		
 		}
 	}
 	else if (100 == m_nStage)
@@ -2406,4 +2511,70 @@ void CGameFramework::FrameAdvance()
 	MoveToNextFrame();
 
 	ShowFrameRate();
+}
+
+void CGameFramework::LoadMinimapUIResource()
+{
+	if (!m_pWICFactory || !m_d2dDeviceContext) return;
+
+	m_pMinimapBitmap.Reset();
+
+	ComPtr<IWICBitmapDecoder> decoder;
+	ComPtr<IWICBitmapFrameDecode> frame;
+	ComPtr<IWICFormatConverter> converter;
+
+	HRESULT hr = m_pWICFactory->CreateDecoderFromFilename(
+		L"Asset/image/Minimap.png",   
+		nullptr,
+		GENERIC_READ,
+		WICDecodeMetadataCacheOnLoad,
+		decoder.GetAddressOf()
+	);
+	if (FAILED(hr)) return;
+
+	hr = decoder->GetFrame(0, frame.GetAddressOf());
+	if (FAILED(hr)) return;
+
+	hr = m_pWICFactory->CreateFormatConverter(converter.GetAddressOf());
+	if (FAILED(hr)) return;
+
+	hr = converter->Initialize(
+		frame.Get(),
+		GUID_WICPixelFormat32bppPBGRA,
+		WICBitmapDitherTypeNone,
+		nullptr,
+		0.0f,
+		WICBitmapPaletteTypeMedianCut
+	);
+	if (FAILED(hr)) return;
+
+	m_d2dDeviceContext->CreateBitmapFromWicBitmap(
+		converter.Get(),
+		nullptr,
+		m_pMinimapBitmap.GetAddressOf()
+	);
+}
+
+D2D1_POINT_2F CGameFramework::WorldToMinimap(
+	const XMFLOAT3& worldPos,
+	const D2D1_RECT_F& minimapRect)
+{
+
+	const float worldMinX = -2200.0f; // 맵 사이즈 맞게 조정 
+	const float worldMaxX = -1700.0f;
+	const float worldMinZ = -100.0f;
+	const float worldMaxZ = 500.0f;
+
+	float u = (worldPos.x - worldMinX) / (worldMaxX - worldMinX);
+	float v = (worldPos.z - worldMinZ) / (worldMaxZ - worldMinZ);
+
+	u = max(0.0f, min(1.0f, u));
+	v = max(0.0f, min(1.0f, v));
+
+	float x = minimapRect.left + u * (minimapRect.right - minimapRect.left);
+	float y = minimapRect.top + (1.0f - v) * (minimapRect.bottom - minimapRect.top);
+
+	return D2D1::Point2F(x, y);
+
+
 }
