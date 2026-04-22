@@ -165,30 +165,6 @@ void CScene::BuildObjectsGameStart(ID3D12Device* pd3dDevice, ID3D12GraphicsComma
 
 	LoadTexture(pd3dDevice, pd3dCommandList);
 
-	m_nGameObjects = 1;
-	m_ppGameObjects = new CGameObject * [m_nGameObjects];
-
-	CGameObject* pGameStartModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/GameStart.bin");
-	CGameObject* pGameStartObject = new CGameObject();
-	pGameStartObject->SetChild(pGameStartModel);
-	pGameStartObject->SetPosition(-100.0f, 0.0f, 150.0f);
-	pGameStartObject->Rotate(0.0f, -90.0f, 0.0f);
-	pGameStartObject->SetScale(5, 5, 5);
-	pGameStartObject->Rotate(0.0f, -135.f, 0.0f);
-	m_ppGameObjects[0] = pGameStartObject;
-
-	//  (=material only) (white)   
-	ApplyMeshTextures(pd3dDevice, pd3dCommandList, pGameStartObject);
-
-	//CGameObject* pNewPropModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/untitled.bin");
-	//CGameObject* pGamePropObject = new CGameObject();
-	//pGamePropObject->SetChild(pNewPropModel);
-	//pGamePropObject->SetPosition(.0f, -500.0f, 0.0f);
-	//pGamePropObject->Rotate(0.0f, 0.0f, 0.0f);
-	//pGamePropObject->SetScale(10, 10, 10);
-	//m_ppGameObjects[1] = pGamePropObject;
-	//ApplyMeshTextures(pd3dDevice, pd3dCommandList, pGamePropObject);
-
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
 }//
 
@@ -425,11 +401,6 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		CreateRockBillboard(pd3dDevice, pd3dCommandList);
 	}
 
-	//  
-
-	//      
-	//    ...
-
 	CGameObject* pObstacleModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Cube.bin");
 	CGameObject* pObstacleObject = new CGameObject();
 	pObstacleObject->SetChild(pObstacleModel);
@@ -509,8 +480,7 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		CGameObject* pItemModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
 		CGameObject* pItemObject = new CGameObject();
 		pItemObject->SetChild(pItemModel);
-		pItemObject->SetPosition(0.0f, 0.0f, uid1(dre));
-		pItemObject->Rotate(0.0f, 0.0f, 0.0f);
+		pItemObject->SetPosition(-2201, -222, 1890);
 		pItemObject->SetScale(10, 10, 10);
 		pItemObject->ComputeNewLocalAABB();
 		m_ppGameObjects[109] = pItemObject;
@@ -518,8 +488,7 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		CGameObject* pItemModel1 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
 		CGameObject* pItemObject1 = new CGameObject();
 		pItemObject1->SetChild(pItemModel1);
-		pItemObject1->SetPosition(0.0f, 0.0f, uid1(dre));
-		pItemObject1->Rotate(0.0f, 0.0f, 0.0f);
+		pItemObject1->SetPosition(-500,-270,2724);
 		pItemObject1->SetScale(10, 10, 10);
 		pItemObject1->ComputeNewLocalAABB();
 		m_ppGameObjects[110] = pItemObject1;
@@ -527,8 +496,7 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		CGameObject* pItemModel2 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
 		CGameObject* pItemObject2 = new CGameObject();
 		pItemObject2->SetChild(pItemModel2);
-		pItemObject2->SetPosition(0.0f, 0.0f, uid1(dre));
-		pItemObject2->Rotate(0.0f, 0.0f, 0.0f);
+		pItemObject2->SetPosition(570,-200,-600);
 		pItemObject2->SetScale(10, 10, 10);
 		pItemObject2->ComputeNewLocalAABB();
 		m_ppGameObjects[111] = pItemObject2;
@@ -536,8 +504,7 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		CGameObject* pItemModel3 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
 		CGameObject* pItemObject3 = new CGameObject();
 		pItemObject3->SetChild(pItemModel3);
-		pItemObject3->SetPosition(0.0f, 0.0f, uid1(dre));
-		pItemObject3->Rotate(0.0f, 0.0f, 0.0f);
+		pItemObject3->SetPosition(-2000,-200,-80);
 		pItemObject3->SetScale(10, 10, 10);
 		pItemObject3->ComputeNewLocalAABB();
 		m_ppGameObjects[112] = pItemObject3;
