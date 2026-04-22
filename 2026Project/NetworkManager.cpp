@@ -27,7 +27,9 @@ namespace
     {
         PLAYER_STATE = 1,
         COLLISION_EVENT = 2,
-        EFFECT_EVENT = 3
+        EFFECT_EVENT = 3,
+        RACE_FINISH = 4,
+        RACE_RESULT = 5
     };
 
     struct NetMessageHeader
@@ -54,6 +56,18 @@ namespace
     {
         NetMessageHeader header{};
         EffectEventNet eventData{};
+    };
+
+    struct RaceFinishPacket
+    {
+        NetMessageHeader header{};
+        RaceRecordNet record{};
+    };
+
+    struct RaceResultPacket
+    {
+        NetMessageHeader header{};
+        RaceResultNet result{};
     };
 
     bool EnsureWinsockStarted(CNetworkManagerImpl* pImpl)
@@ -150,6 +164,8 @@ bool CNetworkManager::StartHost(unsigned short port)
     m_recvBuffer.clear();
     m_collisionEvents.clear();
     m_effectEvents.clear();
+    m_raceFinishEvents.clear();
+    m_raceResultEvents.clear();
     m_pImpl->pendingSendBuffer.clear();
 
     OutputDebugStringA("[Network] Host started. Waiting for client...\n");
@@ -197,6 +213,8 @@ bool CNetworkManager::ConnectToHost(const char* pszAddress, unsigned short port)
     m_recvBuffer.clear();
     m_collisionEvents.clear();
     m_effectEvents.clear();
+    m_raceFinishEvents.clear();
+    m_raceResultEvents.clear();
     m_pImpl->pendingSendBuffer.clear();
 
     OutputDebugStringA("[Network] Connected to host.\n");
@@ -212,8 +230,10 @@ void CNetworkManager::Shutdown()
     m_recvBuffer.clear();
     m_collisionEvents.clear();
     m_effectEvents.clear();
+    m_raceFinishEvents.clear();
+    m_raceResultEvents.clear();
+    m_serverRaceRecords.clear();
     m_eMode = MODE::NONE;
-
     if (m_pImpl && m_pImpl->wsaStarted)
     {
         WSACleanup();
@@ -234,6 +254,9 @@ void CNetworkManager::DisconnectPeer()
     m_recvBuffer.clear();
     m_collisionEvents.clear();
     m_effectEvents.clear();
+    m_raceFinishEvents.clear();
+    m_raceResultEvents.clear();
+    m_serverRaceRecords.clear();
 }
 
 void CNetworkManager::TryAcceptClient()
@@ -261,6 +284,8 @@ void CNetworkManager::TryAcceptClient()
     m_recvBuffer.clear();
     m_collisionEvents.clear();
     m_effectEvents.clear();
+    m_raceFinishEvents.clear();
+    m_raceResultEvents.clear();
     m_pImpl->pendingSendBuffer.clear();
 
     OutputDebugStringA("[Network] Client connected.\n");
@@ -342,6 +367,20 @@ void CNetworkManager::TryReceivePackets()
                 m_effectEvents.push_back(packet.eventData);
             }
             break;
+        case NET_MESSAGE_TYPE::RACE_FINISH:
+            if (header.size == sizeof(RaceFinishPacket)) {
+                RaceFinishPacket packet{};
+                std::memcpy(&packet, m_recvBuffer.data(), sizeof(packet));
+                m_raceFinishEvents.push_back(packet.record);
+            }
+            break;
+        case NET_MESSAGE_TYPE::RACE_RESULT:
+            if (header.size == sizeof(RaceResultPacket)) {
+                RaceResultPacket packet{};
+                std::memcpy(&packet, m_recvBuffer.data(), sizeof(packet));
+                m_raceResultEvents.push_back(packet.result);
+            }
+            break;
 
         default:
             OutputDebugStringA("[Network] Unknown packet type.\n");
@@ -393,6 +432,36 @@ void CNetworkManager::SendEffectEvent(const EffectEventNet& ev)
     packet.header.type = static_cast<unsigned int>(NET_MESSAGE_TYPE::EFFECT_EVENT);
     packet.header.size = sizeof(EffectEventPacket);
     packet.eventData = ev;
+
+    const char* bytes = reinterpret_cast<const char*>(&packet);
+    m_pImpl->pendingSendBuffer.insert(m_pImpl->pendingSendBuffer.end(), bytes, bytes + sizeof(packet));
+
+    FlushPendingSends();
+}
+
+void CNetworkManager::SendRaceFinish(const RaceRecordNet& ev)
+{
+    if (!m_pImpl || !m_bConnected || m_pImpl->peerSocket == INVALID_SOCKET) return;
+
+    RaceFinishPacket packet{};
+    packet.header.type = static_cast<unsigned int>(NET_MESSAGE_TYPE::RACE_FINISH);
+    packet.header.size = sizeof(RaceFinishPacket);
+    packet.record = ev;
+
+    const char* bytes = reinterpret_cast<const char*>(&packet);
+    m_pImpl->pendingSendBuffer.insert(m_pImpl->pendingSendBuffer.end(), bytes, bytes + sizeof(packet));
+
+    FlushPendingSends();
+}
+
+void CNetworkManager::SendRaceResult(const RaceResultNet& ev)
+{
+    if (!m_pImpl || !m_bConnected || m_pImpl->peerSocket == INVALID_SOCKET) return;
+
+    RaceResultPacket packet{};
+    packet.header.type = static_cast<unsigned int>(NET_MESSAGE_TYPE::RACE_RESULT);
+    packet.header.size = sizeof(RaceResultPacket);
+    packet.result = ev;
 
     const char* bytes = reinterpret_cast<const char*>(&packet);
     m_pImpl->pendingSendBuffer.insert(m_pImpl->pendingSendBuffer.end(), bytes, bytes + sizeof(packet));
@@ -484,6 +553,24 @@ bool CNetworkManager::ConsumeEffectEvent(EffectEventNet& outEvent)
     return true;
 }
 
+bool CNetworkManager::ConsumeRaceFinish(RaceRecordNet& outEvent)
+{
+    if (m_raceFinishEvents.empty()) return false;
+
+    outEvent = m_raceFinishEvents.front();
+    m_raceFinishEvents.erase(m_raceFinishEvents.begin());
+    return true;
+}
+
+bool CNetworkManager::ConsumeRaceResult(RaceResultNet& outEvent)
+{
+    if (m_raceResultEvents.empty()) return false;
+
+    outEvent = m_raceResultEvents.front();
+    m_raceResultEvents.erase(m_raceResultEvents.begin());
+    return true;
+}
+
 bool CNetworkManager::IsConnected() const
 {
     return m_bConnected;
@@ -497,4 +584,40 @@ bool CNetworkManager::IsHosting() const
 bool CNetworkManager::IsEnabled() const
 {
     return (m_eMode != MODE::NONE);
+}
+
+void CNetworkManager::AddServerRecord(const RaceRecordNet& record)
+{
+    m_serverRaceRecords.push_back(record);
+}
+
+bool CNetworkManager::HasBothRecords() const
+{
+    return m_serverRaceRecords.size() >= 2;
+}
+
+RaceResultNet CNetworkManager::CalculateRankings()
+{
+    RaceResultNet result{};
+
+    if (m_serverRaceRecords.size() < 2) return result;
+
+    if (m_serverRaceRecords[0].finishTime < m_serverRaceRecords[1].finishTime)
+    {
+        result.firstId = m_serverRaceRecords[0].playerId;
+        result.firstPlaceTime = m_serverRaceRecords[0].finishTime;
+
+        result.secondId = m_serverRaceRecords[1].playerId;
+        result.secondPlaceTime = m_serverRaceRecords[1].finishTime;
+    }
+    else
+    {
+        result.firstId = m_serverRaceRecords[1].playerId;
+        result.firstPlaceTime = m_serverRaceRecords[1].finishTime;
+
+        result.secondId = m_serverRaceRecords[0].playerId;
+        result.secondPlaceTime = m_serverRaceRecords[0].finishTime;
+    }
+
+    return result;
 }

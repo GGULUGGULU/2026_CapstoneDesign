@@ -48,13 +48,21 @@ public:
     bool ConsumeRemoteState(PlayerNetState& outState);
     bool ConsumeCollisionEvent(CollisionEventNet& outEvent);
     bool ConsumeEffectEvent(EffectEventNet& outEvent);
+    bool ConsumeRaceFinish(RaceRecordNet& outEvent);
+    bool ConsumeRaceResult(RaceResultNet& outEvent);
 
     void SendCollisionEvent(const CollisionEventNet& ev);
     void SendEffectEvent(const EffectEventNet& ev);
+    void SendRaceFinish(const RaceRecordNet& ev);
+    void SendRaceResult(const RaceResultNet& ev);
 
     bool IsConnected() const;
     bool IsHosting() const;
     bool IsEnabled() const;
+
+    void AddServerRecord(const RaceRecordNet& record);
+    bool HasBothRecords() const;
+    RaceResultNet CalculateRankings();
 
 private:
     void DisconnectPeer();
@@ -74,4 +82,8 @@ private:
     std::vector<char> m_recvBuffer;
     std::vector<CollisionEventNet> m_collisionEvents;
     std::vector<EffectEventNet> m_effectEvents;
+    std::vector<RaceRecordNet> m_raceFinishEvents;
+    std::vector<RaceResultNet> m_raceResultEvents;
+
+    std::vector<RaceRecordNet> m_serverRaceRecords;
 };

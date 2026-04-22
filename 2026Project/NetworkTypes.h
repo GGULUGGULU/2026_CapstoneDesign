@@ -28,6 +28,21 @@ struct PlayerNetPacket
     std::uint32_t version = 1;
     PlayerNetState state{};
 };
+
+struct RaceRecordNet
+{
+    std::uint32_t playerId;
+    float finishTime;
+};
+
+struct RaceResultNet
+{
+    std::uint32_t firstId;
+    float firstPlaceTime;
+    std::uint32_t secondId;
+    float secondPlaceTime;
+};
+
 #pragma pack(pop)
 
 constexpr std::size_t NET_PACKET_SIZE = sizeof(PlayerNetPacket);

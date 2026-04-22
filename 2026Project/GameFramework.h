@@ -231,6 +231,8 @@ public:
 	bool m_bJump{ false };
 	int m_nScore{ 0 };
 
+	float m_fMyFinalTime{};
+	RaceResultNet m_FinalRaceResult{};
 
 	// jump
 	int   m_nJumpCount = 0;

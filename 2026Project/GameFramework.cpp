@@ -1619,7 +1619,7 @@ void CGameFramework::RenderUI()
 
 
 	}
-	else
+	else if(2 == m_nStage)
 	{
 		int minutes = static_cast<int>(m_fTotalTime / 60);
 		int seconds = static_cast<int>(m_fTotalTime) % 60;
@@ -1712,10 +1712,26 @@ void CGameFramework::RenderUI()
 
 		if (100 == m_nStage)
 		{
+			wchar_t resultBuffer[256];
+
+			std::uint32_t myId = m_bIsHostPlayer ? 1 : 2;
+			const wchar_t* myRankStr = (m_FinalRaceResult.firstId == myId) ? L"1st Place! (WINNER)" : L"2nd Place";
+
+			swprintf_s(resultBuffer, 256,
+				L"===== RACE RESULTS =====\n\n"
+				L"[Your Rank: %s]\n\n"
+				L"1st - Player %d : %.2f sec\n"
+				L"2nd - Player %d : %.2f sec\n",
+				myRankStr,
+				m_FinalRaceResult.firstId, m_FinalRaceResult.firstPlaceTime,
+				m_FinalRaceResult.secondId, m_FinalRaceResult.secondPlaceTime
+			);
+
+			
 			m_d2dDeviceContext->DrawTextW(
-				m_timeBuffer,
-				wcslen(m_timeBuffer),
-				m_textEndTimeFormat.Get(),
+				resultBuffer,
+				wcslen(resultBuffer),
+				m_textEndTimeFormat.Get(), 
 				D2D1::RectF(0.0f, 0.0f, (float)m_nWndClientWidth, (float)m_nWndClientHeight),
 				m_textEndTimeBrush.Get()
 			);
@@ -2121,6 +2137,7 @@ void CGameFramework::FrameAdvance()
 {
 	m_GameTimer.Tick(0.0f);
 
+	SetUIInfo();
 
 	if (1 == m_nStage)
 	{
@@ -2135,7 +2152,6 @@ void CGameFramework::FrameAdvance()
 	}
 	else if (2 == m_nStage)
 	{
-
 		CollisionProcess();
 
 		if (!m_bIsStun)
@@ -2159,20 +2175,57 @@ void CGameFramework::FrameAdvance()
 		m_pNetwork->Update(m_GameTimer.GetTimeElapsed(), NULL);
 	}
 
-	if (4 == m_nScore)
+	if (4 == m_nScore && 2 == m_nStage)
 	{
-
-		BuildObjectEnd();
-		m_nStage = 100;
-		++m_nScore;
+		m_fMyFinalTime = m_GameTimer.GetTotalTime();
+		m_nStage = 99; 
+		++m_nScore;    
+	
+		if (m_pNetwork)
+		{
+			RaceRecordNet record;
+			record.playerId = m_bIsHostPlayer ? 1 : 2;
+			record.finishTime = m_fMyFinalTime;
+			m_pNetwork->SendRaceFinish(record);
+		}
 	}
-	else if (100 != m_nStage)
-	{
-		SetUIInfo();
+	
+	if (99 == m_nStage) {
+		RaceRecordNet finishRecord;
+		while (m_pNetwork->ConsumeRaceFinish(finishRecord))
+		{
+			m_pNetwork->AddServerRecord(finishRecord);
+		}
+		if (m_pNetwork)
+		{
+			if (m_pNetwork->IsHosting())
+			{
+				if (m_pNetwork->HasBothRecords()) 
+				{
+					RaceResultNet finalResult = m_pNetwork->CalculateRankings();
+					m_pNetwork->SendRaceResult(finalResult);
+	
+					m_FinalRaceResult = finalResult; 
+					BuildObjectEnd();
+					m_nStage = 100;
+				}
+			}
+			else
+			{
+				RaceResultNet finalResult;
+				if (m_pNetwork->ConsumeRaceResult(finalResult))
+				{
+					m_FinalRaceResult = finalResult; 
+					BuildObjectEnd();
+					m_nStage = 100;
+				}
+			}
+		}
 	}
 
-	if(0!=m_nStage)
+	if (0 != m_nStage) {
 		AnimateObjects();
+	}
 
 
 	HRESULT hResult = m_d3dCommandAllocators[m_nSwapChainBufferIndex].Get()->Reset();
