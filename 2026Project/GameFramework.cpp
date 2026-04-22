@@ -2216,13 +2216,15 @@ void CGameFramework::FrameAdvance()
 	}
 	
 	if (99 == m_nStage) {
-		RaceRecordNet finishRecord;
-		while (m_pNetwork->ConsumeRaceFinish(finishRecord))
-		{
-			m_pNetwork->AddServerRecord(finishRecord);
-		}
+		
 		if (m_pNetwork)
 		{
+			RaceRecordNet finishRecord;
+			while (m_pNetwork->ConsumeRaceFinish(finishRecord))
+			{
+				m_pNetwork->AddServerRecord(finishRecord);
+			}
+
 			if (m_pNetwork->IsHosting())
 			{
 				if (m_pNetwork->HasBothRecords()) 
@@ -2245,6 +2247,15 @@ void CGameFramework::FrameAdvance()
 					m_nStage = 100;
 				}
 			}
+		}
+		else {
+			m_FinalRaceResult.firstId = 1;
+			m_FinalRaceResult.firstPlaceTime = m_fMyFinalTime;
+			m_FinalRaceResult.secondId = 0;
+			m_FinalRaceResult.secondPlaceTime = 0.0f;
+
+			BuildObjectEnd();
+			m_nStage = 100;
 		}
 	}
 

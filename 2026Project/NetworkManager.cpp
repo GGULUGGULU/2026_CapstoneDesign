@@ -593,7 +593,7 @@ void CNetworkManager::AddServerRecord(const RaceRecordNet& record)
 
 bool CNetworkManager::HasBothRecords() const
 {
-    return m_serverRaceRecords.size() >= 2;
+    return m_serverRaceRecords.size() >= 1;
 }
 
 RaceResultNet CNetworkManager::CalculateRankings()
@@ -602,21 +602,30 @@ RaceResultNet CNetworkManager::CalculateRankings()
 
     if (m_serverRaceRecords.size() < 2) return result;
 
-    if (m_serverRaceRecords[0].finishTime < m_serverRaceRecords[1].finishTime)
+    if (m_serverRaceRecords.size() == 1)
     {
         result.firstId = m_serverRaceRecords[0].playerId;
         result.firstPlaceTime = m_serverRaceRecords[0].finishTime;
-
-        result.secondId = m_serverRaceRecords[1].playerId;
-        result.secondPlaceTime = m_serverRaceRecords[1].finishTime;
+        result.secondId = 0; 
+        result.secondPlaceTime = 0.0f;
     }
-    else
-    {
-        result.firstId = m_serverRaceRecords[1].playerId;
-        result.firstPlaceTime = m_serverRaceRecords[1].finishTime;
+    else {
+        if (m_serverRaceRecords[0].finishTime < m_serverRaceRecords[1].finishTime)
+        {
+            result.firstId = m_serverRaceRecords[0].playerId;
+            result.firstPlaceTime = m_serverRaceRecords[0].finishTime;
 
-        result.secondId = m_serverRaceRecords[0].playerId;
-        result.secondPlaceTime = m_serverRaceRecords[0].finishTime;
+            result.secondId = m_serverRaceRecords[1].playerId;
+            result.secondPlaceTime = m_serverRaceRecords[1].finishTime;
+        }
+        else
+        {
+            result.firstId = m_serverRaceRecords[1].playerId;
+            result.firstPlaceTime = m_serverRaceRecords[1].finishTime;
+
+            result.secondId = m_serverRaceRecords[0].playerId;
+            result.secondPlaceTime = m_serverRaceRecords[0].finishTime;
+        }
     }
 
     return result;
