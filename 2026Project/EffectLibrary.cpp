@@ -112,7 +112,7 @@ void CEffectLibrary::Initialize(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandL
 
 			pBoosterMesh->SetColor(XMFLOAT3(0.1f, 0.5f, 1.0f)); // 부스터 색상 설정
 			pBoosterMesh->SetScale(XMFLOAT3(2.f, 10.0f, 2.f)); // 부스터 메시 크기
-			pBoosterMesh->SetScrollSpeed(XMFLOAT3(0.0f, 3.0f, 0.0f)); // uv스크롤링 속도
+			pBoosterMesh->SetScrollSpeed(XMFLOAT3(0.0f, 6.0f, 0.0f)); // uv스크롤링 속도
 
 			ActiveEffect* pEffect = new ActiveEffect;
 			pEffect->type = EFFECT_TYPE::BOOSTER;

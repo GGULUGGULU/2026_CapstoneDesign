@@ -120,7 +120,8 @@ bool CGameFramework::OnCreate(HINSTANCE hInstance, HWND hMainWnd)
 	m_SoundManager.Init();
 
 	m_SoundManager.PlayBGM("Asset/Audio/BGM2.mp3");
-	m_SoundManager.SetBGMVolume(0.1f);
+	//m_SoundManager.SetBGMVolume(0.1f);
+	m_SoundManager.SetMasterVolume(0.1f);
 
 	return(true);
 }
@@ -1242,6 +1243,7 @@ void CGameFramework::CollisionProcess()
 			m_bIsStun = true;
 			m_fCollisionCurrentTime = m_fTotalTime;
 
+			m_SoundManager.PlaySFX("Asset/Audio/Collision.mp3");
 
 			return;
 		}
@@ -1310,6 +1312,8 @@ void CGameFramework::CollisionProcess()
 		}
 		else if (pCollidedObject->m_bIsInvisibleWall)
 		{// 벽에 박을때
+			m_SoundManager.PlaySFX("Asset/Audio/Collision.mp3");
+
 			XMFLOAT3 vPos = m_pPlayer->GetPosition();
 			PlayAndSyncEffect(EFFECT_TYPE::COLLISION, XMFLOAT3(vPos.x, vPos.y + 10, vPos.z), XMFLOAT2(25, 25), XMFLOAT3(1, 1, 0));
 			PlayAndSyncEffect(EFFECT_TYPE::COLLISION, XMFLOAT3(vPos.x + 10, vPos.y, vPos.z), XMFLOAT2(25, 25), XMFLOAT3(1, 0, 1));
@@ -2614,6 +2618,4 @@ D2D1_POINT_2F CGameFramework::WorldToMinimap(
 	float y = minimapRect.top + (1.0f - v) * (minimapRect.bottom - minimapRect.top);
 
 	return D2D1::Point2F(x, y);
-
-
 }
