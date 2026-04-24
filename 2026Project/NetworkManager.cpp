@@ -593,7 +593,7 @@ void CNetworkManager::AddServerRecord(const RaceRecordNet& record)
 
 bool CNetworkManager::HasBothRecords() const
 {
-    return m_serverRaceRecords.size() >= 1;
+    return m_serverRaceRecords.size() >= 2;
 }
 
 RaceResultNet CNetworkManager::CalculateRankings()

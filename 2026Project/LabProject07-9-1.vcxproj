@@ -145,6 +145,7 @@
     <ClInclude Include="2026Project.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="MeshEffect.h" />
+    <ClInclude Include="miniaudio.h" />
     <ClInclude Include="NetworkManager.h" />
     <ClInclude Include="NetworkTypes.h" />
     <ClInclude Include="Object.h" />
@@ -153,6 +154,7 @@
     <ClInclude Include="Resource.h" />
     <ClInclude Include="Scene.h" />
     <ClInclude Include="Shader.h" />
+    <ClInclude Include="SoundManager.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="Timer.h" />
@@ -172,6 +174,7 @@
     <ClCompile Include="Player.cpp" />
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="Shader.cpp" />
+    <ClCompile Include="SoundManager.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

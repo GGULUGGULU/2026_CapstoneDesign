@@ -593,6 +593,7 @@ LRESULT CALLBACK CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMess
 void CGameFramework::OnDestroy()
 {
 	if (m_pLobbyD2DBitmap) m_pLobbyD2DBitmap.Reset();
+	if (m_pResultD2DBitmap) m_pResultD2DBitmap.Reset();
 	if (m_pWICFactory) m_pWICFactory.Reset();
 
 	ReleaseObjects();
@@ -1817,6 +1818,16 @@ void CGameFramework::RenderUI()
 	}
 	else if (100 == m_nStage)
 	{
+		if (m_pResultD2DBitmap)
+		{
+			D2D1_RECT_F destRect = D2D1::RectF(0.0f, 0.0f, (float)m_nWndClientWidth, (float)m_nWndClientHeight);
+			m_d2dDeviceContext->DrawBitmap(m_pResultD2DBitmap.Get(), destRect, 1.0f, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+			OutputDebugStringA("나옴");
+		}
+		else
+		{
+			OutputDebugStringA("안나옴");
+		}
 		wchar_t resultBuffer[256];
 
 		std::uint32_t myId = m_bIsHostPlayer ? 1 : 2;
@@ -1882,6 +1893,7 @@ void CGameFramework::BuildObjectEnd()
 	if (m_pScene) m_pScene->ReleaseUploadBuffers();
 	if (m_pPlayer) m_pPlayer->ReleaseUploadBuffers();
 
+	LoadResultUIResource();
 }
 
 void CGameFramework::CreateShadowMap()
@@ -2232,6 +2244,28 @@ void CGameFramework::LoadLobbyUIResource()
 	if (FAILED(hr)) {
 		return;
 	}
+}
+
+void CGameFramework::LoadResultUIResource()
+{
+	if (!m_pWICFactory || !m_d2dDeviceContext) return;
+
+	ComPtr<IWICBitmapDecoder> pDecoder;
+	HRESULT hr = m_pWICFactory->CreateDecoderFromFilename(
+		L"Asset/image/GameResult.png",
+		NULL, GENERIC_READ, WICDecodeMetadataCacheOnLoad, &pDecoder
+	);
+	if (FAILED(hr)) return;
+
+	ComPtr<IWICBitmapFrameDecode> pFrame;
+	pDecoder->GetFrame(0, &pFrame);
+
+	ComPtr<IWICFormatConverter> pConverter;
+	m_pWICFactory->CreateFormatConverter(&pConverter);
+	pConverter->Initialize(pFrame.Get(), GUID_WICPixelFormat32bppPBGRA,
+		WICBitmapDitherTypeNone, NULL, 0.0f, WICBitmapPaletteTypeMedianCut);
+
+	m_d2dDeviceContext->CreateBitmapFromWicBitmap(pConverter.Get(), NULL, &m_pResultD2DBitmap);
 }
 
 
