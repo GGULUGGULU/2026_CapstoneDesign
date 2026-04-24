@@ -116,6 +116,11 @@ bool CGameFramework::OnCreate(HINSTANCE hInstance, HWND hMainWnd)
 	BuildObjectGameStart();
 
 	CEffectLibrary::Instance()->InitializePostProcess(m_pd3dDevice, m_nWndClientWidth, m_nWndClientHeight);
+	
+	m_SoundManager.Init();
+
+	m_SoundManager.PlayBGM("Asset/Audio/BGM2.mp3");
+	m_SoundManager.SetBGMVolume(0.1f);
 
 	return(true);
 }

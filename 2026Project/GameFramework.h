@@ -10,6 +10,7 @@
 #include "NetworkTypes.h"
 #include "EffectLibrary.h"
 #include "NetworkManager.h"
+#include "SoundManager.h"
 
 struct UIButton {
 	float xRatio, yRatio, wRatio, hRatio; 
@@ -128,6 +129,8 @@ private:
 	ID3D12Fence* m_pd3dFence = NULL;
 	UINT64						m_nFenceValues[m_nSwapChainBuffers];
 	HANDLE						m_hFenceEvent;
+
+	CSoundManager m_SoundManager;
 
 #if defined(_DEBUG)
 	ID3D12Debug* m_pd3dDebugController;
