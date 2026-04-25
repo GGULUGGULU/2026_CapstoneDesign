@@ -31,7 +31,25 @@ void CSoundManager::SetBGMVolume(float volume)
     ma_sound_set_volume(&BGMSound, volume);
 }
 
+void CSoundManager::PlayCarEngine(const std::string& filepath)
+{
+    ma_sound_init_from_file(&engine, filepath.c_str(), 0, NULL, NULL, &carEngineSound);
+    ma_sound_set_looping(&carEngineSound, MA_TRUE);
+    ma_sound_start(&carEngineSound);
+}
+
+void CSoundManager::SetCarEnginePitch(float pitch)
+{
+    ma_sound_set_pitch(&carEngineSound, pitch);
+}
+
+void CSoundManager::SetCarEngineVolume(float volume)
+{
+    ma_sound_set_volume(&carEngineSound, volume);
+}
+
 void CSoundManager::Release() {
     ma_sound_uninit(&BGMSound);
+    ma_sound_uninit(&carEngineSound);
     ma_engine_uninit(&engine);
 }

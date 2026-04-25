@@ -1038,7 +1038,8 @@ void CGameFramework::BuildGameObjects()
 
 	//
 
-
+	m_SoundManager.PlayCarEngine("Asset/Audio/Engine1.mp3");
+	m_SoundManager.SetCarEngineVolume(0.8f);
 
 	m_pd3dCommandList->Close();
 	ID3D12CommandList* ppd3dCommandLists[] = { m_pd3dCommandList };
@@ -2311,6 +2312,19 @@ void CGameFramework::FrameAdvance()
 			UpdateDashSystem(fTimeElapsed, false, false); // 스턴 중에는 dash 끔 + 게이지 회복
 			m_pPlayer->Update(fTimeElapsed);
 		}
+
+		// 사운드 피치 조절
+		float speedRatio = (float)m_nPlayerCurrentSpeed / GetPlayerEffectiveMaxSpeed();
+		if (speedRatio < 0.0f) speedRatio = 0.0f;
+		if (speedRatio > 1.0f) speedRatio = 1.0f;
+
+		float targetPitch = 1.0f + (speedRatio * 1.0f);
+
+		if (m_bIsDashing) {
+			targetPitch += 0.5f;
+		}
+
+		m_SoundManager.SetCarEnginePitch(targetPitch);
 	}//
 	else if (99 == m_nStage) {
 		const float fTimeElapsed = m_GameTimer.GetTimeElapsed();
