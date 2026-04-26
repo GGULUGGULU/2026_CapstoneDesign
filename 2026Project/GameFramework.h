@@ -95,6 +95,9 @@ public:
 	void PlayAndSyncEffect(EFFECT_TYPE eType, const XMFLOAT3& xmf3Position, const XMFLOAT2& xmf2Size, const XMFLOAT3& xmf3Color = XMFLOAT3(1.0f, 1.0f, 1.0f));
 	void SendEffectEvent(EFFECT_TYPE eType, const XMFLOAT3& xmf3Position, const XMFLOAT2& xmf2Size, const XMFLOAT3& xmf3Color = XMFLOAT3(1.0f, 1.0f, 1.0f));
 	void ConsumeNetworkEffectEvents();
+	void ConsumeNetworkCollisionEvents();
+
+
 
 	void LoadLobbyUIResource();
 	void LoadResultUIResource();

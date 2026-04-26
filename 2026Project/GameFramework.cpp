@@ -1176,7 +1176,7 @@ void CGameFramework::UpdateDashSystem(float fTimeElapsed, bool bDashKeyDown, boo
 
 void CGameFramework::CollisionProcess()
 {
-	// 플레이어끼리 충돌 
+	
 	if (m_bMultiplayerEnabled && m_pPlayer && m_pRemotePlayer && m_pRemotePlayer->m_bIsActive)
 	{
 		BoundingBox localAABB = m_pPlayer->GetCombinedAABB();
@@ -1195,20 +1195,22 @@ void CGameFramework::CollisionProcess()
 			XMFLOAT3 pushDir = Vector3::Subtract(localPos, remotePos);
 			pushDir.y = 0.0f;
 
-			float fLen = Vector3::Length(pushDir);
-			if (fLen < 0.001f)
-			{
-
-				pushDir = XMFLOAT3(1.0f, 0.0f, 0.0f);
-			}
+			if (Vector3::Length(pushDir) < 0.001f)
+				pushDir = m_pPlayer->GetLookVector();
 			else
-			{
 				pushDir = Vector3::Normalize(pushDir);
-			}
 
 			const float fSeparation = 8.0f;
-			XMFLOAT3 localNewPos = Vector3::Add(localPos, Vector3::ScalarProduct(pushDir, fSeparation * 0.5f, false));
-			XMFLOAT3 remoteNewPos = Vector3::Add(remotePos, Vector3::ScalarProduct(pushDir, -fSeparation * 0.5f, false));
+
+			XMFLOAT3 localNewPos = Vector3::Add(
+				localPos,
+				Vector3::ScalarProduct(pushDir, fSeparation * 0.25f, false)
+			);
+
+			XMFLOAT3 remoteNewPos = Vector3::Add(
+				remotePos,
+				Vector3::ScalarProduct(pushDir, -fSeparation * 0.75f, false)
+			);
 
 			m_pPlayer->SetPosition(localNewPos);
 			m_pRemotePlayer->SetPosition(remoteNewPos);
@@ -1216,21 +1218,42 @@ void CGameFramework::CollisionProcess()
 			m_pPlayer->OnPrepareRender();
 			m_pRemotePlayer->OnPrepareRender();
 
-
 			XMFLOAT3 localVel = m_pPlayer->GetVelocity();
-			XMFLOAT3 remoteVel = m_pRemotePlayer->GetVelocity();
+			float localSpeed = max(120.0f, Vector3::Length(localVel));
 
-			float localSpeed = max(80.0f, Vector3::Length(localVel));
-			float remoteSpeed = max(80.0f, Vector3::Length(remoteVel));
-			float reboundPower = max(localSpeed, remoteSpeed) * 0.8f;
+			float attackerBouncePower = localSpeed * 0.25f;
+			float victimBouncePower = localSpeed * 0.90f;
 
-			XMFLOAT3 localBounceVel = Vector3::ScalarProduct(pushDir, reboundPower, false);
-			XMFLOAT3 remoteBounceVel = Vector3::ScalarProduct(pushDir, -reboundPower, false);
+			XMFLOAT3 localBounceVel =
+				Vector3::ScalarProduct(pushDir, attackerBouncePower, false);
+
+			XMFLOAT3 remoteBounceVel =
+				Vector3::ScalarProduct(pushDir, -victimBouncePower, false);
 
 			m_pPlayer->SetVelocity(localBounceVel);
 			m_pRemotePlayer->SetVelocity(remoteBounceVel);
 
-			// 충돌 이펙트
+	
+			if (m_pNetwork && m_pNetwork->IsConnected())
+			{
+				CollisionEventNet ev{};
+
+				ev.type = 1;
+				ev.objectIndex = -1;
+
+				ev.x = remoteNewPos.x;
+				ev.y = remoteNewPos.y;
+				ev.z = remoteNewPos.z;
+
+				ev.nx = -pushDir.x;
+				ev.ny = 0.0f;
+				ev.nz = -pushDir.z;
+
+				ev.reboundPower = victimBouncePower;
+
+				m_pNetwork->SendCollisionEvent(ev);
+			}
+
 			XMFLOAT3 hitPos = XMFLOAT3(
 				(localPos.x + remotePos.x) * 0.5f,
 				(localPos.y + remotePos.y) * 0.5f + 10.0f,
@@ -1249,6 +1272,7 @@ void CGameFramework::CollisionProcess()
 			return;
 		}
 	}
+	
 
 	if (m_pPlayer) m_pPlayer->OnPrepareRender();
 
@@ -1361,7 +1385,7 @@ void CGameFramework::CollisionProcess()
 
 				XMVECTOR xvReflection = xvVelocity - (2.0f * fDot * xvNormal);
 
-				xvReflection = xvReflection * 0.3f;
+				xvReflection = xvReflection * 0.9f;
 
 				XMStoreFloat3(&vVelocity, xvReflection);
 				m_pPlayer->SetVelocity(vVelocity);
@@ -2160,6 +2184,7 @@ void CGameFramework::SyncMultiplayer()
 		ApplyRemotePlayerState(remoteState);
 	}
 
+	ConsumeNetworkCollisionEvents();
 	ConsumeNetworkEffectEvents();
 }
 
@@ -2632,4 +2657,32 @@ D2D1_POINT_2F CGameFramework::WorldToMinimap(
 	float y = minimapRect.top + (1.0f - v) * (minimapRect.bottom - minimapRect.top);
 
 	return D2D1::Point2F(x, y);
+}
+
+void CGameFramework::ConsumeNetworkCollisionEvents()
+{
+	if (!m_pNetwork || !m_pPlayer) return;
+
+	CollisionEventNet ev{};
+
+	while (m_pNetwork->ConsumeCollisionEvent(ev))
+	{
+		XMFLOAT3 newPos(ev.x, ev.y, ev.z);
+		XMFLOAT3 pushDir(ev.nx, ev.ny, ev.nz);
+
+		if (Vector3::Length(pushDir) > 0.001f)
+			pushDir = Vector3::Normalize(pushDir);
+		else
+			pushDir = m_pPlayer->GetLookVector();
+
+		XMFLOAT3 newVel =
+			Vector3::ScalarProduct(pushDir, ev.reboundPower, false);
+
+		m_pPlayer->SetPosition(newPos);
+		m_pPlayer->SetVelocity(newVel);
+		m_pPlayer->OnPrepareRender();
+
+		m_bIsStun = true;
+		m_fCollisionCurrentTime = m_fTotalTime;
+	}
 }
