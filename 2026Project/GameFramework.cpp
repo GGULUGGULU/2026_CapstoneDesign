@@ -2187,6 +2187,11 @@ void CGameFramework::ApplyRemotePlayerState(const PlayerNetState& state)
 {
 	if (!m_pRemotePlayer) return;
 
+	if (!m_pRemotePlayer->m_bIsActive) {
+		m_GameTimer.Reset();
+		m_fTotalTime = 0.0f;
+	}
+
 	m_pRemotePlayer->m_bIsActive = true;
 	m_pRemotePlayer->SetVelocity(XMFLOAT3(0.0f, 0.0f, 0.0f));
 	m_pRemotePlayer->SetPosition(XMFLOAT3(state.x, state.y, state.z));
