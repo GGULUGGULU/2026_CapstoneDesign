@@ -343,7 +343,7 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 	BuildUIResources(pd3dDevice, pd3dCommandList);
 
 	// 
-	m_nGameObjects = 1 + 1 + 12 + 12 + 12 + 1 + 20 + 20 + 15 + 15 + 4 + 1 +1;
+	m_nGameObjects = 1 + 1 + 12 + 12 + 12 + 1 + 20 + 20 + 15 + 15 + 4 + 1 +1+10;
 	m_ppGameObjects = new CGameObject * [m_nGameObjects];
 
 	// 맵 모델링
@@ -353,7 +353,7 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 	pGroundObject->SetChild(pGroundModel);
 	pGroundObject->SetPosition(0.0f, -500.0f, 0.0f);
 	pGroundObject->Rotate(0.0f, 0.0f, 0.0f);
-	pGroundObject->SetScale(10, 10, 10);
+	pGroundObject->SetScale(1, 1, 1);
 	//pGroundObject->ComputeNewLocalAABB();
 	pGroundObject->m_bIsGround = true;
 	m_ppGameObjects[0] = pGroundObject;
@@ -375,11 +375,103 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 	ApplyMeshTextures(pd3dDevice, pd3dCommandList, pGroundModel2);
 	CGameObject* pGroundObject2 = new CGameObject();
 	pGroundObject2->SetChild(pGroundModel2);
-	pGroundObject2->SetPosition(0.0f, -500.0f, 0.0f);
+	pGroundObject2->SetPosition(0.0f, -550.0f, 0.0f);
 	pGroundObject2->SetScale(1, 1, 1);
 	pGroundObject2->m_bIsInvisibleWall = true;
 	m_ppGameObjects[114] = pGroundObject2;
 
+	// 체크포인트 모델링
+	{
+		CGameObject* pCPModel0 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/CP0.bin");
+		ApplyMeshTextures(pd3dDevice, pd3dCommandList, pCPModel0);
+		CGameObject* pCPObject0 = new CGameObject();
+		pCPObject0->SetChild(pCPModel0);
+		pCPObject0->SetPosition(0.0f, -500.0f, 0.0f);
+		pCPObject0->m_bIsCheckPoint = true;
+		pCPObject0->m_nCheckPointIndex = 10;
+		m_ppGameObjects[115] = pCPObject0;
+
+		CGameObject* pCPModel1 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/CP1.bin");
+		ApplyMeshTextures(pd3dDevice, pd3dCommandList, pCPModel1);
+		CGameObject* pCPObject1 = new CGameObject();
+		pCPObject1->SetChild(pCPModel1);
+		pCPObject1->SetPosition(0.0f, -500.0f, 0.0f);
+		pCPObject1->m_bIsCheckPoint = true;
+		pCPObject1->m_nCheckPointIndex = 1;
+		m_ppGameObjects[116] = pCPObject1;
+
+		CGameObject* pCPModel2 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/CP2.bin");
+		ApplyMeshTextures(pd3dDevice, pd3dCommandList, pCPModel2);
+		CGameObject* pCPObject2 = new CGameObject();
+		pCPObject2->SetChild(pCPModel2);
+		pCPObject2->SetPosition(0.0f, -500.0f, 0.0f);
+		pCPObject2->m_bIsCheckPoint = true;
+		pCPObject2->m_nCheckPointIndex = 2;
+		m_ppGameObjects[117] = pCPObject2;
+
+		CGameObject* pCPModel3 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/CP3.bin");
+		ApplyMeshTextures(pd3dDevice, pd3dCommandList, pCPModel3);
+		CGameObject* pCPObject3 = new CGameObject();
+		pCPObject3->SetChild(pCPModel3);
+		pCPObject3->SetPosition(0.0f, -500.0f, 0.0f);
+		pCPObject3->m_bIsCheckPoint = true;
+		pCPObject3->m_nCheckPointIndex = 3;
+		m_ppGameObjects[118] = pCPObject3;
+
+		CGameObject* pCPModel4 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/CP4.bin");
+		ApplyMeshTextures(pd3dDevice, pd3dCommandList, pCPModel4);
+		CGameObject* pCPObject4 = new CGameObject();
+		pCPObject4->SetChild(pCPModel4);
+		pCPObject4->SetPosition(0.0f, -500.0f, 0.0f);
+		pCPObject4->m_bIsCheckPoint = true;
+		pCPObject4->m_nCheckPointIndex = 4;
+		m_ppGameObjects[119] = pCPObject4;
+
+		CGameObject* pCPModel5 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/CP5.bin");
+		ApplyMeshTextures(pd3dDevice, pd3dCommandList, pCPModel5);
+		CGameObject* pCPObject5 = new CGameObject();
+		pCPObject5->SetChild(pCPModel5);
+		pCPObject5->SetPosition(0.0f, -500.0f, 0.0f);
+		pCPObject5->m_bIsCheckPoint = true;
+		pCPObject5->m_nCheckPointIndex = 5;
+		m_ppGameObjects[120] = pCPObject5;
+
+		CGameObject* pCPModel6 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/CP6.bin");
+		ApplyMeshTextures(pd3dDevice, pd3dCommandList, pCPModel6);
+		CGameObject* pCPObject6 = new CGameObject();
+		pCPObject6->SetChild(pCPModel6);
+		pCPObject6->SetPosition(0.0f, -500.0f, 0.0f);
+		pCPObject6->m_bIsCheckPoint = true;
+		pCPObject6->m_nCheckPointIndex = 6;
+		m_ppGameObjects[121] = pCPObject6;
+
+		CGameObject* pCPModel7 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/CP7.bin");
+		ApplyMeshTextures(pd3dDevice, pd3dCommandList, pCPModel7);
+		CGameObject* pCPObject7 = new CGameObject();
+		pCPObject7->SetChild(pCPModel7);
+		pCPObject7->SetPosition(0.0f, -500.0f, 0.0f);
+		pCPObject7->m_bIsCheckPoint = true;
+		pCPObject7->m_nCheckPointIndex = 7;
+		m_ppGameObjects[122] = pCPObject7;
+
+		CGameObject* pCPModel8 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/CP8.bin");
+		ApplyMeshTextures(pd3dDevice, pd3dCommandList, pCPModel8);
+		CGameObject* pCPObject8 = new CGameObject();
+		pCPObject8->SetChild(pCPModel8);
+		pCPObject8->SetPosition(0.0f, -500.0f, 0.0f);
+		pCPObject8->m_bIsCheckPoint = true;
+		pCPObject8->m_nCheckPointIndex = 8;
+		m_ppGameObjects[123] = pCPObject8;
+
+		CGameObject* pCPModel9 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/CP9.bin");
+		ApplyMeshTextures(pd3dDevice, pd3dCommandList, pCPModel9);
+		CGameObject* pCPObject9 = new CGameObject();
+		pCPObject9->SetChild(pCPModel9);
+		pCPObject9->SetPosition(0.0f, -500.0f, 0.0f);
+		pCPObject9->m_bIsCheckPoint = true;
+		pCPObject9->m_nCheckPointIndex = 9;
+		m_ppGameObjects[124] = pCPObject9;
+	}
 	///////////////////////////////////////////////////
 
 	CGameObject* pSuperCobraModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/log.bin");
@@ -1011,11 +1103,13 @@ bool CScene::CheckCollision()
 		if (!pObject || !pObject->m_bIsActive) continue;
 		if (pObject->m_bIsGround) continue;
 
-		if (pObject->m_bIsInvisibleWall)
+		if (pObject->m_bIsInvisibleWall || pObject->m_bIsCheckPoint)
 		{
 			if (CheckRecursiveCollision(pObject, worldPlayerOBB, playerPos, &m_pCollidedObject))
 			{
-				m_pCollidedObject->m_bIsInvisibleWall = true;
+				m_pCollidedObject->m_bIsInvisibleWall = pObject->m_bIsInvisibleWall;
+				m_pCollidedObject->m_bIsCheckPoint = pObject->m_bIsCheckPoint;
+				m_pCollidedObject->m_nCheckPointIndex = pObject->m_nCheckPointIndex;
 				return true;
 			}
 		}
@@ -1315,20 +1409,23 @@ bool CScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 	case WM_KEYDOWN:
 		switch (wParam)
 		{
+		case 'Q':
+			m_ppGameObjects[115]->MoveUp(10);
+			break;
 		case 'R':
-			m_ppGameObjects[114]->MoveUp(-10);
+			m_ppGameObjects[115]->MoveUp(-10);
 			break;
 		case 'W':
-			m_ppGameObjects[114]->MoveForward(10);
+			m_ppGameObjects[115]->MoveForward(10);
 			break;
 		case 'S':
-			m_ppGameObjects[114]->MoveForward(-10);
+			m_ppGameObjects[115]->MoveForward(-10);
 			break;
 		case 'A':
-			m_ppGameObjects[114]->MoveStrafe(-10);
+			m_ppGameObjects[115]->MoveStrafe(-10);
 			break;
 		case 'D':
-			m_ppGameObjects[114]->MoveStrafe(10);
+			m_ppGameObjects[115]->MoveStrafe(10);
 			break;
 		case 'Z':
 			//m_ppGameObjects[114]->Rotate(0, 10, 0);
@@ -1390,7 +1487,7 @@ void CScene::RenderShadowMap(ID3D12GraphicsCommandList* pd3dCommandList, D3D12_C
 
 	for (int i = 0; i < m_nGameObjects; ++i)
 	{
-		if (i == 0) continue;
+		if (i == 0 || i>=114) continue; // 사이드 벽 그림자 렌더링 안되게
 
 		CGameObject* pObj = m_ppGameObjects[i];
 		if (!pObj || !pObj->m_bIsActive) continue;
@@ -1640,7 +1737,7 @@ void CScene::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera
 	for (int i = 0; i < m_nGameObjects; i++)
 	{
 
-		if (m_ppGameObjects[i]  && i != 114)
+		if (m_ppGameObjects[i] && i < 114)
 		{
 			m_ppGameObjects[i]->Animate(m_fElapsedTime, NULL);
 			m_ppGameObjects[i]->UpdateTransform(NULL);

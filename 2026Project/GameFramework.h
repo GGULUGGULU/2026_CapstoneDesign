@@ -274,5 +274,12 @@ public:
 		// 게임 종료
 		{ 0.7908f+0.01, 0.9282f, 0.2523f, 0.0968f }
 	};
+
+	// lap
+	int m_nCurrentLap = 1;
+	int m_nPassedCheckPoints = 0;
+	int m_nTotalCheckPoints = 10;
+	const int MAX_LAPS = 3;
+	WCHAR lapBuffer[64];
 };
 

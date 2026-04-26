@@ -1271,7 +1271,7 @@ void CGameFramework::CollisionProcess()
 
 			return;
 		}
-	}
+	} // 플레이어들끼리 충돌 판정
 	
 
 	if (m_pPlayer) m_pPlayer->OnPrepareRender();
@@ -1280,13 +1280,12 @@ void CGameFramework::CollisionProcess()
 
 	bool bOnGround = false;
 
-	if (2 == m_nStage)
+	if (2 == m_nStage) // 게임 스테이지에서
 	{
 		bOnGround = m_pScene->CheckGroundCollision();
 
-		if (bOnGround)
+		if (bOnGround) // 바닥 충돌
 		{
-
 			m_pPlayer->SetGravity(XMFLOAT3(0, 0, 0));
 
 			XMFLOAT3 currentVel = m_pPlayer->GetVelocity();
@@ -1306,6 +1305,26 @@ void CGameFramework::CollisionProcess()
 	if (2 == m_nStage && m_pScene->CheckCollision() && !m_bIsStun)
 	{
 		CGameObject* pCollidedObject = m_pScene->m_pCollidedObject;
+
+		// 체크포인트
+		if (pCollidedObject->m_bIsCheckPoint) {
+			int hitIndex = pCollidedObject->m_nCheckPointIndex;
+
+			if (hitIndex == m_nPassedCheckPoints + 1) {
+				++m_nPassedCheckPoints;
+				
+				m_SoundManager.PlaySFX("Asset/Audio/LapSound.mp3");
+
+				if (m_nPassedCheckPoints == m_nTotalCheckPoints) {
+					++m_nCurrentLap;
+					m_nPassedCheckPoints = 0;
+					m_SoundManager.PlaySFX("Asset/Audio/Lap.mp3");
+					// 통과 사운드들어가면 좋음
+				}// 한바퀴 통과
+			}
+
+			return;
+		}
 
 		// 아이템 + 대시
 		ITEM_TYPE eItemType = GetItemType(pCollidedObject);
@@ -1336,7 +1355,8 @@ void CGameFramework::CollisionProcess()
 			else if (randItem == 2) m_eHoldItem = ITEM_MAX_DASH_GAUGE_UP;
 		}
 		else if (pCollidedObject->m_bIsInvisibleWall)
-		{// 벽에 박을때
+		{
+			// 벽에 박을때
 			m_SoundManager.PlaySFX("Asset/Audio/Collision.mp3");
 
 			XMFLOAT3 vPos = m_pPlayer->GetPosition();
@@ -1705,8 +1725,21 @@ void CGameFramework::RenderUI()
 			m_nWndClientHeight
 		);
 
-		if (4 != m_nScore && 2 == m_nStage)
+
+
+		if (2 == m_nStage)
 		{
+			swprintf_s(lapBuffer, L"LAP %d / %d", m_nCurrentLap, 3);
+
+			m_d2dDeviceContext->DrawTextW(
+				lapBuffer,
+				(UINT32)wcslen(lapBuffer),
+				m_textTimeFormat.Get(),
+				D2D1::RectF((float)m_nWndClientWidth - 200.0f, 50.0f, 
+					(float)m_nWndClientHeight - 20.0f, 100.0f),
+				m_textTimeBrush.Get()
+			);
+
 			m_d2dDeviceContext->DrawTextW(
 				m_timeBuffer,
 				wcslen(m_timeBuffer),
@@ -2303,7 +2336,97 @@ void CGameFramework::LoadResultUIResource()
 	m_d2dDeviceContext->CreateBitmapFromWicBitmap(pConverter.Get(), NULL, &m_pResultD2DBitmap);
 }
 
+void CGameFramework::LoadMinimapUIResource()
+{
+	if (!m_pWICFactory || !m_d2dDeviceContext) return;
 
+	m_pMinimapBitmap.Reset();
+
+	ComPtr<IWICBitmapDecoder> decoder;
+	ComPtr<IWICBitmapFrameDecode> frame;
+	ComPtr<IWICFormatConverter> converter;
+
+	HRESULT hr = m_pWICFactory->CreateDecoderFromFilename(
+		L"Asset/image/Minimap.png",
+		nullptr,
+		GENERIC_READ,
+		WICDecodeMetadataCacheOnLoad,
+		decoder.GetAddressOf()
+	);
+	if (FAILED(hr)) return;
+
+	hr = decoder->GetFrame(0, frame.GetAddressOf());
+	if (FAILED(hr)) return;
+
+	hr = m_pWICFactory->CreateFormatConverter(converter.GetAddressOf());
+	if (FAILED(hr)) return;
+
+	hr = converter->Initialize(
+		frame.Get(),
+		GUID_WICPixelFormat32bppPBGRA,
+		WICBitmapDitherTypeNone,
+		nullptr,
+		0.0f,
+		WICBitmapPaletteTypeMedianCut
+	);
+	if (FAILED(hr)) return;
+
+	m_d2dDeviceContext->CreateBitmapFromWicBitmap(
+		converter.Get(),
+		nullptr,
+		m_pMinimapBitmap.GetAddressOf()
+	);
+}
+
+D2D1_POINT_2F CGameFramework::WorldToMinimap(
+	const XMFLOAT3& worldPos,
+	const D2D1_RECT_F& minimapRect)
+{
+
+	const float worldMinX = -2200.0f; // 맵 사이즈 맞게 조정 
+	const float worldMaxX = -1700.0f;
+	const float worldMinZ = -100.0f;
+	const float worldMaxZ = 500.0f;
+
+	float u = (worldPos.x - worldMinX) / (worldMaxX - worldMinX);
+	float v = (worldPos.z - worldMinZ) / (worldMaxZ - worldMinZ);
+
+	u = max(0.0f, min(1.0f, u));
+	v = max(0.0f, min(1.0f, v));
+
+	float x = minimapRect.left + u * (minimapRect.right - minimapRect.left);
+	float y = minimapRect.top + (1.0f - v) * (minimapRect.bottom - minimapRect.top);
+
+	return D2D1::Point2F(x, y);
+}
+
+void CGameFramework::ConsumeNetworkCollisionEvents()
+{
+	if (!m_pNetwork || !m_pPlayer) return;
+
+	CollisionEventNet ev{};
+
+	while (m_pNetwork->ConsumeCollisionEvent(ev))
+	{
+		XMFLOAT3 newPos(ev.x, ev.y, ev.z);
+		XMFLOAT3 pushDir(ev.nx, ev.ny, ev.nz);
+
+		if (Vector3::Length(pushDir) > 0.001f)
+			pushDir = Vector3::Normalize(pushDir);
+		else
+			pushDir = m_pPlayer->GetLookVector();
+
+		XMFLOAT3 newVel =
+			Vector3::ScalarProduct(pushDir, ev.reboundPower, false);
+
+		m_pPlayer->SetPosition(newPos);
+		m_pPlayer->SetVelocity(newVel);
+		m_pPlayer->OnPrepareRender();
+
+		m_bIsStun = true;
+		m_fCollisionCurrentTime = m_fTotalTime;
+	}
+}
 //#define _WITH_PLAYER_TOP
 
 void CGameFramework::FrameAdvance()
@@ -2382,7 +2505,7 @@ void CGameFramework::FrameAdvance()
 		m_pNetwork->Update(m_GameTimer.GetTimeElapsed(), NULL);
 	}
 
-	if (4 == m_nScore && 2 == m_nStage)
+	if (m_nCurrentLap > MAX_LAPS && 2 == m_nStage)
 	{
 		m_fMyFinalTime = m_GameTimer.GetTotalTime();
 		m_nStage = 99; 
@@ -2593,96 +2716,4 @@ void CGameFramework::FrameAdvance()
 	MoveToNextFrame();
 
 	ShowFrameRate();
-}
-
-void CGameFramework::LoadMinimapUIResource()
-{
-	if (!m_pWICFactory || !m_d2dDeviceContext) return;
-
-	m_pMinimapBitmap.Reset();
-
-	ComPtr<IWICBitmapDecoder> decoder;
-	ComPtr<IWICBitmapFrameDecode> frame;
-	ComPtr<IWICFormatConverter> converter;
-
-	HRESULT hr = m_pWICFactory->CreateDecoderFromFilename(
-		L"Asset/image/Minimap.png",   
-		nullptr,
-		GENERIC_READ,
-		WICDecodeMetadataCacheOnLoad,
-		decoder.GetAddressOf()
-	);
-	if (FAILED(hr)) return;
-
-	hr = decoder->GetFrame(0, frame.GetAddressOf());
-	if (FAILED(hr)) return;
-
-	hr = m_pWICFactory->CreateFormatConverter(converter.GetAddressOf());
-	if (FAILED(hr)) return;
-
-	hr = converter->Initialize(
-		frame.Get(),
-		GUID_WICPixelFormat32bppPBGRA,
-		WICBitmapDitherTypeNone,
-		nullptr,
-		0.0f,
-		WICBitmapPaletteTypeMedianCut
-	);
-	if (FAILED(hr)) return;
-
-	m_d2dDeviceContext->CreateBitmapFromWicBitmap(
-		converter.Get(),
-		nullptr,
-		m_pMinimapBitmap.GetAddressOf()
-	);
-}
-
-D2D1_POINT_2F CGameFramework::WorldToMinimap(
-	const XMFLOAT3& worldPos,
-	const D2D1_RECT_F& minimapRect)
-{
-
-	const float worldMinX = -2200.0f; // 맵 사이즈 맞게 조정 
-	const float worldMaxX = -1700.0f;
-	const float worldMinZ = -100.0f;
-	const float worldMaxZ = 500.0f;
-
-	float u = (worldPos.x - worldMinX) / (worldMaxX - worldMinX);
-	float v = (worldPos.z - worldMinZ) / (worldMaxZ - worldMinZ);
-
-	u = max(0.0f, min(1.0f, u));
-	v = max(0.0f, min(1.0f, v));
-
-	float x = minimapRect.left + u * (minimapRect.right - minimapRect.left);
-	float y = minimapRect.top + (1.0f - v) * (minimapRect.bottom - minimapRect.top);
-
-	return D2D1::Point2F(x, y);
-}
-
-void CGameFramework::ConsumeNetworkCollisionEvents()
-{
-	if (!m_pNetwork || !m_pPlayer) return;
-
-	CollisionEventNet ev{};
-
-	while (m_pNetwork->ConsumeCollisionEvent(ev))
-	{
-		XMFLOAT3 newPos(ev.x, ev.y, ev.z);
-		XMFLOAT3 pushDir(ev.nx, ev.ny, ev.nz);
-
-		if (Vector3::Length(pushDir) > 0.001f)
-			pushDir = Vector3::Normalize(pushDir);
-		else
-			pushDir = m_pPlayer->GetLookVector();
-
-		XMFLOAT3 newVel =
-			Vector3::ScalarProduct(pushDir, ev.reboundPower, false);
-
-		m_pPlayer->SetPosition(newPos);
-		m_pPlayer->SetVelocity(newVel);
-		m_pPlayer->OnPrepareRender();
-
-		m_bIsStun = true;
-		m_fCollisionCurrentTime = m_fTotalTime;
-	}
 }

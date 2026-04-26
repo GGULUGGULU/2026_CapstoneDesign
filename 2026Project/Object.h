@@ -206,6 +206,8 @@ public:
 	bool m_bIsActive{ true };
 	bool m_bIsGround{ false };
 	bool m_bIsInvisibleWall{ false };
+	bool m_bIsCheckPoint{ false };
+	int m_nCheckPointIndex{-1};
 
 	virtual void Disable() { m_bIsActive = false; if (m_pChild) m_pChild->Disable(); }
 
