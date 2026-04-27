@@ -281,5 +281,12 @@ public:
 	int m_nTotalCheckPoints = 10;
 	const int MAX_LAPS = 3;
 	WCHAR lapBuffer[64];
+
+
+	//카운트다운
+	bool  m_bRaceStartDelayStarted = false;
+	bool  m_bRaceStarted = true;
+	float m_fRaceStartDelayTime = 0.0f;
+	float m_fRaceStartDelayDuration = 5.0f;
 };
 

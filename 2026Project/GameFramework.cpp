@@ -1052,6 +1052,11 @@ void CGameFramework::BuildGameObjects()
 	if (m_pRemotePlayer) m_pRemotePlayer->ReleaseUploadBuffers();
 
 	m_GameTimer.Reset();
+	m_bRaceStartDelayStarted = false;
+	m_fRaceStartDelayTime = 0.0f;
+
+	m_bRaceStarted = !m_bMultiplayerEnabled;
+
 }
 
 CGameFramework::ITEM_TYPE CGameFramework::GetItemType(CGameObject* pObject) const
@@ -2455,16 +2460,54 @@ void CGameFramework::FrameAdvance()
 	{
 		CollisionProcess();
 
-		if (!m_bIsStun)
+		const float fTimeElapsed = m_GameTimer.GetTimeElapsed();
+
+		
+		if (m_bMultiplayerEnabled && m_pNetwork && m_pNetwork->IsConnected())
+		{
+			if (!m_bRaceStartDelayStarted)
+			{
+				m_bRaceStartDelayStarted = true;
+				m_bRaceStarted = false;
+				m_fRaceStartDelayTime = 0.0f;
+
+			
+				if (m_pPlayer) m_pPlayer->SetVelocity(XMFLOAT3(0.0f, 0.0f, 0.0f));
+			}
+
+			if (!m_bRaceStarted)
+			{
+				m_fRaceStartDelayTime += fTimeElapsed;
+
+				UpdateDashSystem(fTimeElapsed, false, false);
+
+				if (m_pPlayer)
+				{
+					m_pPlayer->SetVelocity(XMFLOAT3(0.0f, 0.0f, 0.0f));
+					m_pPlayer->Update(fTimeElapsed);
+				}
+
+				if (m_fRaceStartDelayTime >= m_fRaceStartDelayDuration)
+				{
+					m_bRaceStarted = true;
+				}
+			}
+		}
+
+		if (!m_bRaceStarted)
+		{
+			
+		}
+		else if (!m_bIsStun)
 		{
 			ProcessInputGameStage();
 		}
 		else
 		{
-			const float fTimeElapsed = m_GameTimer.GetTimeElapsed();
-			UpdateDashSystem(fTimeElapsed, false, false); // 스턴 중에는 dash 끔 + 게이지 회복
+			UpdateDashSystem(fTimeElapsed, false, false);
 			m_pPlayer->Update(fTimeElapsed);
 		}
+
 
 		// 사운드 피치 조절
 		float speedRatio = (float)m_nPlayerCurrentSpeed / GetPlayerEffectiveMaxSpeed();
