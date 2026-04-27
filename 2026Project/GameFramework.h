@@ -288,5 +288,8 @@ public:
 	bool  m_bRaceStarted = true;
 	float m_fRaceStartDelayTime = 0.0f;
 	float m_fRaceStartDelayDuration = 5.0f;
+
+	ComPtr<IDWriteTextFormat> m_textCountdownFormat;
+	ComPtr<ID2D1SolidColorBrush> m_textCountdownBrush;
 };
 

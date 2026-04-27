@@ -1617,6 +1617,31 @@ void CGameFramework::CreateTextResources()
 		m_textEndTimeFormat.GetAddressOf()
 	);
 
+
+	// 카운트다운용
+	m_dWriteFactory->CreateTextFormat(
+		L"Arial",
+		NULL,
+		DWRITE_FONT_WEIGHT_HEAVY,
+		DWRITE_FONT_STYLE_NORMAL,
+		DWRITE_FONT_STRETCH_NORMAL,
+		140.0f,
+		L"ko-kr",
+		&m_textCountdownFormat
+	);
+
+	//
+
+
+	m_textCountdownFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
+	m_textCountdownFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+
+	m_d2dDeviceContext->CreateSolidColorBrush(
+		D2D1::ColorF(D2D1::ColorF::Red),
+		&m_textCountdownBrush
+	);
+
+
 	m_textEndTimeFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
 	m_textEndTimeFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 
@@ -1886,6 +1911,40 @@ void CGameFramework::RenderUI()
 				);
 			}
 		
+			// 카운트다운
+			if (m_nStage == 2 &&
+				m_bMultiplayerEnabled &&
+				m_pNetwork &&
+				m_pNetwork->IsConnected() &&
+				!m_bRaceStarted)
+			{
+				float remain = m_fRaceStartDelayDuration - m_fRaceStartDelayTime;
+				int count = (int)ceilf(remain);
+
+				if (count > 0)
+				{
+					WCHAR text[32];
+					swprintf_s(text, L"%d", count);
+
+					D2D1_RECT_F rect = D2D1::RectF(
+						0.0f,
+						0.0f,
+						(float)m_nWndClientWidth,
+						(float)m_nWndClientHeight
+					);
+
+					m_d2dDeviceContext->DrawText(
+						text,
+						(UINT32)wcslen(text),
+						m_textCountdownFormat.Get(),
+						rect,
+						m_textCountdownBrush.Get()
+					
+					);
+				}
+			}
+
+
 		}
 	}
 	else if (100 == m_nStage)
