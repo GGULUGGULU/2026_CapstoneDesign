@@ -364,7 +364,7 @@ CCarPlayer::CCarPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3d
 {
 	m_pCamera = ChangeCamera(/*SPACESHIP_CAMERA*/THIRD_PERSON_CAMERA, 0.0f);
 
-	CGameObject* pGameObject = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/FINAL_MODEL_24.bin");
+	CGameObject* pGameObject = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/FINAL_MODEL_241.bin");
 
 	pGameObject->SetPosition(0.0f, 0.0f, 0.0f);
 	pGameObject->SetScale(8.0f, 8.0f, 8.0f);
@@ -386,11 +386,13 @@ void CCarPlayer::OnInitialize()
 	m_pWheelRightFrontFrame = FindFrame("RF");
 	m_pWheelLeftRearFrame = FindFrame("LB");
 	m_pWheelRightRearFrame = FindFrame("RB");
+	m_pCarBodyFrame = FindFrame("Body");
 
 	if (m_pWheelLeftFrontFrame) m_xmf4x4OriginalFL = m_pWheelLeftFrontFrame->m_xmf4x4Transform;
 	if (m_pWheelRightFrontFrame) m_xmf4x4OriginalFR = m_pWheelRightFrontFrame->m_xmf4x4Transform;
 	if (m_pWheelLeftRearFrame) m_xmf4x4OriginalBL = m_pWheelLeftRearFrame->m_xmf4x4Transform;
 	if (m_pWheelRightRearFrame) m_xmf4x4OriginalBR = m_pWheelRightRearFrame->m_xmf4x4Transform;
+	if (m_pCarBodyFrame) m_xmf4x4OriginalBody = m_pCarBodyFrame->m_xmf4x4Transform;
 }
 
 void CCarPlayer::Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent)
@@ -423,6 +425,31 @@ void CCarPlayer::Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent)
 
 	if (m_pWheelRightRearFrame)
 		m_pWheelRightRearFrame->m_xmf4x4Transform = Matrix4x4::Multiply(xmmtxRearRight, m_xmf4x4OriginalBR);
+
+	static float fEngineVibrationTime = 0;
+	float fSpeed = Vector3::Length(m_xmf3Velocity);
+
+	if (fSpeed < 1.0f)
+	{
+		fEngineVibrationTime += fTimeElapsed;
+
+		float fVibrationFrequency = 50.0f; // 진동 속도
+		float fVibrationAmplitude = 0.00008f; // 진동 폭
+
+		float fOffsetY = sin(fEngineVibrationTime * fVibrationFrequency) * fVibrationAmplitude;
+
+		XMMATRIX xmmtxVibration = XMMatrixTranslation(0.0f, fOffsetY, 0.0f);
+
+		if (m_pCarBodyFrame)
+		{
+			m_pCarBodyFrame->m_xmf4x4Transform = Matrix4x4::Multiply(xmmtxVibration, m_xmf4x4OriginalBody);
+		}
+	}
+	else
+	{
+		fEngineVibrationTime = 0.0f;
+		if (m_pCarBodyFrame) m_pCarBodyFrame->m_xmf4x4Transform = m_xmf4x4OriginalBody;
+	}
 
 	CPlayer::Animate(fTimeElapsed, pxmf4x4Parent);
 }

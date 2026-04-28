@@ -125,6 +125,9 @@ public:
 	float m_fSteeringAngle = 0.0f;
 	float m_fTireRotationAngle = 0.0f;
 
+	CGameObject* m_pCarBodyFrame = NULL;
+	XMFLOAT4X4 m_xmf4x4OriginalBody;
+
 private:
 	virtual void OnInitialize();
 	virtual void Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent = NULL);
