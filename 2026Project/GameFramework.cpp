@@ -1054,6 +1054,8 @@ void CGameFramework::BuildGameObjects()
 	m_GameTimer.Reset();
 	m_bRaceStartDelayStarted = false;
 	m_fRaceStartDelayTime = 0.0f;
+	m_bCountdownSoundPlayed = false;
+
 
 	m_bRaceStarted = !m_bMultiplayerEnabled;
 
@@ -2531,6 +2533,12 @@ void CGameFramework::FrameAdvance()
 				m_fRaceStartDelayTime = 0.0f;
 
 			
+				if (!m_bCountdownSoundPlayed)
+				{
+					m_SoundManager.PlaySFX("Asset/Audio/Count.mp3");
+					m_bCountdownSoundPlayed = true;
+				}
+
 				if (m_pPlayer) m_pPlayer->SetVelocity(XMFLOAT3(0.0f, 0.0f, 0.0f));
 			}
 
