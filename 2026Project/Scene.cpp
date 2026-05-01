@@ -79,7 +79,7 @@ namespace
 
 
 std::random_device rd;
-std::default_random_engine dre{ rd() };
+std::default_random_engine dre{ rd()};
 std::uniform_int_distribution<int> uid(0, 180);
 std::uniform_int_distribution<int> uid1(-2500, -1500);
 std::uniform_int_distribution<int> uid2(1500, 2500);
