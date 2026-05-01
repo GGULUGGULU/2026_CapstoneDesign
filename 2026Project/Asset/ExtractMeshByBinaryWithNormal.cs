@@ -46,7 +46,7 @@ public class ExtractMeshByBinaryWithNormal : MonoBehaviour
     public bool convertTexturesToDDS = true;
 
     [Tooltip("Full path to texconv.exe (from Microsoft DirectXTex). Example: C:/Tools/DirectXTex/texconv.exe")]
-    public string texconvExePath = "";
+    public string texconvExePath = "C:\\Users\\PI\\My project\\Assets\\Texconv.exe";
 
     [Tooltip("Overwrite existing DDS files.")]
     public bool overwriteDDS = true;
@@ -446,7 +446,7 @@ public class ExtractMeshByBinaryWithNormal : MonoBehaviour
         binaryWriter.Write("</Mesh>");
     }
 
-    private void WriteMaterials(Material[] materials)
+    private void WriteMaterials(Material[] materials, string objName)
     {
         WriteInteger("<Materials>:", materials.Length);
 
@@ -466,7 +466,7 @@ public class ExtractMeshByBinaryWithNormal : MonoBehaviour
             if (materials[i].HasProperty("_Glossiness"))
                 WriteFloat("<Glossiness>:", materials[i].GetFloat("_Glossiness"));
 
-            string texFile = GetAlbedoTextureDDSFileName(materials[i]);
+            string texFile = GetAlbedoTextureDDSFileName(materials[i], objName);
             WriteString("<AlbedoTexture>:", texFile);
         }
 
@@ -490,7 +490,7 @@ public class ExtractMeshByBinaryWithNormal : MonoBehaviour
 
             Material[] materials = meshRenderer.sharedMaterials;
             if (materials != null && materials.Length > 0)
-                WriteMaterials(materials);
+                WriteMaterials(materials, current.name);
         }
     }
 
@@ -509,7 +509,7 @@ public class ExtractMeshByBinaryWithNormal : MonoBehaviour
     // ------------------------
     // Texture name + register
     // ------------------------
-    private string GetAlbedoTextureDDSFileName(Material mat)
+    private string GetAlbedoTextureDDSFileName(Material mat, string objName)
     {
         if (!mat) return "null";
 
@@ -528,15 +528,23 @@ public class ExtractMeshByBinaryWithNormal : MonoBehaviour
         if (string.IsNullOrEmpty(assetPath))
             return "null";
 
+        if(_albedoAssetPathToDdsName.TryGetValue(assetPath, out string existingDdsName))
+        {
+            return existingDdsName;
+        }
+
         // Make file name deterministic and safe
         string baseName = Path.GetFileNameWithoutExtension(assetPath);
         baseName = SanitizeFileName(baseName);
+        string safeObjName = SanitizeFileName(gameObject.name);
 
-        string ddsName = baseName + ".dds";
+        string ddsName = $"{safeObjName}_{baseName}.dds";
 
         // Register for conversion
-        if (!_albedoAssetPathToDdsName.ContainsKey(assetPath))
-            _albedoAssetPathToDdsName.Add(assetPath, ddsName);
+        //if (!_albedoAssetPathToDdsName.ContainsKey(assetPath))
+        //    _albedoAssetPathToDdsName.Add(assetPath, ddsName);
+
+        _albedoAssetPathToDdsName.Add(assetPath, ddsName);
 
         return ddsName;
 #else

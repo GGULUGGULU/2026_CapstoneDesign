@@ -830,6 +830,46 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 	m_pShadowShader->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature);
 }
 
+void CScene::BuildGameStage2(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	m_pd3dGraphicsRootSignature = CreateGraphicsRootSignature(pd3dDevice);
+
+	CMaterial::PrepareShaders(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature);
+
+	m_pTerrainShader = new CTerrainShader();
+	m_pTerrainShader->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature);
+
+	BuildDefaultLightsAndMaterials();
+
+	LoadTexture(pd3dDevice, pd3dCommandList);
+
+	BuildUIResources(pd3dDevice, pd3dCommandList);
+
+	// 
+	m_nGameObjects = 1;
+	m_ppGameObjects = new CGameObject * [m_nGameObjects];
+
+	CGameObject* pMapModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/FORTR.bin");
+	ApplyMeshTextures(pd3dDevice, pd3dCommandList, pMapModel);
+	CGameObject* pMapObject = new CGameObject();
+	pMapObject->SetChild(pMapModel);
+	pMapObject->SetPosition(0.0f, -2500.0f, 0.0f);
+	pMapObject->Rotate(0.0f, 0.0f, 0.0f);
+	pMapObject->SetScale(10, 10, 10);
+	pMapObject->m_bIsGround = true;
+	m_ppGameObjects[0] = pMapObject;
+
+	CreateWireFrameBox(pd3dDevice, pd3dCommandList);
+	CreateAABBWireFrameBox(pd3dDevice, pd3dCommandList);
+	CreateShaderVariables(pd3dDevice, pd3dCommandList);
+
+	CreateSkybox(pd3dDevice, pd3dCommandList);
+
+	m_pShadowShader = new CShadowShader();
+	m_pShadowShader->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature);
+
+}
+
 void CScene::CreateTreeBillboard(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
 	CBillboardVertex* pTreeMesh = new CBillboardVertex(pd3dDevice, pd3dCommandList);
