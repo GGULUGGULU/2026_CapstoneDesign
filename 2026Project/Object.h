@@ -209,7 +209,14 @@ public:
 	bool m_bIsCheckPoint{ false };
 	int m_nCheckPointIndex{-1};
 
+	bool    m_bIsItemBox = false;    
+	bool    m_bCanRespawn = false;   
+	float   m_fRespawnDelay = 3.0f;  
+	float   m_fInactiveTime = 0.0f;  
+
 	virtual void Disable() { m_bIsActive = false; if (m_pChild) m_pChild->Disable(); }
+
+	void Active(CGameObject*);
 
 	//
 	void ComputeNewLocalAABB();

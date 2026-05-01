@@ -119,9 +119,10 @@ bool CGameFramework::OnCreate(HINSTANCE hInstance, HWND hMainWnd)
 	
 	m_SoundManager.Init();
 
-	m_SoundManager.PlayBGM("Asset/Audio/BGM2.mp3");
+	//m_SoundManager.PlayBGM("Asset/Audio/BGM2.mp3");
+	m_SoundManager.PlayBGM("Asset/Audio/TRBGM.mp3");
 	//m_SoundManager.SetBGMVolume(0.1f);
-	m_SoundManager.SetMasterVolume(0.1f);
+	m_SoundManager.SetMasterVolume(0.5f);
 
 	return(true);
 }
@@ -534,7 +535,8 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 			StartListenServer();
 			break;
 		case VK_F6:
-			ConnectToListenServer("127.0.0.1");
+			//ConnectToListenServer("127.0.0.1");
+			ConnectToListenServer("10.30.2.23");
 			break;
 		case VK_F9:
 			ChangeSwapChainState();
@@ -1038,8 +1040,8 @@ void CGameFramework::BuildGameObjects()
 
 	//
 
-	m_SoundManager.PlayCarEngine("Asset/Audio/Engine1.mp3");
-	m_SoundManager.SetCarEngineVolume(0.8f);
+	m_SoundManager.PlayCarEngine("Asset/Audio/Engine2.mp3");
+	m_SoundManager.SetCarEngineVolume(0.15f);
 
 	m_pd3dCommandList->Close();
 	ID3D12CommandList* ppd3dCommandLists[] = { m_pd3dCommandList };
@@ -1319,8 +1321,6 @@ void CGameFramework::CollisionProcess()
 
 			if (hitIndex == m_nPassedCheckPoints + 1) {
 				++m_nPassedCheckPoints;
-				
-				m_SoundManager.PlaySFX("Asset/Audio/LapSound.mp3");
 
 				if (m_nPassedCheckPoints == m_nTotalCheckPoints) {
 					++m_nCurrentLap;
@@ -1334,10 +1334,12 @@ void CGameFramework::CollisionProcess()
 		}
 
 		// 아이템 + 대시
-		ITEM_TYPE eItemType = GetItemType(pCollidedObject);
+		//ITEM_TYPE eItemType = GetItemType(pCollidedObject);
 
-		if (eItemType != ITEM_NONE)
+		if (pCollidedObject->m_bIsItemBox)
 		{
+			m_SoundManager.PlaySFX("Asset/Audio/LapSound.mp3");
+		
 			XMFLOAT3 vPos = pCollidedObject->GetPosition();
 
 			PlayAndSyncEffect(EFFECT_TYPE::ITEM1, vPos, XMFLOAT2(50, 50));
@@ -1351,6 +1353,7 @@ void CGameFramework::CollisionProcess()
 			PlayAndSyncEffect(EFFECT_TYPE::ITEM9, vPos, XMFLOAT2(50, 50));
 
 			m_fItemDisplayTimer = 3.0f;
+			pCollidedObject->m_fInactiveTime = 0.0f;
 
 			pCollidedObject->Disable();
 			++m_nScore;
@@ -1456,8 +1459,6 @@ void CGameFramework::CollisionProcess()
 			m_bIsStun = true;
 			m_fCollisionCurrentTime = m_fTotalTime;
 		}
-
-
 	}
 
 	if (m_bIsStun && m_fTotalTime - m_fCollisionCurrentTime > 1.0f)

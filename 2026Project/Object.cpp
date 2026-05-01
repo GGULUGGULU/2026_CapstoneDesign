@@ -189,8 +189,27 @@ void CGameObject::SetMaterial(int nMaterial, CMaterial* pMaterial)
 	if (m_ppMaterials[nMaterial]) m_ppMaterials[nMaterial]->AddRef();
 }
 
+void CGameObject::Active(CGameObject* pObj)
+{
+	if (!pObj) return;
+	pObj->m_bIsActive = true;
+	if (pObj->m_pChild) Active(pObj->m_pChild);
+	if (pObj->m_pSibling) Active(pObj->m_pSibling);
+}
+
 void CGameObject::Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent)
 {
+	if (!m_bIsActive && m_bCanRespawn)
+	{
+		m_fInactiveTime += fTimeElapsed;
+		if (m_fInactiveTime >= m_fRespawnDelay)
+		{
+			m_bIsActive = true;    
+			if (m_pChild) Active(m_pChild);
+			m_fInactiveTime = 0.0f;  
+		}
+	}
+
 	if (m_pSibling) m_pSibling->Animate(fTimeElapsed, pxmf4x4Parent);
 	if (m_pChild) m_pChild->Animate(fTimeElapsed, &m_xmf4x4World);
 }

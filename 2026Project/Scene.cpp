@@ -343,7 +343,7 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 	BuildUIResources(pd3dDevice, pd3dCommandList);
 
 	// 
-	m_nGameObjects = 1 + 1 + 12 + 12 + 12 + 1 + 20 + 20 + 15 + 15 + 4 + 1 +1+10;
+	m_nGameObjects = 1 + 1 + 12 + 12 + 12 + 1 + 20 + 20 + 15 + 15 + 4 + 1 +1+10+5+5+4+4;
 	m_ppGameObjects = new CGameObject * [m_nGameObjects];
 
 	// 맵 모델링
@@ -568,40 +568,256 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 			m_ppGameObjects[94 + i] = pSuperCobraObject;
 		}
 
+		{
 
 		CGameObject* pItemModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
 		CGameObject* pItemObject = new CGameObject();
 		pItemObject->SetChild(pItemModel);
-		pItemObject->SetPosition(-2201, -222, 1890);
+		pItemObject->SetPosition(-2201, -210, 1890);
 		pItemObject->SetScale(10, 10, 10);
 		pItemObject->ComputeNewLocalAABB();
+		pItemObject->m_bIsItemBox = true;
+		pItemObject->m_bCanRespawn = true;
+		pItemObject->m_fRespawnDelay = 3.0f;
 		m_ppGameObjects[109] = pItemObject;
 
 		CGameObject* pItemModel1 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
 		CGameObject* pItemObject1 = new CGameObject();
 		pItemObject1->SetChild(pItemModel1);
-		pItemObject1->SetPosition(-500,-270,2724);
+		pItemObject1->SetPosition(-500, -260, 2724);
 		pItemObject1->SetScale(10, 10, 10);
 		pItemObject1->ComputeNewLocalAABB();
+		pItemObject1->m_bIsItemBox = true;
+		pItemObject1->m_bCanRespawn = true;
+		pItemObject1->m_fRespawnDelay = 3.0f;
 		m_ppGameObjects[110] = pItemObject1;
 
 		CGameObject* pItemModel2 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
 		CGameObject* pItemObject2 = new CGameObject();
 		pItemObject2->SetChild(pItemModel2);
-		pItemObject2->SetPosition(570,-200,-600);
+		pItemObject2->SetPosition(570, -190, -600);
 		pItemObject2->SetScale(10, 10, 10);
 		pItemObject2->ComputeNewLocalAABB();
+		pItemObject2->m_bIsItemBox = true;
+		pItemObject2->m_bCanRespawn = true;
+		pItemObject2->m_fRespawnDelay = 3.0f;
 		m_ppGameObjects[111] = pItemObject2;
 
 		CGameObject* pItemModel3 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
 		CGameObject* pItemObject3 = new CGameObject();
 		pItemObject3->SetChild(pItemModel3);
-		pItemObject3->SetPosition(-2000,-200,-80);
+		pItemObject3->SetPosition(-2000, -190, -80);
 		pItemObject3->SetScale(10, 10, 10);
 		pItemObject3->ComputeNewLocalAABB();
+		pItemObject3->m_bIsItemBox = true;
+		pItemObject3->m_bCanRespawn = true;
+		pItemObject3->m_fRespawnDelay = 3.0f;
 		m_ppGameObjects[112] = pItemObject3;
-	}
 
+
+		CGameObject* pItemModel4 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
+		CGameObject* pItemObject4 = new CGameObject();
+		pItemObject4->SetChild(pItemModel4);
+		pItemObject4->SetPosition(-2263, -212, 1978);
+		pItemObject4->SetScale(10, 10, 10);
+		pItemObject4->ComputeNewLocalAABB();
+		pItemObject4->m_bIsItemBox = true;
+		pItemObject4->m_bCanRespawn = true;
+		pItemObject4->m_fRespawnDelay = 3.0f;
+		m_ppGameObjects[125] = pItemObject4;
+
+		CGameObject* pItemModel5 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
+		CGameObject* pItemObject5 = new CGameObject();
+		pItemObject5->SetChild(pItemModel5);
+		pItemObject5->SetPosition(-2317, -212, 1954);
+		pItemObject5->SetScale(10, 10, 10);
+		pItemObject5->ComputeNewLocalAABB();
+		pItemObject5->m_bIsItemBox = true;
+		pItemObject5->m_bCanRespawn = true;
+		pItemObject5->m_fRespawnDelay = 3.0f;
+		m_ppGameObjects[126] = pItemObject5;
+
+		CGameObject* pItemModel6 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
+		CGameObject* pItemObject6 = new CGameObject();
+		pItemObject6->SetChild(pItemModel6);
+		pItemObject6->SetPosition(-2360, -212, 1982);
+		pItemObject6->SetScale(10, 10, 10);
+		pItemObject6->ComputeNewLocalAABB();
+		pItemObject6->m_bIsItemBox = true;
+		pItemObject6->m_bCanRespawn = true;
+		pItemObject6->m_fRespawnDelay = 3.0f;
+		m_ppGameObjects[127] = pItemObject6;
+
+		CGameObject* pItemModel7 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
+		CGameObject* pItemObject7 = new CGameObject();
+		pItemObject7->SetChild(pItemModel7);
+		pItemObject7->SetPosition(-2392, -212, 2003);
+		pItemObject7->SetScale(10, 10, 10);
+		pItemObject7->ComputeNewLocalAABB();
+		pItemObject7->m_bIsItemBox = true;
+		pItemObject7->m_bCanRespawn = true;
+		pItemObject7->m_fRespawnDelay = 3.0f;
+		m_ppGameObjects[128] = pItemObject7;
+
+		CGameObject* pItemModel8 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
+		CGameObject* pItemObject8 = new CGameObject();
+		pItemObject8->SetChild(pItemModel8);
+		pItemObject8->SetPosition(-2436, -212, 2032);
+		pItemObject8->SetScale(10, 10, 10);
+		pItemObject8->ComputeNewLocalAABB();
+		pItemObject8->m_bIsItemBox = true;
+		pItemObject8->m_bCanRespawn = true;
+		pItemObject8->m_fRespawnDelay = 3.0f;
+		m_ppGameObjects[129] = pItemObject8;
+		}
+
+		{
+			CGameObject* pItemModel9 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
+			CGameObject* pItemObject9 = new CGameObject();
+			pItemObject9->SetChild(pItemModel9);
+			pItemObject9->SetPosition(-503, -265, 2677);
+			pItemObject9->SetScale(10, 10, 10);
+			pItemObject9->ComputeNewLocalAABB();
+			pItemObject9->m_bIsItemBox = true;
+			pItemObject9->m_bCanRespawn = true;
+			pItemObject9->m_fRespawnDelay = 3.0f;
+			m_ppGameObjects[130] = pItemObject9;
+
+			CGameObject* pItemModel10 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
+			CGameObject* pItemObject10 = new CGameObject();
+			pItemObject10->SetChild(pItemModel10);
+			pItemObject10->SetPosition(-568, -274,2619);
+			pItemObject10->SetScale(10, 10, 10);
+			pItemObject10->ComputeNewLocalAABB();
+			pItemObject10->m_bIsItemBox = true;
+			pItemObject10->m_bCanRespawn = true;
+			pItemObject10->m_fRespawnDelay = 3.0f;
+			m_ppGameObjects[131] = pItemObject10;
+
+			CGameObject* pItemModel11 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
+			CGameObject* pItemObject11 = new CGameObject();
+			pItemObject11->SetChild(pItemModel11);
+			pItemObject11->SetPosition(-604,-278,2577);
+			pItemObject11->SetScale(10, 10, 10);
+			pItemObject11->ComputeNewLocalAABB();
+			pItemObject11->m_bIsItemBox = true;
+			pItemObject11->m_bCanRespawn = true;
+			pItemObject11->m_fRespawnDelay = 3.0f;
+			m_ppGameObjects[132] = pItemObject11;
+
+			CGameObject* pItemModel12 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
+			CGameObject* pItemObject12 = new CGameObject();
+			pItemObject12->SetChild(pItemModel12);
+			pItemObject12->SetPosition(-440,-260,2786);
+			pItemObject12->SetScale(10, 10, 10);
+			pItemObject12->ComputeNewLocalAABB();
+			pItemObject12->m_bIsItemBox = true;
+			pItemObject12->m_bCanRespawn = true;
+			pItemObject12->m_fRespawnDelay = 3.0f;
+			m_ppGameObjects[133] = pItemObject12;
+
+			CGameObject* pItemModel13 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
+			CGameObject* pItemObject13 = new CGameObject();
+			pItemObject13->SetChild(pItemModel13);
+			pItemObject13->SetPosition(-396, -240,2826);
+			pItemObject13->SetScale(10, 10, 10);
+			pItemObject13->ComputeNewLocalAABB();
+			pItemObject13->m_bIsItemBox = true;
+			pItemObject13->m_bCanRespawn = true;
+			pItemObject13->m_fRespawnDelay = 3.0f;
+			m_ppGameObjects[134] = pItemObject13;
+		}
+
+		{
+			CGameObject* pItemModel14 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
+			CGameObject* pItemObject14 = new CGameObject();
+			pItemObject14->SetChild(pItemModel14);
+			pItemObject14->SetPosition(523,-193,-616);
+			pItemObject14->SetScale(10, 10, 10);
+			pItemObject14->ComputeNewLocalAABB();
+			pItemObject14->m_bIsItemBox = true;
+			pItemObject14->m_bCanRespawn = true;
+			pItemObject14->m_fRespawnDelay = 3.0f;
+			m_ppGameObjects[135] = pItemObject14;
+
+			CGameObject* pItemModel15 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
+			CGameObject* pItemObject15 = new CGameObject();
+			pItemObject15->SetChild(pItemModel15);
+			pItemObject15->SetPosition(450,-194,-600);
+			pItemObject15->SetScale(10, 10, 10);
+			pItemObject15->ComputeNewLocalAABB();
+			pItemObject15->m_bIsItemBox = true;
+			pItemObject15->m_bCanRespawn = true;
+			pItemObject15->m_fRespawnDelay = 3.0f;
+			m_ppGameObjects[136] = pItemObject15;
+
+			CGameObject* pItemModel16 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
+			CGameObject* pItemObject16 = new CGameObject();
+			pItemObject16->SetChild(pItemModel16);
+			pItemObject16->SetPosition(658,-192,-627);
+			pItemObject16->SetScale(10, 10, 10);
+			pItemObject16->ComputeNewLocalAABB();
+			pItemObject16->m_bIsItemBox = true;
+			pItemObject16->m_bCanRespawn = true;
+			pItemObject16->m_fRespawnDelay = 3.0f;
+			m_ppGameObjects[137] = pItemObject16;
+
+			CGameObject* pItemModel17 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
+			CGameObject* pItemObject17 = new CGameObject();
+			pItemObject17->SetChild(pItemModel17);
+			pItemObject17->SetPosition(754,-191,-640);
+			pItemObject17->SetScale(10, 10, 10);
+			pItemObject17->ComputeNewLocalAABB();
+			pItemObject17->m_bIsItemBox = true;
+			pItemObject17->m_bCanRespawn = true;
+			pItemObject17->m_fRespawnDelay = 3.0f;
+			m_ppGameObjects[138] = pItemObject17;
+
+			CGameObject* pItemModel18 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
+			CGameObject* pItemObject18 = new CGameObject();
+			pItemObject18->SetChild(pItemModel18);
+			pItemObject18->SetPosition(-1932,-192,-54);
+			pItemObject18->SetScale(10, 10, 10);
+			pItemObject18->ComputeNewLocalAABB();
+			pItemObject18->m_bIsItemBox = true;
+			pItemObject18->m_bCanRespawn = true;
+			pItemObject18->m_fRespawnDelay = 3.0f;
+			m_ppGameObjects[139] = pItemObject18;
+
+			CGameObject* pItemModel19 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
+			CGameObject* pItemObject19 = new CGameObject();
+			pItemObject19->SetChild(pItemModel19);
+			pItemObject19->SetPosition(-1844,-192,-97);
+			pItemObject19->SetScale(10, 10, 10);
+			pItemObject19->ComputeNewLocalAABB();
+			pItemObject19->m_bIsItemBox = true;
+			pItemObject19->m_bCanRespawn = true;
+			pItemObject19->m_fRespawnDelay = 3.0f;
+			m_ppGameObjects[140] = pItemObject19;
+
+			CGameObject* pItemModel20 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
+			CGameObject* pItemObject20 = new CGameObject();
+			pItemObject20->SetChild(pItemModel20);
+			pItemObject20->SetPosition(-2084,-192,-60);
+			pItemObject20->SetScale(10, 10, 10);
+			pItemObject20->ComputeNewLocalAABB();
+			pItemObject20->m_bIsItemBox = true;
+			pItemObject20->m_bCanRespawn = true;
+			pItemObject20->m_fRespawnDelay = 3.0f;
+			m_ppGameObjects[141] = pItemObject20;
+
+			CGameObject* pItemModel21 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
+			CGameObject* pItemObject21 = new CGameObject();
+			pItemObject21->SetChild(pItemModel21);
+			pItemObject21->SetPosition(-2155,-192,-80);
+			pItemObject21->SetScale(10, 10, 10);
+			pItemObject21->ComputeNewLocalAABB();
+			pItemObject21->m_bIsItemBox = true;
+			pItemObject21->m_bCanRespawn = true;
+			pItemObject21->m_fRespawnDelay = 3.0f;
+			m_ppGameObjects[142] = pItemObject21;
+		}
+	}
 
 	//CreateMirror(pd3dDevice, pd3dCommandList);
 	CreateWireFrameBox(pd3dDevice, pd3dCommandList);
@@ -1737,8 +1953,9 @@ void CScene::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera
 	for (int i = 0; i < m_nGameObjects; i++)
 	{
 
-		if (m_ppGameObjects[i] && i < 114)
+		if (m_ppGameObjects[i] )//&& i < 114)
 		{
+			if (i >= 114 && i <= 124) continue;
 			m_ppGameObjects[i]->Animate(m_fElapsedTime, NULL);
 			m_ppGameObjects[i]->UpdateTransform(NULL);
 			m_ppGameObjects[i]->Render(pd3dCommandList, pDebugBoxToRender, pCamera);
