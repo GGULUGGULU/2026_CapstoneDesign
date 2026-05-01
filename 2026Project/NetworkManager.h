@@ -22,6 +22,14 @@ struct EffectEventNet
     float r = 1.0f, g = 1.0f, b = 1.0f;
 };
 
+struct ItemEventNet
+{
+    int itemType = 0;
+    float duration = 0.0f;
+};
+
+
+
 class CNetworkManager
 {
 public:
@@ -64,12 +72,28 @@ public:
     bool HasBothRecords() const;
     RaceResultNet CalculateRankings();
 
+
+
+    //
+
+
+    bool ConsumeItemEvent(ItemEventNet& outEvent);
+    void SendItemEvent(const ItemEventNet& ev);
+
+
+
+
+
 private:
     void DisconnectPeer();
     void TryAcceptClient();
     void TryReceivePackets();
     void TrySendLocalState(const PlayerNetState& state);
     void FlushPendingSends();
+
+    //
+
+    std::vector<ItemEventNet> m_itemEvents;
 
 private:
     CNetworkManagerImpl* m_pImpl = nullptr;

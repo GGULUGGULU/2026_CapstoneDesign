@@ -1889,19 +1889,20 @@ void CScene::BuildUIResources(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 	m_pUIShader = new CUIShader();
 	m_pUIShader->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dUIRootSignature);
 
-	const wchar_t* texPaths[3] = {
+	const wchar_t* texPaths[4] = {
 		L"Asset/DDS_File/Item_Dash.dds",
 		L"Asset/DDS_File/Item_Speed.dds",
-		L"Asset/DDS_File/Item_Gauge.dds"
+		L"Asset/DDS_File/Item_Gauge.dds",
+		L"Asset/DDS_File/Item_Lock.dds" 
 	};
 
 	UINT uiSrvStartIndex = g_nNextSrvTableIndex;
-	g_nNextSrvTableIndex += 3;
+	g_nNextSrvTableIndex += 4;
 
 	D3D12_CPU_DESCRIPTOR_HANDLE d3dCpuSrvHandleStart = m_pd3dCbvSrvHeap->GetCPUDescriptorHandleForHeapStart();
 	D3D12_GPU_DESCRIPTOR_HANDLE d3dGpuSrvHandleStart = m_pd3dCbvSrvHeap->GetGPUDescriptorHandleForHeapStart();
 
-	for (int i = 0; i < 3; ++i)
+	for (int i = 0; i < 4; ++i)
 	{
 		std::unique_ptr<uint8_t[]> ddsData;
 		std::vector<D3D12_SUBRESOURCE_DATA> subresources;

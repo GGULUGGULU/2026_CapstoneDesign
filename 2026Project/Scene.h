@@ -141,7 +141,7 @@ public:
 	CUIShader* m_pUIShader = nullptr;
 	CUIMesh* m_pUIMesh = nullptr;
 
-	D3D12_GPU_DESCRIPTOR_HANDLE m_pd3dUIItemSrvHandles[3];
+	D3D12_GPU_DESCRIPTOR_HANDLE m_pd3dUIItemSrvHandles[4];
 	//
 public:
 	ID3D12RootSignature			*m_pd3dGraphicsRootSignature = NULL;

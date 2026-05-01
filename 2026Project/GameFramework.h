@@ -213,13 +213,20 @@ private:
 		ITEM_NONE = 0,
 		ITEM_DASH_POTION,
 		ITEM_MAX_SPEED_UP,
-		ITEM_MAX_DASH_GAUGE_UP
+		ITEM_MAX_DASH_GAUGE_UP,
+		ITEM_LOCK
 	};
+
 
 	ITEM_TYPE GetItemType(CGameObject* pObject) const;
 	void ApplyItemReward(ITEM_TYPE eItemType);
 	void UpdateDashSystem(float fTimeElapsed, bool bDashKeyDown, bool bHasDriveInput);
 	float GetPlayerEffectiveMaxSpeed() const;
+
+	void SendItemEvent(ITEM_TYPE eItemType, float fDuration);
+	void ConsumeNetworkItemEvents();
+	void ApplyDashLock(float fDuration);
+
 
 private:
 	float m_fBasePlayerMaxSpeed;
@@ -292,5 +299,11 @@ public:
 
 	ComPtr<IDWriteTextFormat> m_textCountdownFormat;
 	ComPtr<ID2D1SolidColorBrush> m_textCountdownBrush;
+
+
+	bool  m_bDashLocked = false;
+	float m_fDashLockTime = 0.0f;
+
 };
+
 

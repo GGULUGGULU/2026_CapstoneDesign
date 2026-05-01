@@ -29,8 +29,14 @@ namespace
         COLLISION_EVENT = 2,
         EFFECT_EVENT = 3,
         RACE_FINISH = 4,
-        RACE_RESULT = 5
+        RACE_RESULT = 5,
+        
+
+        ITEM_EVENT = 6
     };
+
+   
+
 
     struct NetMessageHeader
     {
@@ -39,6 +45,14 @@ namespace
         unsigned int type = 0;
         unsigned int size = 0;
     };
+
+
+    struct ItemEventPacket
+    {
+        NetMessageHeader header{};
+        ItemEventNet eventData{};
+    };
+
 
     struct PlayerStatePacket
     {
@@ -233,6 +247,9 @@ void CNetworkManager::Shutdown()
     m_raceFinishEvents.clear();
     m_raceResultEvents.clear();
     m_serverRaceRecords.clear();
+    m_itemEvents.clear();
+
+
     m_eMode = MODE::NONE;
     if (m_pImpl && m_pImpl->wsaStarted)
     {
@@ -322,6 +339,7 @@ void CNetworkManager::TryReceivePackets()
             }
             break;
         }
+
     }
 
     while (m_recvBuffer.size() >= sizeof(NetMessageHeader))
@@ -379,6 +397,16 @@ void CNetworkManager::TryReceivePackets()
                 RaceResultPacket packet{};
                 std::memcpy(&packet, m_recvBuffer.data(), sizeof(packet));
                 m_raceResultEvents.push_back(packet.result);
+            }
+            break;
+
+
+        case NET_MESSAGE_TYPE::ITEM_EVENT:
+            if (header.size == sizeof(ItemEventPacket))
+            {
+                ItemEventPacket packet{};
+                std::memcpy(&packet, m_recvBuffer.data(), sizeof(packet));
+                m_itemEvents.push_back(packet.eventData);
             }
             break;
 
@@ -629,4 +657,32 @@ RaceResultNet CNetworkManager::CalculateRankings()
     }
 
     return result;
+}
+
+bool CNetworkManager::ConsumeItemEvent(ItemEventNet& outEvent)
+{
+    if (m_itemEvents.empty()) return false;
+
+    outEvent = m_itemEvents.front();
+    m_itemEvents.erase(m_itemEvents.begin());
+    return true;
+}
+
+void CNetworkManager::SendItemEvent(const ItemEventNet& ev)
+{
+    if (!m_pImpl || !m_bConnected || m_pImpl->peerSocket == INVALID_SOCKET) return;
+
+    ItemEventPacket packet{};
+    packet.header.type = static_cast<unsigned int>(NET_MESSAGE_TYPE::ITEM_EVENT);
+    packet.header.size = sizeof(ItemEventPacket);
+    packet.eventData = ev;
+
+    const char* bytes = reinterpret_cast<const char*>(&packet);
+    m_pImpl->pendingSendBuffer.insert(
+        m_pImpl->pendingSendBuffer.end(),
+        bytes,
+        bytes + sizeof(packet)
+    );
+
+    FlushPendingSends();
 }

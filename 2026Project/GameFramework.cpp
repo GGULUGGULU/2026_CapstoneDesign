@@ -73,8 +73,12 @@ CGameFramework::CGameFramework()
 
 	m_bIsDashing = false;
 
+	m_bDashLocked = false;
+	m_fDashLockTime = 0.0f;
 
 	_tcscpy_s(m_pszFrameRate, _T("2026Project ("));
+
+
 }
 
 CGameFramework::~CGameFramework()
@@ -509,6 +513,13 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 		case '3':
 			m_eHoldItem = ITEM_MAX_DASH_GAUGE_UP;
 			break;
+
+		case '4':
+			m_eHoldItem = ITEM_LOCK;
+			break;
+
+			break;
+
 		default:
 			break;
 		}
@@ -535,8 +546,8 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 			StartListenServer();
 			break;
 		case VK_F6:
-			//ConnectToListenServer("127.0.0.1");
-			ConnectToListenServer("10.30.2.23");
+			ConnectToListenServer("127.0.0.1");
+			//ConnectToListenServer("10.30.2.23");
 			break;
 		case VK_F9:
 			ChangeSwapChainState();
@@ -1004,8 +1015,8 @@ void CGameFramework::BuildGameObjects()
 	}
 
 	m_pScene = new CScene();
-	//if (m_pScene) m_pScene->BuildGameObjects(m_pd3dDevice, m_pd3dCommandList);
-	if (m_pScene) m_pScene->BuildGameStage2(m_pd3dDevice, m_pd3dCommandList);
+	if (m_pScene) m_pScene->BuildGameObjects(m_pd3dDevice, m_pd3dCommandList);
+	// if (m_pScene) m_pScene->BuildGameStage2(m_pd3dDevice, m_pd3dCommandList);
 
 	CreateShadowMap();
 
@@ -1036,6 +1047,10 @@ void CGameFramework::BuildGameObjects()
 
 	m_bIsDashing = false;
 	m_nPlayerCurrentSpeed = 0;
+
+	m_bDashLocked = false;
+	m_fDashLockTime = 0.0f;
+
 
 	m_pPlayer->m_fMaxVelocityXZ = GetPlayerEffectiveMaxSpeed();
 
@@ -1071,7 +1086,7 @@ CGameFramework::ITEM_TYPE CGameFramework::GetItemType(CGameObject* pObject) cons
 	if (pObject == m_pScene->m_ppGameObjects[109]) return ITEM_DASH_POTION;
 	if (pObject == m_pScene->m_ppGameObjects[110]) return ITEM_MAX_SPEED_UP;
 	if (pObject == m_pScene->m_ppGameObjects[111]) return ITEM_MAX_DASH_GAUGE_UP;
-	if (pObject == m_pScene->m_ppGameObjects[112]) return ITEM_DASH_POTION; // 중복 배치
+	if (pObject == m_pScene->m_ppGameObjects[112]) return ITEM_LOCK; 
 
 	return ITEM_NONE;
 }
@@ -1107,6 +1122,10 @@ void CGameFramework::ApplyItemReward(ITEM_TYPE eItemType)
 			m_fCurrentDashGauge = m_fMaxDashGauge;
 		break;
 
+	case ITEM_LOCK:
+		// 자물쇠
+		SendItemEvent(ITEM_LOCK, 3.0f);
+		break;
 	default:
 		break;
 	}
@@ -1127,6 +1146,28 @@ void CGameFramework::UpdateDashSystem(float fTimeElapsed, bool bDashKeyDown, boo
 		return;
 	}
 
+
+	if (m_bDashLocked)
+	{
+		m_fDashLockTime -= fTimeElapsed;
+
+		if (m_fDashLockTime <= 0.0f)
+		{
+			m_fDashLockTime = 0.0f;
+			m_bDashLocked = false;
+		}
+
+		m_bIsDashing = false;
+		CEffectLibrary::Instance()->ToggleBooster(false);
+
+		if (m_pPlayer)
+			m_pPlayer->m_fMaxVelocityXZ = GetPlayerEffectiveMaxSpeed();
+
+		return;
+	}
+
+
+
 	const bool bCanDash = (bDashKeyDown && bHasDriveInput && (m_fCurrentDashGauge > 0.0f));
 	m_bIsDashing = bCanDash;
 
@@ -1145,6 +1186,7 @@ void CGameFramework::UpdateDashSystem(float fTimeElapsed, bool bDashKeyDown, boo
 		if (m_fCurrentDashGauge > m_fMaxDashGauge)
 			m_fCurrentDashGauge = m_fMaxDashGauge;
 	}
+
 
 
 	float fTargetMaxSpeed = GetPlayerEffectiveMaxSpeed();
@@ -1359,11 +1401,15 @@ void CGameFramework::CollisionProcess()
 			pCollidedObject->Disable();
 			++m_nScore;
 
-			int randItem = rand() % 3;
+			int randItem = rand() % 4;
+
 
 			if (randItem == 0) m_eHoldItem = ITEM_DASH_POTION;
 			else if (randItem == 1) m_eHoldItem = ITEM_MAX_SPEED_UP;
 			else if (randItem == 2) m_eHoldItem = ITEM_MAX_DASH_GAUGE_UP;
+			else if (randItem == 3) m_eHoldItem = ITEM_LOCK;
+
+
 		}
 		else if (pCollidedObject->m_bIsInvisibleWall)
 		{
@@ -2292,6 +2338,7 @@ void CGameFramework::SyncMultiplayer()
 
 	ConsumeNetworkCollisionEvents();
 	ConsumeNetworkEffectEvents();
+	ConsumeNetworkItemEvents();
 }
 
 
@@ -2800,6 +2847,7 @@ void CGameFramework::FrameAdvance()
 			if (m_eHoldItem == ITEM_DASH_POTION) itemIdx = 0;
 			else if (m_eHoldItem == ITEM_MAX_SPEED_UP) itemIdx = 1;
 			else if (m_eHoldItem == ITEM_MAX_DASH_GAUGE_UP) itemIdx = 2;
+			else if (m_eHoldItem == ITEM_LOCK) itemIdx = 3;
 
 			m_pScene->RenderItemUI(m_pd3dCommandList, itemIdx);
 		}
@@ -2833,4 +2881,41 @@ void CGameFramework::FrameAdvance()
 	MoveToNextFrame();
 
 	ShowFrameRate();
+}
+
+void CGameFramework::SendItemEvent(ITEM_TYPE eItemType, float fDuration)
+{
+	if (!m_pNetwork || !m_pNetwork->IsConnected()) return;
+
+	ItemEventNet ev{};
+	ev.itemType = static_cast<int>(eItemType);
+	ev.duration = fDuration;
+
+	m_pNetwork->SendItemEvent(ev);
+}
+
+void CGameFramework::ApplyDashLock(float fDuration)
+{
+	m_bDashLocked = true;
+	m_fDashLockTime = fDuration;
+	m_bIsDashing = false;
+
+	if (m_pPlayer)
+		m_pPlayer->m_fMaxVelocityXZ = GetPlayerEffectiveMaxSpeed();
+
+	CEffectLibrary::Instance()->ToggleBooster(false);
+}
+
+void CGameFramework::ConsumeNetworkItemEvents()
+{
+	if (!m_pNetwork) return;
+
+	ItemEventNet ev{};
+	while (m_pNetwork->ConsumeItemEvent(ev))
+	{
+		if (ev.itemType == ITEM_LOCK)
+		{
+			ApplyDashLock(ev.duration);
+		}
+	}
 }
