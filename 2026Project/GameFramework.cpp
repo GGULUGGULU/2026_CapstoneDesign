@@ -100,6 +100,7 @@ bool CGameFramework::OnCreate(HINSTANCE hInstance, HWND hMainWnd)
 	CreateTextResources();
 	CreateRenderTargetView();
 	LoadMinimapUIResource();
+	LoadDashVignetteResource();
 
 
 
@@ -1223,6 +1224,25 @@ void CGameFramework::UpdateDashSystem(float fTimeElapsed, bool bDashKeyDown, boo
 			m_nPlayerCurrentSpeed = 0;
 	}
 
+
+	float dashRatio = 0.0f;
+
+	if (m_fMaxDashGauge > 0.0f)
+		dashRatio = m_fCurrentDashGauge / m_fMaxDashGauge;
+
+	if (dashRatio < 0.0f) dashRatio = 0.0f;
+	if (dashRatio > 1.0f) dashRatio = 1.0f;
+
+	// 대시 게이지 25% 이하부터
+	if (dashRatio <= 0.25f)
+	{
+		m_fDashVignetteAlpha = 1.0f - (dashRatio / 0.25f);
+
+	}
+	else
+	{
+		m_fDashVignetteAlpha = 0.0f;
+	}
 	CEffectLibrary::Instance()->ToggleBooster(m_bIsDashing);
 }
 
@@ -2034,6 +2054,27 @@ void CGameFramework::RenderUI()
 		);
 		}
 
+		
+		
+		if (m_nStage == 2 && m_pDashVignetteBitmap && m_fDashVignetteAlpha > 0.01f)
+		{
+			D2D1_RECT_F fullScreenRect = D2D1::RectF(
+				0.0f,
+				0.0f,
+				(float)m_nWndClientWidth,
+				(float)m_nWndClientHeight
+			);
+
+			m_d2dDeviceContext->DrawBitmap(
+				m_pDashVignetteBitmap.Get(),
+				fullScreenRect,
+				m_fDashVignetteAlpha,
+				D2D1_BITMAP_INTERPOLATION_MODE_LINEAR
+			);
+		}
+
+
+
 	m_d2dDeviceContext->EndDraw();
 	m_d3d11On12Device->ReleaseWrappedResources(m_wrappedBackBuffers[m_nSwapChainBufferIndex].GetAddressOf(), 1);
 	m_d3d11DeviceContext->Flush();
@@ -2497,6 +2538,55 @@ void CGameFramework::LoadMinimapUIResource()
 		m_pMinimapBitmap.GetAddressOf()
 	);
 }
+
+
+void CGameFramework::LoadDashVignetteResource()
+{
+	if (!m_pWICFactory)
+	{
+		CoCreateInstance(
+			CLSID_WICImagingFactory,
+			NULL,
+			CLSCTX_INPROC_SERVER,
+			IID_PPV_ARGS(&m_pWICFactory)
+		);
+	}
+
+	ComPtr<IWICBitmapDecoder> decoder;
+	HRESULT hr = m_pWICFactory->CreateDecoderFromFilename(
+		L"Asset/image/dash_vignette.png",
+		NULL,
+		GENERIC_READ,
+		WICDecodeMetadataCacheOnLoad,
+		&decoder
+	);
+
+	if (FAILED(hr)) return;
+
+	ComPtr<IWICBitmapFrameDecode> frame;
+	decoder->GetFrame(0, &frame);
+
+	ComPtr<IWICFormatConverter> converter;
+	m_pWICFactory->CreateFormatConverter(&converter);
+
+	converter->Initialize(
+		frame.Get(),
+		GUID_WICPixelFormat32bppPBGRA,
+		WICBitmapDitherTypeNone,
+		NULL,
+		0.0f,
+		WICBitmapPaletteTypeCustom
+	);
+
+	m_d2dDeviceContext->CreateBitmapFromWicBitmap(
+		converter.Get(),
+		NULL,
+		&m_pDashVignetteBitmap
+	);
+}
+
+
+
 
 D2D1_POINT_2F CGameFramework::WorldToMinimap(
 	const XMFLOAT3& worldPos,

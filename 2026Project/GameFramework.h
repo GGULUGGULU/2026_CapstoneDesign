@@ -101,6 +101,8 @@ public:
 
 	void LoadLobbyUIResource();
 	void LoadResultUIResource();
+	void LoadDashVignetteResource();
+	
 	//
 private:
 	HINSTANCE					m_hInstance;
@@ -186,6 +188,8 @@ private:
 	ComPtr<IWICImagingFactory> m_pWICFactory;
 	ComPtr<ID2D1Bitmap> m_pLobbyD2DBitmap;
 	ComPtr<ID2D1Bitmap> m_pResultD2DBitmap;
+	ComPtr<ID2D1Bitmap> m_pDashVignetteBitmap;
+	float m_fDashVignetteAlpha = 0.0f;
 
 	ID3D12Resource* m_pd3dShadowMap;
 	ID3D12DescriptorHeap* m_pd3dShadowDSVHeap;
