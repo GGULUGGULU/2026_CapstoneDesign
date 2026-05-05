@@ -4,92 +4,102 @@
 #include "ParticleSystem.h"
 #include "MeshEffect.h"
 
-bool EffectRendererDX12::Initialize(ID3D12Device*, ID3D12GraphicsCommandList*)
+#include <cstring>
+
+
+bool EffectRendererDX12::Initialize(void* deviceContext)
 {
     return true;
 }
 
 void EffectRendererDX12::Render(
-    ID3D12GraphicsCommandList* cmd,
-    CEffectLibrary* lib,
-    const XMFLOAT4X4& view,
-    const XMFLOAT4X4& proj)
+	EffectRenderContext& context,
+	CEffectLibrary* lib,
+	const EffectMat4& view,
+	const EffectMat4& proj)
 {
-    if (!cmd || !lib) return;
+	ID3D12GraphicsCommandList* cmd =
+		static_cast<ID3D12GraphicsCommandList*>(context.commandContext);
 
-    auto rootSig = lib->GetRootSignature();
-    auto heap = lib->GetSrvHeap();
+	if (!cmd || !lib) return;
 
-    if (!rootSig || !heap) return;
+	XMFLOAT4X4 dxView{};
+	XMFLOAT4X4 dxProj{};
 
-    cmd->SetGraphicsRootSignature(rootSig);
+	memcpy(&dxView, view.m, sizeof(XMFLOAT4X4));
+	memcpy(&dxProj, proj.m, sizeof(XMFLOAT4X4));
 
-    XMFLOAT4X4 tMats[2];
-    XMStoreFloat4x4(&tMats[0], XMMatrixTranspose(XMLoadFloat4x4(&view)));
-    XMStoreFloat4x4(&tMats[1], XMMatrixTranspose(XMLoadFloat4x4(&proj)));
-    cmd->SetGraphicsRoot32BitConstants(1, 32, tMats, 0);
+	auto rootSig = lib->GetRootSignature();
+	auto heap = lib->GetSrvHeap();
 
-    ID3D12DescriptorHeap* heaps[] = { heap };
-    cmd->SetDescriptorHeaps(1, heaps);
+	if (!rootSig || !heap) return;
 
-    auto& effects = lib->GetActiveEffects();
+	cmd->SetGraphicsRootSignature(rootSig);
 
-    int currentPsoType = 0;
+	XMFLOAT4X4 tMats[2];
+	XMStoreFloat4x4(&tMats[0], XMMatrixTranspose(XMLoadFloat4x4(&dxView)));
+	XMStoreFloat4x4(&tMats[1], XMMatrixTranspose(XMLoadFloat4x4(&dxProj)));
+	cmd->SetGraphicsRoot32BitConstants(1, 32, tMats, 0);
 
-    for (auto eff : effects)
-    {
-        if (!eff || !eff->bActive) continue;
+	ID3D12DescriptorHeap* heaps[] = { heap };
+	cmd->SetDescriptorHeaps(1, heaps);
 
-        
-        if (eff->pParticleSys)
-        {
-            bool useDepth = lib->IsDepthParticleEffect(eff->type);
+	auto& effects = lib->GetActiveEffects();
 
-            ID3D12PipelineState* pso = useDepth ?
-                lib->GetParticleDepthPSO() :
-                lib->GetParticlePSO();
+	int currentPsoType = 0;
 
-            int desired = useDepth ? 3 : 1;
+	for (auto eff : effects)
+	{
+		if (!eff || !eff->bActive) continue;
 
-            if (currentPsoType != desired && pso)
-            {
-                cmd->SetPipelineState(pso);
-                currentPsoType = desired;
-            }
+		if (eff->pParticleSys)
+		{
+			bool useDepth = lib->IsDepthParticleEffect(eff->type);
 
-            auto handle = lib->GetSrvGpuStart();
-            handle.ptr += (UINT64)eff->type * lib->GetSrvIncrementSize();
+			ID3D12PipelineState* pso = useDepth ?
+				lib->GetParticleDepthPSO() :
+				lib->GetParticlePSO();
 
-            cmd->SetGraphicsRootDescriptorTable(0, handle);
+			int desired = useDepth ? 3 : 1;
 
-            eff->pParticleSys->Render(cmd);
-        }
+			if (currentPsoType != desired && pso)
+			{
+				cmd->SetPipelineState(pso);
+				currentPsoType = desired;
+			}
 
-       
-        if (eff->pMeshEffect)
-        {
-            ID3D12PipelineState* pso = nullptr;
-            int desired = 2;
+			auto handle = lib->GetSrvGpuStart();
+			handle.ptr += (UINT64)eff->type * lib->GetSrvIncrementSize();
 
-            if (eff->type == EFFECT_TYPE::BOOSTER)
-            {
-                pso = lib->GetBoosterPSO();
-                desired = 4;
-            }
-            else
-            {
-                pso = lib->GetMeshPSO();
-            }
+			cmd->SetGraphicsRootDescriptorTable(0, handle);
 
-            if (currentPsoType != desired && pso)
-            {
-                cmd->SetPipelineState(pso);
-                currentPsoType = desired;
-            }
+			eff->pParticleSys->Render(cmd);
+		}
 
-            eff->pMeshEffect->Render(cmd);
-        }
-    }
+		if (eff->pMeshEffect)
+		{
+			ID3D12PipelineState* pso = nullptr;
+			int desired = 2;
+
+			if (eff->type == EFFECT_TYPE::BOOSTER)
+			{
+				pso = lib->GetBoosterPSO();
+				desired = 4;
+			}
+			else
+			{
+				pso = lib->GetMeshPSO();
+			}
+
+			if (currentPsoType != desired && pso)
+			{
+				cmd->SetPipelineState(pso);
+				currentPsoType = desired;
+			}
+
+			eff->pMeshEffect->Render(cmd);
+		}
+	}
 }
 
 void EffectRendererDX12::Release() {}

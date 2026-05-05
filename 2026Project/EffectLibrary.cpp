@@ -5,6 +5,8 @@
 #include "MeshEffect.h"
 #include "d3dx12.h"
 
+#include <cstring>
+
 // 쉐이더 컴파일 헬퍼 함수
 D3D12_SHADER_BYTECODE CompileShaderHelper(LPCWSTR filename, LPCSTR entrypoint, LPCSTR target)
 {
@@ -235,7 +237,7 @@ void CEffectLibrary::Initialize(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandL
 	CreateEffectPools(pd3dDevice, pd3dCommandList);
 
 	m_pRenderer = std::make_unique<EffectRendererDX12>();
-	m_pRenderer->Initialize(pd3dDevice, pd3dCommandList);
+	m_pRenderer->Initialize(pd3dDevice);
 }
 
 void CEffectLibrary::ReleaseIfInitialized()
@@ -496,7 +498,16 @@ void CEffectLibrary::Render(ID3D12GraphicsCommandList* pd3dCommandList, const XM
 {
 	if (m_pRenderer)
 	{
-		m_pRenderer->Render(pd3dCommandList, this, view, proj);
+		EffectRenderContext context;
+		context.commandContext = pd3dCommandList;
+
+		EffectMat4 effectView{};
+		EffectMat4 effectProj{};
+
+		memcpy(effectView.m, &view, sizeof(EffectMat4));
+		memcpy(effectProj.m, &proj, sizeof(EffectMat4));
+
+		m_pRenderer->Render(context, this, effectView, effectProj);
 	}
 }
 

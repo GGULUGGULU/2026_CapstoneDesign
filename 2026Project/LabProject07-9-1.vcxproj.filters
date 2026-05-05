@@ -90,6 +90,9 @@
     <ClInclude Include="EffectRendererDX12.h">
       <Filter>EffectLibrary</Filter>
     </ClInclude>
+    <ClInclude Include="EffectCoreTypes.h">
+      <Filter>EffectLibrary</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">

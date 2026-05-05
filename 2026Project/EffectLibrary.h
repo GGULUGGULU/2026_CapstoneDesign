@@ -1,12 +1,13 @@
 #pragma once
 
 #include <d3d12.h>
-#include <DirectxMath.h>
 #include <vector>
 #include <queue>
 #include <string>
 #include <memory>
 
+#include "EffectCoreTypes.h"
+#include <DirectxMath.h>
 #include "DDSTextureLoader12.h"
 #include "IEffectRenderer.h"
 
@@ -158,6 +159,7 @@ public:
 
 	void Update(float fTimeElapsed);
 	void Render(ID3D12GraphicsCommandList* pd3dCommandList, const XMFLOAT4X4& view, const XMFLOAT4X4& proj);
+	void Render(EffectRenderContext& context, const EffectMat4& view, const EffectMat4& proj);
 
 	ActiveEffect* Play(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT2 size, XMFLOAT3 color = XMFLOAT3(1.0f, 1.0f, 1.0f));
 	void PlayCarDustParticle(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT3 right, XMFLOAT3 look, XMFLOAT2 size, XMFLOAT2 offset, XMFLOAT3 color = XMFLOAT3(1.0f, 1.0f, 1.0f));
