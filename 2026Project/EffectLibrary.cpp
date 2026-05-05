@@ -32,6 +32,93 @@ D3D12_SHADER_BYTECODE CompileShaderHelper(LPCWSTR filename, LPCSTR entrypoint, L
 	return { byteCode->GetBufferPointer(), byteCode->GetBufferSize() };
 }
 
+CEffectLibrary::CEffectLibrary()
+{
+	InitializeDefaultEffectConfigs();
+}
+
+void CEffectLibrary::InitializeDefaultEffectConfigs()
+{
+	for (int i = 0; i < (int)EFFECT_TYPE::COUNT; ++i)
+	{
+		m_EffectConfigs[i] = EffectTypeConfig();
+	}
+
+	m_EffectConfigs[(int)EFFECT_TYPE::COLLISION].spread = 20.0f;
+
+	m_EffectConfigs[(int)EFFECT_TYPE::DUST].poolSize = 2000;
+	m_EffectConfigs[(int)EFFECT_TYPE::DUST].particleCount = 1;
+	m_EffectConfigs[(int)EFFECT_TYPE::DUST].useDepth = true;
+
+	for (int i = (int)EFFECT_TYPE::ITEM1; i <= (int)EFFECT_TYPE::ITEM9; ++i)
+	{
+		m_EffectConfigs[i].spread = 50.0f;
+	}
+
+	m_EffectConfigs[(int)EFFECT_TYPE::BOOSTER].poolSize = 1;
+	m_EffectConfigs[(int)EFFECT_TYPE::BOOSTER].particleCount = 50;
+	m_EffectConfigs[(int)EFFECT_TYPE::BOOSTER].lifeTime = 999999.0f;
+	m_EffectConfigs[(int)EFFECT_TYPE::BOOSTER].loop = true;
+	m_EffectConfigs[(int)EFFECT_TYPE::BOOSTER].useDepth = true;
+
+	m_EffectConfigs[(int)EFFECT_TYPE::WIND_EFFECT].poolSize = 1;
+	m_EffectConfigs[(int)EFFECT_TYPE::WIND_EFFECT].lifeTime = 999999.0f;
+	m_EffectConfigs[(int)EFFECT_TYPE::WIND_EFFECT].loop = true;
+}
+
+bool CEffectLibrary::IsValidEffectType(EFFECT_TYPE type) const
+{
+	int index = (int)type;
+	return index >= 0 && index < (int)EFFECT_TYPE::COUNT;
+}
+
+bool CEffectLibrary::IsItemEffect(EFFECT_TYPE type) const
+{
+	return type >= EFFECT_TYPE::ITEM1 && type <= EFFECT_TYPE::ITEM9;
+}
+
+bool CEffectLibrary::IsDepthParticleEffect(EFFECT_TYPE type) const
+{
+	if (!IsValidEffectType(type)) return false;
+	return m_EffectConfigs[(int)type].useDepth;
+}
+
+float CEffectLibrary::GetConfiguredSpread(EFFECT_TYPE type) const
+{
+	if (!IsValidEffectType(type)) return 0.0f;
+	return m_EffectConfigs[(int)type].spread;
+}
+
+float CEffectLibrary::GetConfiguredLifeTime(EFFECT_TYPE type) const
+{
+	if (!IsValidEffectType(type)) return 2.0f;
+	return m_EffectConfigs[(int)type].lifeTime;
+}
+
+bool CEffectLibrary::GetConfiguredLoop(EFFECT_TYPE type) const
+{
+	if (!IsValidEffectType(type)) return false;
+	return m_EffectConfigs[(int)type].loop;
+}
+
+void CEffectLibrary::SetEffectTypeConfig(EFFECT_TYPE type, const EffectTypeConfig& config)
+{
+	if (!IsValidEffectType(type)) return;
+	m_EffectConfigs[(int)type] = config;
+}
+
+void CEffectLibrary::SetEffectLifeTime(EFFECT_TYPE type, float lifeTime)
+{
+	if (!IsValidEffectType(type)) return;
+	m_EffectConfigs[(int)type].lifeTime = lifeTime;
+}
+
+void CEffectLibrary::SetEffectTextureFileName(EFFECT_TYPE type, const std::wstring& fileName)
+{
+	if (!IsValidEffectType(type)) return;
+	m_TextureFileNames[(int)type] = fileName;
+}
+
 CEffectLibrary* CEffectLibrary::Instance()
 {
 	static CEffectLibrary inst;
@@ -40,10 +127,29 @@ CEffectLibrary* CEffectLibrary::Instance()
 
 void CEffectLibrary::Initialize(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
+	ReleaseIfInitialized();
+
+	if (!InitializeRenderResources(pd3dDevice, pd3dCommandList))
+	{
+		OutputDebugStringA("[EffectLibrary] InitializeRenderResources failed.\n");
+		return;
+	}
+
+	CreateEffectPools(pd3dDevice, pd3dCommandList);
+}
+
+void CEffectLibrary::ReleaseIfInitialized()
+{
 	if (m_pd3dSrvHeap != nullptr)
 	{
 		Release();
 	}
+}
+
+bool CEffectLibrary::InitializeRenderResources(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	if (!pd3dDevice || !pd3dCommandList) return false;
+
 	BuildRootSignature(pd3dDevice);
 	BuildPipelineState(pd3dDevice);
 
@@ -57,98 +163,124 @@ void CEffectLibrary::Initialize(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandL
 	if (FAILED(hr) || (m_pd3dSrvHeap == nullptr))
 	{
 		OutputDebugStringA("[EffectLibrary] CreateDescriptorHeap failed.\n");
-		return;
+		return false;
 	}
 
 	m_d3dSrvCpuHandleStart = m_pd3dSrvHeap->GetCPUDescriptorHandleForHeapStart();
 	m_d3dSrvGpuHandleStart = m_pd3dSrvHeap->GetGPUDescriptorHandleForHeapStart();
-
 	m_nSrvDescriptorIncrementSize = pd3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 	LoadAssets(pd3dDevice, pd3dCommandList);
+	return true;
+}
 
+void CEffectLibrary::CreateEffectPools(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
+{
 	for (int typeIndex = 0; typeIndex < (int)EFFECT_TYPE::COUNT; ++typeIndex)
 	{
-		// 바람저항효과
-		if ((EFFECT_TYPE)typeIndex == EFFECT_TYPE::WIND_EFFECT)
+		EFFECT_TYPE type = (EFFECT_TYPE)typeIndex;
+
+		if (type == EFFECT_TYPE::WIND_EFFECT)
 		{
-			CMeshEffect* pShield = new CMeshEffect(pd3dDevice, pd3dCommandList);
-			pShield->CreateMesh(pd3dDevice, pd3dCommandList, 15.0f, 20, 20);
-			std::vector<std::wstring> windTex = { 
-				L"Asset/DDS_File/noise.dds",
-				L"Asset/DDS_File/noise.dds",
-				L"Asset/DDS_File/noise.dds"
-			};
-			pShield->CreateTextures(pd3dDevice, pd3dCommandList, windTex);
-			pShield->SetScale(XMFLOAT3(3.f, 10.5f, 1.5f));
-			//pShield->SetScale(XMFLOAT3(12.0f, 4.0f, 8.0f));
-			pShield->SetScrollSpeed(XMFLOAT3(0.0f, -6.0f, 0.0f));
-
-			ActiveEffect* pEffect = new ActiveEffect;
-			pEffect->type = (EFFECT_TYPE)typeIndex;
-			pEffect->bActive = false;
-			pEffect->pParticleSys = nullptr;
-			pEffect->pMeshEffect = pShield;
-
-			m_vActiveEffects.push_back(pEffect);
-			m_pWindShieldEffect = pEffect;
-
+			CreateWindEffect(pd3dDevice, pd3dCommandList);
 			continue;
 		}
-		else if ((EFFECT_TYPE)typeIndex == EFFECT_TYPE::BOOSTER)
+
+		if (type == EFFECT_TYPE::BOOSTER)
 		{
-			CParticleSystem* pBoosterParticles = new CParticleSystem(pd3dDevice, pd3dCommandList, 50);
-
-			CMeshEffect* pBoosterMesh = new CMeshEffect(pd3dDevice, pd3dCommandList);
-
-			pBoosterMesh->CreateMesh(pd3dDevice, pd3dCommandList, 2.0f, 20, 20);
-
-			std::vector<std::wstring> boosterTexs = {
-				L"Asset/DDS_File/BoosterBase.dds", 
-				L"Asset/DDS_File/BoosterNoise.dds", 
-				L"Asset/DDS_File/BoosterMask.dds"   
-			};
-			pBoosterMesh->CreateTextures(pd3dDevice, pd3dCommandList, boosterTexs);
-
-			pBoosterMesh->SetColor(XMFLOAT3(0.1f, 0.5f, 1.0f)); // 부스터 색상 설정
-			pBoosterMesh->SetScale(XMFLOAT3(2.f, 10.0f, 2.f)); // 부스터 메시 크기
-			pBoosterMesh->SetScrollSpeed(XMFLOAT3(0.0f, 6.0f, 0.0f)); // uv스크롤링 속도
-
-			ActiveEffect* pEffect = new ActiveEffect;
-			pEffect->type = EFFECT_TYPE::BOOSTER;
-			pEffect->pParticleSys = pBoosterParticles;
-			pEffect->pMeshEffect = pBoosterMesh; 
-			pEffect->bActive = false;
-
-			m_vActiveEffects.push_back(pEffect);
-			m_pBoosterEffect = pEffect;
+			CreateBoosterEffect(pd3dDevice, pd3dCommandList);
 		}
 
-		// 기타 파티클 생성
-		int nPoolSize = 50;
-		int nParticleCount = 3;
-
-		// 흙먼지
-		if ((EFFECT_TYPE)typeIndex == EFFECT_TYPE::DUST) {
-			nPoolSize = 2000;
-			nParticleCount = 1;
-		}
-
-		for (int i = 0; i < nPoolSize; ++i)
-		{
-			CParticleSystem* pSys = new CParticleSystem(pd3dDevice, pd3dCommandList, nParticleCount);
-
-			ActiveEffect* pEffect = new ActiveEffect{
-				(EFFECT_TYPE)typeIndex,
-				false,
-				0.0f,
-				pSys,
-				nullptr
-			};
-			m_vEffectPool[typeIndex].push_back(pEffect);
-		}
+		const EffectTypeConfig& config = m_EffectConfigs[typeIndex];
+		CreateParticleEffectPool(type, pd3dDevice, pd3dCommandList, config.poolSize, config.particleCount);
 	}
 }
+
+void CEffectLibrary::CreateWindEffect(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	CMeshEffect* pShield = new CMeshEffect(pd3dDevice, pd3dCommandList);
+	pShield->CreateMesh(pd3dDevice, pd3dCommandList, 15.0f, 20, 20);
+
+	std::vector<std::wstring> windTex = {
+		L"Asset/DDS_File/noise.dds",
+		L"Asset/DDS_File/noise.dds",
+		L"Asset/DDS_File/noise.dds"
+	};
+
+	pShield->CreateTextures(pd3dDevice, pd3dCommandList, windTex);
+	pShield->SetScale(XMFLOAT3(3.f, 10.5f, 1.5f));
+	pShield->SetScrollSpeed(XMFLOAT3(0.0f, -6.0f, 0.0f));
+
+	ActiveEffect* pEffect = new ActiveEffect;
+	pEffect->type = EFFECT_TYPE::WIND_EFFECT;
+	pEffect->bActive = false;
+	pEffect->fAge = 0.0f;
+	pEffect->fLifeTime = GetConfiguredLifeTime(EFFECT_TYPE::WIND_EFFECT);
+	pEffect->bLoop = GetConfiguredLoop(EFFECT_TYPE::WIND_EFFECT);
+	pEffect->fSpread = 0.0f;
+	pEffect->bUseSpread = false;
+	pEffect->pParticleSys = nullptr;
+	pEffect->pMeshEffect = pShield;
+
+	m_vActiveEffects.push_back(pEffect);
+	m_pWindShieldEffect = pEffect;
+}
+
+void CEffectLibrary::CreateBoosterEffect(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	CParticleSystem* pBoosterParticles = new CParticleSystem(pd3dDevice, pd3dCommandList, 50);
+
+	CMeshEffect* pBoosterMesh = new CMeshEffect(pd3dDevice, pd3dCommandList);
+	pBoosterMesh->CreateMesh(pd3dDevice, pd3dCommandList, 2.0f, 20, 20);
+
+	std::vector<std::wstring> boosterTexs = {
+		L"Asset/DDS_File/BoosterBase.dds",
+		L"Asset/DDS_File/BoosterNoise.dds",
+		L"Asset/DDS_File/BoosterMask.dds"
+	};
+
+	pBoosterMesh->CreateTextures(pd3dDevice, pd3dCommandList, boosterTexs);
+	pBoosterMesh->SetColor(XMFLOAT3(0.1f, 0.5f, 1.0f));
+	pBoosterMesh->SetScale(XMFLOAT3(2.f, 10.0f, 2.f));
+	pBoosterMesh->SetScrollSpeed(XMFLOAT3(0.0f, 6.0f, 0.0f));
+
+	ActiveEffect* pEffect = new ActiveEffect;
+	pEffect->type = EFFECT_TYPE::BOOSTER;
+	pEffect->bActive = false;
+	pEffect->fAge = 0.0f;
+	pEffect->fLifeTime = GetConfiguredLifeTime(EFFECT_TYPE::BOOSTER);
+	pEffect->bLoop = GetConfiguredLoop(EFFECT_TYPE::BOOSTER);
+	pEffect->fSpread = GetConfiguredSpread(EFFECT_TYPE::BOOSTER);
+	pEffect->bUseSpread = (pEffect->fSpread > 0.0001f);
+	pEffect->pParticleSys = pBoosterParticles;
+	pEffect->pMeshEffect = pBoosterMesh;
+
+	m_vActiveEffects.push_back(pEffect);
+	m_pBoosterEffect = pEffect;
+}
+
+void CEffectLibrary::CreateParticleEffectPool(EFFECT_TYPE type, ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, int nPoolSize, int nParticleCount)
+{
+	for (int i = 0; i < nPoolSize; ++i)
+	{
+		CParticleSystem* pSys = new CParticleSystem(pd3dDevice, pd3dCommandList, nParticleCount);
+
+		ActiveEffect* pEffect = new ActiveEffect{
+			type,
+			false,
+			0.0f,
+			GetConfiguredLifeTime(type),
+			GetConfiguredLoop(type),
+			GetConfiguredSpread(type),
+			(GetConfiguredSpread(type) > 0.0001f),
+			pSys,
+			nullptr
+		};
+
+		m_vEffectPool[(int)type].push_back(pEffect);
+	}
+}
+
 
 void CEffectLibrary::BuildRootSignature(ID3D12Device* pd3dDevice)
 {
@@ -213,6 +345,12 @@ void CEffectLibrary::LoadAssets(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandL
 
 		std::unique_ptr<uint8_t[]> ddsData;
 		std::vector<D3D12_SUBRESOURCE_DATA> subresources;
+
+		if (m_TextureFileNames[i].empty())
+		{
+			currentCpuHandle.ptr += nDescriptorSize;
+			continue;
+		}
 
 		HRESULT hr = LoadDDSTextureFromFile(
 			pd3dDevice,
@@ -281,64 +419,79 @@ void CEffectLibrary::Render(ID3D12GraphicsCommandList* pd3dCommandList, const XM
 
 	ID3D12DescriptorHeap* pParticleHeap[] = { m_pd3dSrvHeap };
 
-	// [상태 추적용 변수] 현재 바인딩된 PSO가 무엇인지
-	// 0: 없음, 1: Particle, 2: Mesh, 3: depth용, 4: 부스터용
+	// 0: 없음, 1: Particle, 2: Mesh, 3: Particle Depth, 4: Booster Mesh
 	int currentPsoType = 0;
 
 	for (auto eff : m_vActiveEffects)
 	{
+		if (!eff || !eff->bActive) continue;
+
 		if (eff->pParticleSys)
 		{
-			bool bUseDepth = (eff->type == EFFECT_TYPE::DUST || eff->type == EFFECT_TYPE::BOOSTER);
-
-			int nDesiredPsoType = bUseDepth ? 3 : 1;
-			ID3D12PipelineState* pTargetPSO = bUseDepth ? m_pParticleDepthPSO : m_pPipelineState;
-
-			if (pTargetPSO == nullptr) continue;
-
-			if (currentPsoType != nDesiredPsoType)
-			{
-				pd3dCommandList->SetPipelineState(pTargetPSO);
-				pd3dCommandList->SetDescriptorHeaps(1, pParticleHeap);
-				currentPsoType = nDesiredPsoType;
-			}
-			else
-			{
-				pd3dCommandList->SetDescriptorHeaps(1, pParticleHeap);
-			}
-
-			D3D12_GPU_DESCRIPTOR_HANDLE textureHandle = m_d3dSrvGpuHandleStart;
-			textureHandle.ptr += (UINT64)eff->type * m_nSrvDescriptorIncrementSize;
-			pd3dCommandList->SetGraphicsRootDescriptorTable(0, textureHandle);
-
-			eff->pParticleSys->Render(pd3dCommandList);
+			RenderParticleEffect(pd3dCommandList, eff, currentPsoType, pParticleHeap);
 		}
-		
+
 		if (eff->pMeshEffect)
 		{
-			if (eff->type == EFFECT_TYPE::BOOSTER)
-			{
-				if (m_pBoosterPSO == nullptr) continue;
-				if (currentPsoType != 4) 
-				{
-					pd3dCommandList->SetPipelineState(m_pBoosterPSO);
-					currentPsoType = 4;
-				}
-			}
-			else 
-			{
-				if (m_pMeshEffectPSO == nullptr) continue;
-				if (currentPsoType != 2)
-				{
-					pd3dCommandList->SetPipelineState(m_pMeshEffectPSO);
-					currentPsoType = 2;
-				}
-			}
-
-			eff->pMeshEffect->Render(pd3dCommandList);
+			RenderMeshEffect(pd3dCommandList, eff, currentPsoType);
 		}
 	}
 }
+
+void CEffectLibrary::RenderParticleEffect(ID3D12GraphicsCommandList* pd3dCommandList, ActiveEffect* eff, int& currentPsoType, ID3D12DescriptorHeap** ppParticleHeap)
+{
+	if (!pd3dCommandList || !eff || !eff->pParticleSys) return;
+
+	bool bUseDepth = IsDepthParticleEffect(eff->type);
+
+	int nDesiredPsoType = bUseDepth ? 3 : 1;
+	ID3D12PipelineState* pTargetPSO = bUseDepth ? m_pParticleDepthPSO : m_pPipelineState;
+
+	if (pTargetPSO == nullptr) return;
+
+	if (currentPsoType != nDesiredPsoType)
+	{
+		pd3dCommandList->SetPipelineState(pTargetPSO);
+		currentPsoType = nDesiredPsoType;
+	}
+
+	pd3dCommandList->SetDescriptorHeaps(1, ppParticleHeap);
+
+	D3D12_GPU_DESCRIPTOR_HANDLE textureHandle = m_d3dSrvGpuHandleStart;
+	textureHandle.ptr += (UINT64)eff->type * m_nSrvDescriptorIncrementSize;
+	pd3dCommandList->SetGraphicsRootDescriptorTable(0, textureHandle);
+
+	eff->pParticleSys->Render(pd3dCommandList);
+}
+
+void CEffectLibrary::RenderMeshEffect(ID3D12GraphicsCommandList* pd3dCommandList, ActiveEffect* eff, int& currentPsoType)
+{
+	if (!pd3dCommandList || !eff || !eff->pMeshEffect) return;
+
+	if (eff->type == EFFECT_TYPE::BOOSTER)
+	{
+		if (m_pBoosterPSO == nullptr) return;
+
+		if (currentPsoType != 4)
+		{
+			pd3dCommandList->SetPipelineState(m_pBoosterPSO);
+			currentPsoType = 4;
+		}
+	}
+	else
+	{
+		if (m_pMeshEffectPSO == nullptr) return;
+
+		if (currentPsoType != 2)
+		{
+			pd3dCommandList->SetPipelineState(m_pMeshEffectPSO);
+			currentPsoType = 2;
+		}
+	}
+
+	eff->pMeshEffect->Render(pd3dCommandList);
+}
+
 
 void CEffectLibrary::BuildPipelineState(ID3D12Device* pd3dDevice)
 {
@@ -449,8 +602,8 @@ void CEffectLibrary::BuildPipelineState(ID3D12Device* pd3dDevice)
 
 	D3D12_BLEND_DESC boosterBlendDesc = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 	boosterBlendDesc.RenderTarget[0].BlendEnable = TRUE;
-	boosterBlendDesc.RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA; 
-	boosterBlendDesc.RenderTarget[0].DestBlend = D3D12_BLEND_ONE;     
+	boosterBlendDesc.RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA;
+	boosterBlendDesc.RenderTarget[0].DestBlend = D3D12_BLEND_ONE;
 	boosterBlendDesc.RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD;
 
 	boosterBlendDesc.RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ZERO;
@@ -461,7 +614,7 @@ void CEffectLibrary::BuildPipelineState(ID3D12Device* pd3dDevice)
 
 	D3D12_DEPTH_STENCIL_DESC boosterDepthDesc = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
 	boosterDepthDesc.DepthEnable = TRUE;
-	boosterDepthDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO; 
+	boosterDepthDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
 	boosterDepthDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
 	boosterPsoDesc.DepthStencilState = boosterDepthDesc;
 
@@ -474,6 +627,7 @@ void CEffectLibrary::BuildPipelineState(ID3D12Device* pd3dDevice)
 
 ActiveEffect* CEffectLibrary::Play(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT2 size, XMFLOAT3 color)
 {
+	if (!IsValidEffectType(type)) return nullptr;
 	if (m_vEffectPool[(int)type].empty()) return nullptr;
 
 	ActiveEffect* pEffectData = m_vEffectPool[(int)type].back();
@@ -482,33 +636,20 @@ ActiveEffect* CEffectLibrary::Play(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT2
 	pEffectData->bActive = true;
 	pEffectData->fAge = 0.0f;
 	pEffectData->type = type;
+	pEffectData->fLifeTime = GetConfiguredLifeTime(type);
+	pEffectData->bLoop = GetConfiguredLoop(type);
+	pEffectData->fSpread = GetConfiguredSpread(type);
+	pEffectData->bUseSpread = (pEffectData->fSpread > 0.0001f);
 
 	if (pEffectData->pParticleSys)
 	{
 		// 파티클 시스템
 		pEffectData->pParticleSys->SetPosition(position);
 
-		float fSpread = 0.0f; // 기본값, 흙먼지 파티클 퍼짐정도, 0.f일때 일자로 나오게 수정
+		float fSpread = pEffectData->fSpread;
+		pEffectData->bUseSpread = !IsZero(fSpread);
 
-		if (type >= EFFECT_TYPE::ITEM1 && type <= EFFECT_TYPE::ITEM9)
-		{
-			fSpread = 50.0f; // 아이템 획득 파티클 퍼짐정도
-		}
-		else if (type == EFFECT_TYPE::COLLISION)
-		{
-			fSpread = 20.0f; // 충돌 파티클 퍼짐정도
-		}
-
-		if (IsZero(fSpread))
-		{
-			m_bSpreadZero = false;
-		}
-		else
-		{
-			m_bSpreadZero = true;
-		}
-
-		pEffectData->pParticleSys->ResetParticles(size, fSpread, m_bSpreadZero, color);
+		pEffectData->pParticleSys->ResetParticles(size, fSpread, pEffectData->bUseSpread, color);
 
 	}
 	else if (pEffectData->pMeshEffect)
@@ -544,8 +685,28 @@ void CEffectLibrary::PlayCarDustParticle(EFFECT_TYPE type, XMFLOAT3 position, XM
 	Play(type, br, size, color); // 우하
 }
 
+
+void CEffectLibrary::PushEffectEvent(const EffectEvent& eventData)
+{
+	m_qEffectEvents.push(eventData);
+}
+
+void CEffectLibrary::PushEffectEvent(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT2 size, XMFLOAT3 color)
+{
+	m_qEffectEvents.push(EffectEvent(type, position, size, color));
+}
+
+void CEffectLibrary::PushEffectEvent(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT2 size, XMFLOAT3 color, float lifeTime, bool loop)
+{
+	m_qEffectEvents.push(EffectEvent(type, position, size, color, lifeTime, loop));
+}
+
+
+
 void CEffectLibrary::Update(float fTimeElapsed)
 {
+	ConsumeEffectEvents();
+
 	auto it = m_vActiveEffects.begin();
 
 	while (it != m_vActiveEffects.end())
@@ -553,48 +714,11 @@ void CEffectLibrary::Update(float fTimeElapsed)
 		ActiveEffect* eff = *it;
 		bool bIsDead = false;
 
-		if (eff->pParticleSys)
-		{
-			if (m_pPipelineState == nullptr) continue;
-			if (eff->type == EFFECT_TYPE::BOOSTER)
-			{
-				if (eff->bActive) eff->pParticleSys->BoosterAnimate(fTimeElapsed);
-			}
-			else if (eff->type == EFFECT_TYPE::DUST)
-			{
-				eff->pParticleSys->DustAnimate(fTimeElapsed, m_bSpreadZero);
-			}
-			else if (eff->type >= EFFECT_TYPE::ITEM1 && eff->type <= EFFECT_TYPE::ITEM9)
-			{
-				eff->pParticleSys->ItemAnimate(fTimeElapsed);
-			}
-			else // COLLISION1, 2, 3 등
-			{
-				eff->pParticleSys->CollisionAnimate(fTimeElapsed);
-			}
-		}
-
-		if (eff->pMeshEffect && eff->pMeshEffect->IsActive())
-		{
-			eff->pMeshEffect->Update(fTimeElapsed);
-		}
-
-		if (eff->type != EFFECT_TYPE::BOOSTER && eff->type != EFFECT_TYPE::WIND_EFFECT)
-		{
-			eff->fAge += fTimeElapsed;
-
-			if (eff->fAge > 2.0f)
-			{
-				bIsDead = true;
-			}
-		}
+		UpdateEffectInstance(eff, fTimeElapsed, bIsDead);
 
 		if (bIsDead)
 		{
-			eff->bActive = false;
-
-			m_vEffectPool[(int)eff->type].push_back(eff);
-
+			RecycleEffect(eff);
 			it = m_vActiveEffects.erase(it);
 		}
 		else
@@ -603,23 +727,106 @@ void CEffectLibrary::Update(float fTimeElapsed)
 		}
 	}
 
+	UpdateSpeedLineState(fTimeElapsed);
+}
+
+void CEffectLibrary::ConsumeEffectEvents()
+{
+	while (!m_qEffectEvents.empty())
+	{
+		EffectEvent eventData = m_qEffectEvents.front();
+		m_qEffectEvents.pop();
+
+		ActiveEffect* effect = Play(eventData.type, eventData.position, eventData.size, eventData.color);
+		if (effect)
+		{
+			if (eventData.lifeTime > 0.0f) effect->fLifeTime = eventData.lifeTime;
+			effect->bLoop = eventData.loop || GetConfiguredLoop(eventData.type);
+		}
+	}
+}
+
+void CEffectLibrary::UpdateEffectInstance(ActiveEffect* eff, float fTimeElapsed, bool& bIsDead)
+{
+	if (!eff) return;
+
+	UpdateParticleEffect(eff, fTimeElapsed);
+	UpdateMeshEffect(eff, fTimeElapsed);
+
+	if (!eff->bLoop)
+	{
+		eff->fAge += fTimeElapsed;
+
+		if (eff->fAge > eff->fLifeTime)
+		{
+			bIsDead = true;
+		}
+	}
+}
+
+void CEffectLibrary::UpdateParticleEffect(ActiveEffect* eff, float fTimeElapsed)
+{
+	if (!eff || !eff->pParticleSys) return;
+	if (m_pPipelineState == nullptr) return;
+
+	if (eff->type == EFFECT_TYPE::BOOSTER)
+	{
+		if (eff->bActive) eff->pParticleSys->BoosterAnimate(fTimeElapsed);
+	}
+	else if (eff->type == EFFECT_TYPE::DUST)
+	{
+		eff->pParticleSys->DustAnimate(fTimeElapsed, eff->bUseSpread);
+	}
+	else if (IsItemEffect(eff->type))
+	{
+		eff->pParticleSys->ItemAnimate(fTimeElapsed);
+	}
+	else
+	{
+		eff->pParticleSys->CollisionAnimate(fTimeElapsed);
+	}
+}
+
+void CEffectLibrary::UpdateMeshEffect(ActiveEffect* eff, float fTimeElapsed)
+{
+	if (!eff || !eff->pMeshEffect) return;
+
+	if (eff->pMeshEffect->IsActive())
+	{
+		eff->pMeshEffect->Update(fTimeElapsed);
+	}
+}
+
+void CEffectLibrary::RecycleEffect(ActiveEffect* eff)
+{
+	if (!eff) return;
+
+	eff->bActive = false;
+	m_vEffectPool[(int)eff->type].push_back(eff);
+}
+
+void CEffectLibrary::UpdateSpeedLineState(float fTimeElapsed)
+{
 	m_fSpeedLineAccumTime += fTimeElapsed;
 
 	if (m_fSpeedLineAccumTime > 0.05f)
 	{
 		m_fSpeedLineAccumTime = 0.0f;
 		m_fSpeedLineAngle = ((rand() % 360) * 3.141592f) / 180.0f;
-		m_fSpeedLineScale = 0.9f + ((rand() % 20) / 100.0f);       
+		m_fSpeedLineScale = 0.9f + ((rand() % 20) / 100.0f);
 	}
 
-	if (m_fCurrentPlayerSpeedRatio > 0.7f) {
+	if (m_fCurrentPlayerSpeedRatio > 0.7f)
+	{
 		m_fSpeedLineAlpha = (m_fCurrentPlayerSpeedRatio - 0.7f) * 3.33f;
 		if (m_fSpeedLineAlpha > 1.0f) m_fSpeedLineAlpha = 1.0f;
 	}
-	else {
+	else
+	{
 		m_fSpeedLineAlpha = 0.0f;
 	}
 }
+
 
 void CEffectLibrary::Release()
 {
@@ -670,6 +877,10 @@ void CEffectLibrary::Release()
 		}
 		m_vEffectPool[i].clear();
 	}
+
+	m_pBoosterEffect = nullptr;
+	m_pWindShieldEffect = nullptr;
+	while (!m_qEffectEvents.empty()) m_qEffectEvents.pop();
 
 	if (m_pRadialBlurPSO) { m_pRadialBlurPSO->Release(); m_pRadialBlurPSO = nullptr; }
 	if (m_pd3dComputeRootSignature) { m_pd3dComputeRootSignature->Release(); m_pd3dComputeRootSignature = nullptr; }
@@ -795,7 +1006,7 @@ void CEffectLibrary::InitializePostProcess(ID3D12Device* pd3dDevice, int width, 
 
 	D3D12_COMPUTE_PIPELINE_STATE_DESC psoDesc = {};
 	psoDesc.pRootSignature = m_pd3dComputeRootSignature;
-	psoDesc.CS = CompileShaderHelper(L"Shaders.hlsl", "CS_RadialBlur", "cs_5_1"); 
+	psoDesc.CS = CompileShaderHelper(L"Shaders.hlsl", "CS_RadialBlur", "cs_5_1");
 	psoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
 
 	pd3dDevice->CreateComputePipelineState(&psoDesc, IID_PPV_ARGS(&m_pRadialBlurPSO));
@@ -888,7 +1099,7 @@ void CEffectLibrary::RenderRadialBlur(ID3D12GraphicsCommandList* pd3dCommandList
 	pd3dCommandList->SetComputeRootDescriptorTable(3, m_d3dSpeedLineGpuHandle); // t1
 
 	// 속도 
-	float maxSpeed = 300.0f; 
+	float maxSpeed = 300.0f;
 	float speedRatio = max(0.0f, min(1.0f, (float)speed / maxSpeed));
 
 	float slAlpha = 0.0f;

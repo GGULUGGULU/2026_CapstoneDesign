@@ -3,6 +3,8 @@
 #include <d3d12.h>
 #include <DirectxMath.h>
 #include <vector>
+#include <queue>
+#include <string>
 #include "DDSTextureLoader12.h"
 
 using namespace DirectX;
@@ -33,9 +35,64 @@ struct ActiveEffect {
 	EFFECT_TYPE type;
 	bool bActive;
 	float fAge;
+	float fLifeTime;
+	bool bLoop;
+	float fSpread;
+	bool bUseSpread;
 
 	CParticleSystem* pParticleSys;
 	CMeshEffect* pMeshEffect;
+};
+
+// 이펙트 요청 정보를 하나의 데이터로 묶은 구조체.
+// 충돌, 아이템 획득, 네트워크 동기화 등에서 Play()를 직접 호출하지 않고
+// 이벤트 큐에 넣어 처리할 수 있도록 하기 위한 범용화 단계입니다.
+struct EffectEvent {
+	EFFECT_TYPE type;
+	XMFLOAT3 position;
+	XMFLOAT2 size;
+	XMFLOAT3 color;
+	float lifeTime;
+	bool loop;
+
+	EffectEvent()
+		: type(EFFECT_TYPE::COLLISION)
+		, position(0.0f, 0.0f, 0.0f)
+		, size(1.0f, 1.0f)
+		, color(1.0f, 1.0f, 1.0f)
+		, lifeTime(-1.0f)
+		, loop(false)
+	{
+	}
+
+	EffectEvent(EFFECT_TYPE effectType, XMFLOAT3 effectPos, XMFLOAT2 effectSize, XMFLOAT3 effectColor = XMFLOAT3(1.0f, 1.0f, 1.0f), float effectLifeTime = -1.0f, bool effectLoop = false)
+		: type(effectType)
+		, position(effectPos)
+		, size(effectSize)
+		, color(effectColor)
+		, lifeTime(effectLifeTime)
+		, loop(effectLoop)
+	{
+	}
+};
+
+struct EffectTypeConfig {
+	int poolSize;
+	int particleCount;
+	float lifeTime;
+	float spread;
+	bool loop;
+	bool useDepth;
+
+	EffectTypeConfig()
+		: poolSize(50)
+		, particleCount(3)
+		, lifeTime(2.0f)
+		, spread(0.0f)
+		, loop(false)
+		, useDepth(false)
+	{
+	}
 };
 
 struct CB_RADIAL_BLUR {
@@ -44,10 +101,10 @@ struct CB_RADIAL_BLUR {
 	float cy;
 	float aspect;
 
-	float slSin;     
-	float slCos;     
-	float slScale;   
-	float slAlpha;   
+	float slSin;
+	float slCos;
+	float slScale;
+	float slAlpha;
 };
 
 class CEffectLibrary
@@ -64,11 +121,22 @@ public:
 	ActiveEffect* Play(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT2 size, XMFLOAT3 color = XMFLOAT3(1.0f, 1.0f, 1.0f));
 	void PlayCarDustParticle(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT3 right, XMFLOAT3 look, XMFLOAT2 size, XMFLOAT2 offset, XMFLOAT3 color = XMFLOAT3(1.0f, 1.0f, 1.0f));
 
+	// 직접 Play()를 호출하지 않고 이벤트로 이펙트를 요청하는 함수입니다.
+	// 네트워크 수신 이벤트나 충돌 이벤트와 연결하기 좋습니다.
+	void PushEffectEvent(const EffectEvent& eventData);
+	void PushEffectEvent(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT2 size, XMFLOAT3 color = XMFLOAT3(1.0f, 1.0f, 1.0f));
+	void PushEffectEvent(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT2 size, XMFLOAT3 color, float lifeTime, bool loop = false);
+
+	// Library customization API. Call before Initialize() when changing pool counts or asset paths.
+	void SetEffectTypeConfig(EFFECT_TYPE type, const EffectTypeConfig& config);
+	void SetEffectLifeTime(EFFECT_TYPE type, float lifeTime);
+	void SetEffectTextureFileName(EFFECT_TYPE type, const std::wstring& fileName);
+
 	void ToggleBooster(bool flag);
 	void UpdateBoosterPosition(const XMFLOAT3&, const XMFLOAT3&);
 
 private:
-	CEffectLibrary() {}
+	CEffectLibrary();
 	~CEffectLibrary() {}
 
 	std::vector<ActiveEffect*> m_vActiveEffects;
@@ -81,7 +149,7 @@ private:
 	std::vector<ID3D12Resource*> m_vTextures;
 	std::vector<ID3D12Resource*> m_vUploadBuffers;
 
-	const std::wstring m_TextureFileNames[(int)EFFECT_TYPE::COUNT] = {
+	std::wstring m_TextureFileNames[(int)EFFECT_TYPE::COUNT] = {
 		L"Asset/DDS_File/WhiteStar1.dds",
 		/////////////////////////////////////////////////
 		L"Asset/DDS_File/Dust.dds",
@@ -114,10 +182,39 @@ private:
 	void BuildPipelineState(ID3D12Device* pd3dDevice);
 	void LoadAssets(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 
+	// 1단계 범용화: 기존 파일 구조는 유지하되, 내부 역할을 분리합니다.
+	void ReleaseIfInitialized();
+	bool InitializeRenderResources(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+	void CreateEffectPools(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+	void CreateWindEffect(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+	void CreateBoosterEffect(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+	void CreateParticleEffectPool(EFFECT_TYPE type, ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, int nPoolSize, int nParticleCount);
+
+	void InitializeDefaultEffectConfigs();
+	bool IsValidEffectType(EFFECT_TYPE type) const;
+	bool IsItemEffect(EFFECT_TYPE type) const;
+	bool IsDepthParticleEffect(EFFECT_TYPE type) const;
+	float GetConfiguredSpread(EFFECT_TYPE type) const;
+	float GetConfiguredLifeTime(EFFECT_TYPE type) const;
+	bool GetConfiguredLoop(EFFECT_TYPE type) const;
+
+	void ConsumeEffectEvents();
+	void UpdateEffectInstance(ActiveEffect* eff, float fTimeElapsed, bool& bIsDead);
+	void UpdateParticleEffect(ActiveEffect* eff, float fTimeElapsed);
+	void UpdateMeshEffect(ActiveEffect* eff, float fTimeElapsed);
+	void RecycleEffect(ActiveEffect* eff);
+	void UpdateSpeedLineState(float fTimeElapsed);
+
+	void RenderParticleEffect(ID3D12GraphicsCommandList* pd3dCommandList, ActiveEffect* eff, int& currentPsoType, ID3D12DescriptorHeap** ppParticleHeap);
+	void RenderMeshEffect(ID3D12GraphicsCommandList* pd3dCommandList, ActiveEffect* eff, int& currentPsoType);
+
 	ActiveEffect* m_pBoosterEffect = nullptr;
 	ActiveEffect* m_pWindShieldEffect = nullptr;
 
 	bool m_bSpreadZero = false;
+
+	EffectTypeConfig m_EffectConfigs[(int)EFFECT_TYPE::COUNT];
+	std::queue<EffectEvent> m_qEffectEvents;
 
 public:
 	void InitializePostProcess(ID3D12Device* pd3dDevice, int width, int height);
@@ -148,9 +245,9 @@ private:
 	float m_fSpeedLineAngle = 0.0f;
 	float m_fSpeedLineScale = 1.0f;
 	float m_fSpeedLineAlpha = 0.0f;
-	float m_fCurrentPlayerSpeedRatio = 0.0f; 
+	float m_fCurrentPlayerSpeedRatio = 0.0f;
 
-	D3D12_GPU_DESCRIPTOR_HANDLE m_d3dSpeedLineGpuHandle; 
+	D3D12_GPU_DESCRIPTOR_HANDLE m_d3dSpeedLineGpuHandle;
 
 public:
 	void SetPlayerSpeedRatio(float ratio) { m_fCurrentPlayerSpeedRatio = ratio; }
