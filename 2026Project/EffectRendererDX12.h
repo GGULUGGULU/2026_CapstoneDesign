@@ -1,4 +1,5 @@
 #pragma once
+#include <d3d12.h>
 #include "IEffectRenderer.h"
 
 class EffectRendererDX12 : public IEffectRenderer

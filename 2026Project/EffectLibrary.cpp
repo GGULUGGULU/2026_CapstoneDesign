@@ -512,6 +512,14 @@ void CEffectLibrary::Render(ID3D12GraphicsCommandList* pd3dCommandList, const XM
 }
 
 
+void CEffectLibrary::Render(EffectRenderContext& context, const EffectMat4& view, const EffectMat4& proj)
+{
+	if (m_pRenderer)
+	{
+		m_pRenderer->Render(context, this, view, proj);
+	}
+}
+
 void CEffectLibrary::RenderParticleEffect(ID3D12GraphicsCommandList* pd3dCommandList, ActiveEffect* eff, int& currentPsoType, ID3D12DescriptorHeap** ppParticleHeap)
 {
 	if (!pd3dCommandList || !eff || !eff->pParticleSys) return;
@@ -876,6 +884,22 @@ void CEffectLibrary::RecycleEffect(ActiveEffect* eff)
 	if (!eff) return;
 
 	eff->bActive = false;
+
+	if (eff->pMeshEffect)
+	{
+		eff->pMeshEffect->SetActive(false);
+	}
+
+	if (eff->pParticleSys)
+	{
+		eff->pParticleSys->Clear();
+	}
+
+	if (eff->type == EFFECT_TYPE::BOOSTER || eff->type == EFFECT_TYPE::WIND_EFFECT)
+	{
+		return; 
+	}
+
 	m_vEffectPool[(int)eff->type].push_back(eff);
 }
 
