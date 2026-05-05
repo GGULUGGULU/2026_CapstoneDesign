@@ -1,4 +1,4 @@
-#include "stdafx.h"
+#include "EffectPCH.h"
 #include "MeshEffect.h"
 #include "DDSTextureLoader12.h"
 

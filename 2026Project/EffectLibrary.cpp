@@ -1,11 +1,9 @@
-#include "stdafx.h"
+#include "EffectPCH.h"
 #include "EffectRendererDX12.h"
 #include "EffectLibrary.h"
 #include "ParticleSystem.h"
 #include "MeshEffect.h"
 #include "d3dx12.h"
-
-#include <cstring>
 
 // 쉐이더 컴파일 헬퍼 함수
 D3D12_SHADER_BYTECODE CompileShaderHelper(LPCWSTR filename, LPCSTR entrypoint, LPCSTR target)

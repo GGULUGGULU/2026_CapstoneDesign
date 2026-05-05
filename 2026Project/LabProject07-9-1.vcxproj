@@ -145,6 +145,7 @@
     <ClInclude Include="DDSTextureLoader12.h" />
     <ClInclude Include="EffectCoreTypes.h" />
     <ClInclude Include="EffectLibrary.h" />
+    <ClInclude Include="EffectPCH.h" />
     <ClInclude Include="EffectRendererDX12.h" />
     <ClInclude Include="GameFramework.h" />
     <ClInclude Include="2026Project.h" />
@@ -169,15 +170,31 @@
   <ItemGroup>
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="DDSTextureLoader12.cpp" />
-    <ClCompile Include="EffectLibrary.cpp" />
-    <ClCompile Include="EffectRendererDX12.cpp" />
+    <ClCompile Include="EffectLibrary.cpp">
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">EffectPCH.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">EffectPCH.h</PrecompiledHeaderFile>
+    </ClCompile>
+    <ClCompile Include="EffectPCH.cpp">
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">EffectPCH.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">EffectPCH.h</PrecompiledHeaderFile>
+    </ClCompile>
+    <ClCompile Include="EffectRendererDX12.cpp">
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">EffectPCH.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">EffectPCH.h</PrecompiledHeaderFile>
+    </ClCompile>
     <ClCompile Include="GameFramework.cpp" />
     <ClCompile Include="2026Project.cpp" />
     <ClCompile Include="Mesh.cpp" />
-    <ClCompile Include="MeshEffect.cpp" />
+    <ClCompile Include="MeshEffect.cpp">
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">EffectPCH.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">EffectPCH.h</PrecompiledHeaderFile>
+    </ClCompile>
     <ClCompile Include="NetworkManager.cpp" />
     <ClCompile Include="Object.cpp" />
-    <ClCompile Include="ParticleSystem.cpp" />
+    <ClCompile Include="ParticleSystem.cpp">
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">EffectPCH.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">EffectPCH.h</PrecompiledHeaderFile>
+    </ClCompile>
     <ClCompile Include="Player.cpp" />
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="Shader.cpp" />

@@ -93,6 +93,9 @@
     <ClInclude Include="EffectCoreTypes.h">
       <Filter>EffectLibrary</Filter>
     </ClInclude>
+    <ClInclude Include="EffectPCH.h">
+      <Filter>EffectLibrary</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -149,6 +152,9 @@
     <ClCompile Include="EffectRendererDX12.cpp">
       <Filter>EffectLibrary</Filter>
     </ClCompile>
+    <ClCompile Include="EffectPCH.cpp">
+      <Filter>EffectLibrary</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="2026Project.rc">
@@ -166,6 +172,8 @@
   <ItemGroup>
     <FxCompile Include="Light.hlsl" />
     <FxCompile Include="Shaders.hlsl" />
-    <FxCompile Include="EffectShaders.hlsl" />
+    <FxCompile Include="EffectShaders.hlsl">
+      <Filter>EffectLibrary</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

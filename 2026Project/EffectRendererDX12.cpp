@@ -1,11 +1,8 @@
-#include "stdafx.h"
+#include "EffectPCH.h"
 #include "EffectRendererDX12.h"
 #include "EffectLibrary.h"
 #include "ParticleSystem.h"
 #include "MeshEffect.h"
-
-#include <cstring>
-
 
 bool EffectRendererDX12::Initialize(void* deviceContext)
 {

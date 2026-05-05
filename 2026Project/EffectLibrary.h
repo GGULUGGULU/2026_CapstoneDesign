@@ -166,7 +166,6 @@ public:
 	void PushEffectEvent(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT2 size, XMFLOAT3 color = XMFLOAT3(1.0f, 1.0f, 1.0f));
 	void PushEffectEvent(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT2 size, XMFLOAT3 color, float lifeTime, bool loop = false);
 
-	// Library customization API. Call before Initialize() when changing pool counts or asset paths.
 	void SetEffectTypeConfig(EFFECT_TYPE type, const EffectTypeConfig& config);
 	void SetEffectLifeTime(EFFECT_TYPE type, float lifeTime);
 	void SetEffectTextureFileName(EFFECT_TYPE type, const std::wstring& fileName);
