@@ -571,7 +571,9 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 			PlayAndSyncEffect(EFFECT_TYPE::ITEM9, effectPos, XMFLOAT2(50, 50));
 			break;
 		}
-
+		case 'R':
+			m_pPlayer->Rotate(0, 90, 0);
+			break;
 		default:
 			break;
 		}
@@ -2508,7 +2510,7 @@ void CGameFramework::LoadMinimapUIResource()
 	ComPtr<IWICFormatConverter> converter;
 
 	HRESULT hr = m_pWICFactory->CreateDecoderFromFilename(
-		L"Asset/image/Minimap.png",
+		L"Asset/image/Minimap1.png",
 		nullptr,
 		GENERIC_READ,
 		WICDecodeMetadataCacheOnLoad,
@@ -2592,11 +2594,11 @@ D2D1_POINT_2F CGameFramework::WorldToMinimap(
 	const XMFLOAT3& worldPos,
 	const D2D1_RECT_F& minimapRect)
 {
-
-	const float worldMinX = -2200.0f; // 맵 사이즈 맞게 조정 
-	const float worldMaxX = -1700.0f;
-	const float worldMinZ = -100.0f;
-	const float worldMaxZ = 500.0f;
+	// 스테이지1 사이즈
+	const float worldMinX = -3000.0f; // 맵 사이즈 맞게 조정 
+	const float worldMaxX = 1450.0f;
+	const float worldMinZ = -3100.0f;
+	const float worldMaxZ = 3250.0f;
 
 	float u = (worldPos.x - worldMinX) / (worldMaxX - worldMinX);
 	float v = (worldPos.z - worldMinZ) / (worldMaxZ - worldMinZ);
@@ -2659,7 +2661,7 @@ void CGameFramework::FrameAdvance()
 	else if (2 == m_nStage)
 	{
 		CollisionProcess();
-
+		//m_pPlayer->SetGravity(XMFLOAT3(0, 0, 0));
 		const float fTimeElapsed = m_GameTimer.GetTimeElapsed();
 
 		
