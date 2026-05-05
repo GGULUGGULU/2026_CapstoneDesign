@@ -50,9 +50,7 @@ struct ActiveEffect {
 	CMeshEffect* pMeshEffect;
 };
 
-// 이펙트 요청 정보를 하나의 데이터로 묶은 구조체.
-// 충돌, 아이템 획득, 네트워크 동기화 등에서 Play()를 직접 호출하지 않고
-// 이벤트 큐에 넣어 처리할 수 있도록 하기 위한 범용화 단계입니다.
+
 struct EffectEvent {
 	EFFECT_TYPE type;
 	XMFLOAT3 position;
@@ -101,8 +99,7 @@ struct EffectTypeConfig {
 	}
 };
 
-// 메시 기반 이펙트의 리소스와 형태를 외부 설정으로 분리하기 위한 구조체입니다.
-// 부스터, 바람 효과처럼 특정 게임에 박혀 있던 텍스처/크기/색/스크롤 값을 변경할 수 있습니다.
+
 struct EffectMeshConfig {
 	float radius;
 	int sliceCount;
@@ -164,8 +161,7 @@ public:
 	ActiveEffect* Play(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT2 size, XMFLOAT3 color = XMFLOAT3(1.0f, 1.0f, 1.0f));
 	void PlayCarDustParticle(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT3 right, XMFLOAT3 look, XMFLOAT2 size, XMFLOAT2 offset, XMFLOAT3 color = XMFLOAT3(1.0f, 1.0f, 1.0f));
 
-	// 직접 Play()를 호출하지 않고 이벤트로 이펙트를 요청하는 함수입니다.
-	// 네트워크 수신 이벤트나 충돌 이벤트와 연결하기 좋습니다.
+
 	void PushEffectEvent(const EffectEvent& eventData);
 	void PushEffectEvent(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT2 size, XMFLOAT3 color = XMFLOAT3(1.0f, 1.0f, 1.0f));
 	void PushEffectEvent(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT2 size, XMFLOAT3 color, float lifeTime, bool loop = false);
@@ -238,7 +234,6 @@ private:
 	void BuildPipelineState(ID3D12Device* pd3dDevice);
 	void LoadAssets(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 
-	// 1단계 범용화: 기존 파일 구조는 유지하되, 내부 역할을 분리합니다.
 	void ReleaseIfInitialized();
 	bool InitializeRenderResources(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 	void CreateEffectPools(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
