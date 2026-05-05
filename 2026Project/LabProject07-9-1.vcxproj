@@ -144,8 +144,10 @@
     <ClInclude Include="d3dx12.h" />
     <ClInclude Include="DDSTextureLoader12.h" />
     <ClInclude Include="EffectLibrary.h" />
+    <ClInclude Include="EffectRendererDX12.h" />
     <ClInclude Include="GameFramework.h" />
     <ClInclude Include="2026Project.h" />
+    <ClInclude Include="IEffectRenderer.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="MeshEffect.h" />
     <ClInclude Include="miniaudio.h" />
@@ -167,6 +169,7 @@
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="DDSTextureLoader12.cpp" />
     <ClCompile Include="EffectLibrary.cpp" />
+    <ClCompile Include="EffectRendererDX12.cpp" />
     <ClCompile Include="GameFramework.cpp" />
     <ClCompile Include="2026Project.cpp" />
     <ClCompile Include="Mesh.cpp" />

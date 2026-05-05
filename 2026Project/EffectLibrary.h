@@ -5,7 +5,12 @@
 #include <vector>
 #include <queue>
 #include <string>
+#include <memory>
+
 #include "DDSTextureLoader12.h"
+#include "IEffectRenderer.h"
+
+
 
 using namespace DirectX;
 
@@ -250,6 +255,7 @@ private:
 	EffectMeshConfig m_BoosterMeshConfig;
 	EffectMeshConfig m_WindMeshConfig;
 	std::queue<EffectEvent> m_qEffectEvents;
+	std::unique_ptr<IEffectRenderer> m_pRenderer;
 
 public:
 	void InitializePostProcess(ID3D12Device* pd3dDevice, int width, int height);
@@ -286,5 +292,11 @@ private:
 
 public:
 	void SetPlayerSpeedRatio(float ratio) { m_fCurrentPlayerSpeedRatio = ratio; }
+
+	const std::vector<ActiveEffect*>& GetActiveEffects() const
+	{
+		return m_vActiveEffects;
+	}
+
 };
 

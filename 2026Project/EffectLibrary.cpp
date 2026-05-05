@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include "EffectRendererDX12.h"
 #include "EffectLibrary.h"
 #include "ParticleSystem.h"
 #include "MeshEffect.h"
@@ -232,6 +233,9 @@ void CEffectLibrary::Initialize(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandL
 	}
 
 	CreateEffectPools(pd3dDevice, pd3dCommandList);
+
+	m_pRenderer = std::make_unique<EffectRendererDX12>();
+	m_pRenderer->Initialize(pd3dDevice, pd3dCommandList);
 }
 
 void CEffectLibrary::ReleaseIfInitialized()
@@ -503,7 +507,6 @@ void CEffectLibrary::Render(ID3D12GraphicsCommandList* pd3dCommandList, const XM
 
 	ID3D12DescriptorHeap* pParticleHeap[] = { m_pd3dSrvHeap };
 
-	// 0: ¾øÀ½, 1: Particle, 2: Mesh, 3: Particle Depth, 4: Booster Mesh
 	int currentPsoType = 0;
 
 	for (auto eff : m_vActiveEffects)
@@ -511,14 +514,10 @@ void CEffectLibrary::Render(ID3D12GraphicsCommandList* pd3dCommandList, const XM
 		if (!eff || !eff->bActive) continue;
 
 		if (eff->pParticleSys)
-		{
 			RenderParticleEffect(pd3dCommandList, eff, currentPsoType, pParticleHeap);
-		}
 
 		if (eff->pMeshEffect)
-		{
 			RenderMeshEffect(pd3dCommandList, eff, currentPsoType);
-		}
 	}
 }
 
