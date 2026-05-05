@@ -497,16 +497,20 @@ D3D12_RASTERIZER_DESC CParticleShader::CreateRasterizerState()
 
 D3D12_SHADER_BYTECODE CParticleShader::CreateVertexShader()
 {
-	return CShader::CompileShaderFromFile(L"Shaders.hlsl", "VSParticle", "vs_5_1", &m_pd3dVertexShaderBlob);
+	return CShader::CompileShaderFromFile(L"EffectShaders.hlsl", "VS_Particle", "vs_5_1", &m_pd3dVertexShaderBlob);
 }
+
 D3D12_SHADER_BYTECODE CParticleShader::CreateGeometryShader()
 {
-	return CShader::CompileShaderFromFile(L"Shaders.hlsl", "GS", "gs_5_1", &m_pd3dGeometryShaderBlob);
+	return CShader::CompileShaderFromFile(L"EffectShaders.hlsl", "GS_Particle", "gs_5_1", &m_pd3dGeometryShaderBlob);
 }
+
 D3D12_SHADER_BYTECODE CParticleShader::CreatePixelShader()
 {
-	return CShader::CompileShaderFromFile(L"Shaders.hlsl", "PS_Billboard", "ps_5_1", &m_pd3dPixelShaderBlob);
+	return CShader::CompileShaderFromFile(L"EffectShaders.hlsl", "PS_Particle", "ps_5_1", &m_pd3dPixelShaderBlob);
 }
+
+
 
 void CParticleShader::CreateShader(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature)
 {

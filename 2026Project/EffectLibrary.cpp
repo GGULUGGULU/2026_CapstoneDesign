@@ -587,9 +587,9 @@ void CEffectLibrary::BuildPipelineState(ID3D12Device* pd3dDevice)
 	};
 	psoDesc.InputLayout = { inputElementDescs, _countof(inputElementDescs) };
 
-	psoDesc.VS = CompileShaderHelper(L"Shaders.hlsl", "VS_Particle", "vs_5_1");
-	psoDesc.GS = CompileShaderHelper(L"Shaders.hlsl", "GS_Particle", "gs_5_1");
-	psoDesc.PS = CompileShaderHelper(L"Shaders.hlsl", "PS_Particle", "ps_5_1");
+	psoDesc.VS = CompileShaderHelper(L"EffectShaders.hlsl", "VS_Particle", "vs_5_1");
+	psoDesc.GS = CompileShaderHelper(L"EffectShaders.hlsl", "GS_Particle", "gs_5_1");
+	psoDesc.PS = CompileShaderHelper(L"EffectShaders.hlsl", "PS_Particle", "ps_5_1");
 
 	psoDesc.pRootSignature = m_pRootSignature;
 
@@ -644,8 +644,8 @@ void CEffectLibrary::BuildPipelineState(ID3D12Device* pd3dDevice)
 
 	meshPsoDesc.InputLayout = { meshInputLayout, _countof(meshInputLayout) };
 
-	meshPsoDesc.VS = CompileShaderHelper(L"Shaders.hlsl", "VS_WindShield", "vs_5_1");
-	meshPsoDesc.PS = CompileShaderHelper(L"Shaders.hlsl", "PS_WindShield", "ps_5_1");
+	meshPsoDesc.VS = CompileShaderHelper(L"EffectShaders.hlsl", "VS_WindShield", "vs_5_1");
+	meshPsoDesc.PS = CompileShaderHelper(L"EffectShaders.hlsl", "PS_WindShield", "ps_5_1");
 	meshPsoDesc.GS = { nullptr, 0 };
 
 	meshPsoDesc.pRootSignature = m_pRootSignature;
@@ -679,8 +679,8 @@ void CEffectLibrary::BuildPipelineState(ID3D12Device* pd3dDevice)
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC boosterPsoDesc = meshPsoDesc;
 
-	boosterPsoDesc.VS = CompileShaderHelper(L"Shaders.hlsl", "VS_Booster", "vs_5_1");
-	boosterPsoDesc.PS = CompileShaderHelper(L"Shaders.hlsl", "PS_Booster", "ps_5_1");
+	boosterPsoDesc.VS = CompileShaderHelper(L"EffectShaders.hlsl", "VS_Booster", "vs_5_1");
+	boosterPsoDesc.PS = CompileShaderHelper(L"EffectShaders.hlsl", "PS_Booster", "ps_5_1");
 
 	D3D12_BLEND_DESC boosterBlendDesc = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 	boosterBlendDesc.RenderTarget[0].BlendEnable = TRUE;
@@ -1104,7 +1104,7 @@ void CEffectLibrary::InitializePostProcess(ID3D12Device* pd3dDevice, int width, 
 
 	D3D12_COMPUTE_PIPELINE_STATE_DESC psoDesc = {};
 	psoDesc.pRootSignature = m_pd3dComputeRootSignature;
-	psoDesc.CS = CompileShaderHelper(L"Shaders.hlsl", "CS_RadialBlur", "cs_5_1");
+	psoDesc.CS = CompileShaderHelper(L"EffectShaders.hlsl", "CS_RadialBlur", "cs_5_1");
 	psoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
 
 	pd3dDevice->CreateComputePipelineState(&psoDesc, IID_PPV_ARGS(&m_pRadialBlurPSO));
