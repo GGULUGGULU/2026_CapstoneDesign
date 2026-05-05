@@ -35,6 +35,7 @@ D3D12_SHADER_BYTECODE CompileShaderHelper(LPCWSTR filename, LPCSTR entrypoint, L
 CEffectLibrary::CEffectLibrary()
 {
 	InitializeDefaultEffectConfigs();
+	InitializeDefaultMeshConfigs();
 }
 
 void CEffectLibrary::InitializeDefaultEffectConfigs()
@@ -64,6 +65,32 @@ void CEffectLibrary::InitializeDefaultEffectConfigs()
 	m_EffectConfigs[(int)EFFECT_TYPE::WIND_EFFECT].poolSize = 1;
 	m_EffectConfigs[(int)EFFECT_TYPE::WIND_EFFECT].lifeTime = 999999.0f;
 	m_EffectConfigs[(int)EFFECT_TYPE::WIND_EFFECT].loop = true;
+}
+
+void CEffectLibrary::InitializeDefaultMeshConfigs()
+{
+	m_WindMeshConfig.radius = 15.0f;
+	m_WindMeshConfig.sliceCount = 20;
+	m_WindMeshConfig.stackCount = 20;
+	m_WindMeshConfig.textureFiles = {
+		L"Asset/DDS_File/noise.dds",
+		L"Asset/DDS_File/noise.dds",
+		L"Asset/DDS_File/noise.dds"
+	};
+	m_WindMeshConfig.scale = XMFLOAT3(3.f, 10.5f, 1.5f);
+	m_WindMeshConfig.scrollSpeed = XMFLOAT3(0.0f, -6.0f, 0.0f);
+
+	m_BoosterMeshConfig.radius = 2.0f;
+	m_BoosterMeshConfig.sliceCount = 20;
+	m_BoosterMeshConfig.stackCount = 20;
+	m_BoosterMeshConfig.textureFiles = {
+		L"Asset/DDS_File/BoosterBase.dds",
+		L"Asset/DDS_File/BoosterNoise.dds",
+		L"Asset/DDS_File/BoosterMask.dds"
+	};
+	m_BoosterMeshConfig.color = XMFLOAT3(0.1f, 0.5f, 1.0f);
+	m_BoosterMeshConfig.scale = XMFLOAT3(2.f, 10.0f, 2.f);
+	m_BoosterMeshConfig.scrollSpeed = XMFLOAT3(0.0f, 6.0f, 0.0f);
 }
 
 bool CEffectLibrary::IsValidEffectType(EFFECT_TYPE type) const
@@ -117,6 +144,75 @@ void CEffectLibrary::SetEffectTextureFileName(EFFECT_TYPE type, const std::wstri
 {
 	if (!IsValidEffectType(type)) return;
 	m_TextureFileNames[(int)type] = fileName;
+}
+
+void CEffectLibrary::SetBoosterMeshConfig(const EffectMeshConfig& config)
+{
+	m_BoosterMeshConfig = config;
+}
+
+void CEffectLibrary::SetWindMeshConfig(const EffectMeshConfig& config)
+{
+	m_WindMeshConfig = config;
+}
+
+void CEffectLibrary::SetBoosterTextureFiles(const std::vector<std::wstring>& textureFiles)
+{
+	m_BoosterMeshConfig.textureFiles = textureFiles;
+}
+
+void CEffectLibrary::SetWindTextureFiles(const std::vector<std::wstring>& textureFiles)
+{
+	m_WindMeshConfig.textureFiles = textureFiles;
+}
+
+void CEffectLibrary::StopEffectType(EFFECT_TYPE type)
+{
+	if (!IsValidEffectType(type)) return;
+
+	auto it = m_vActiveEffects.begin();
+	while (it != m_vActiveEffects.end())
+	{
+		ActiveEffect* eff = *it;
+		if (eff && eff->type == type)
+		{
+			if (eff->pMeshEffect) eff->pMeshEffect->SetActive(false);
+			if (eff->pParticleSys) eff->pParticleSys->Clear();
+			RecycleEffect(eff);
+			it = m_vActiveEffects.erase(it);
+		}
+		else
+		{
+			++it;
+		}
+	}
+}
+
+void CEffectLibrary::ClearActiveEffects()
+{
+	auto it = m_vActiveEffects.begin();
+	while (it != m_vActiveEffects.end())
+	{
+		ActiveEffect* eff = *it;
+		if (eff)
+		{
+			if (eff->pMeshEffect) eff->pMeshEffect->SetActive(false);
+			if (eff->pParticleSys) eff->pParticleSys->Clear();
+			RecycleEffect(eff);
+		}
+		it = m_vActiveEffects.erase(it);
+	}
+}
+
+int CEffectLibrary::GetActiveEffectCount() const
+{
+	return (int)m_vActiveEffects.size();
+}
+
+int CEffectLibrary::GetPooledEffectCount(EFFECT_TYPE type) const
+{
+	if (!IsValidEffectType(type)) return 0;
+	return (int)m_vEffectPool[(int)type].size();
 }
 
 CEffectLibrary* CEffectLibrary::Instance()
@@ -199,17 +295,11 @@ void CEffectLibrary::CreateEffectPools(ID3D12Device* pd3dDevice, ID3D12GraphicsC
 void CEffectLibrary::CreateWindEffect(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
 	CMeshEffect* pShield = new CMeshEffect(pd3dDevice, pd3dCommandList);
-	pShield->CreateMesh(pd3dDevice, pd3dCommandList, 15.0f, 20, 20);
-
-	std::vector<std::wstring> windTex = {
-		L"Asset/DDS_File/noise.dds",
-		L"Asset/DDS_File/noise.dds",
-		L"Asset/DDS_File/noise.dds"
-	};
-
-	pShield->CreateTextures(pd3dDevice, pd3dCommandList, windTex);
-	pShield->SetScale(XMFLOAT3(3.f, 10.5f, 1.5f));
-	pShield->SetScrollSpeed(XMFLOAT3(0.0f, -6.0f, 0.0f));
+	pShield->CreateMesh(pd3dDevice, pd3dCommandList, m_WindMeshConfig.radius, m_WindMeshConfig.sliceCount, m_WindMeshConfig.stackCount);
+	pShield->CreateTextures(pd3dDevice, pd3dCommandList, m_WindMeshConfig.textureFiles);
+	pShield->SetColor(m_WindMeshConfig.color);
+	pShield->SetScale(m_WindMeshConfig.scale);
+	pShield->SetScrollSpeed(m_WindMeshConfig.scrollSpeed);
 
 	ActiveEffect* pEffect = new ActiveEffect;
 	pEffect->type = EFFECT_TYPE::WIND_EFFECT;
@@ -228,21 +318,15 @@ void CEffectLibrary::CreateWindEffect(ID3D12Device* pd3dDevice, ID3D12GraphicsCo
 
 void CEffectLibrary::CreateBoosterEffect(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
-	CParticleSystem* pBoosterParticles = new CParticleSystem(pd3dDevice, pd3dCommandList, 50);
+	const EffectTypeConfig& boosterConfig = m_EffectConfigs[(int)EFFECT_TYPE::BOOSTER];
+	CParticleSystem* pBoosterParticles = new CParticleSystem(pd3dDevice, pd3dCommandList, boosterConfig.particleCount);
 
 	CMeshEffect* pBoosterMesh = new CMeshEffect(pd3dDevice, pd3dCommandList);
-	pBoosterMesh->CreateMesh(pd3dDevice, pd3dCommandList, 2.0f, 20, 20);
-
-	std::vector<std::wstring> boosterTexs = {
-		L"Asset/DDS_File/BoosterBase.dds",
-		L"Asset/DDS_File/BoosterNoise.dds",
-		L"Asset/DDS_File/BoosterMask.dds"
-	};
-
-	pBoosterMesh->CreateTextures(pd3dDevice, pd3dCommandList, boosterTexs);
-	pBoosterMesh->SetColor(XMFLOAT3(0.1f, 0.5f, 1.0f));
-	pBoosterMesh->SetScale(XMFLOAT3(2.f, 10.0f, 2.f));
-	pBoosterMesh->SetScrollSpeed(XMFLOAT3(0.0f, 6.0f, 0.0f));
+	pBoosterMesh->CreateMesh(pd3dDevice, pd3dCommandList, m_BoosterMeshConfig.radius, m_BoosterMeshConfig.sliceCount, m_BoosterMeshConfig.stackCount);
+	pBoosterMesh->CreateTextures(pd3dDevice, pd3dCommandList, m_BoosterMeshConfig.textureFiles);
+	pBoosterMesh->SetColor(m_BoosterMeshConfig.color);
+	pBoosterMesh->SetScale(m_BoosterMeshConfig.scale);
+	pBoosterMesh->SetScrollSpeed(m_BoosterMeshConfig.scrollSpeed);
 
 	ActiveEffect* pEffect = new ActiveEffect;
 	pEffect->type = EFFECT_TYPE::BOOSTER;

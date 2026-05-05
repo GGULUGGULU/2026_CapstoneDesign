@@ -95,6 +95,28 @@ struct EffectTypeConfig {
 	}
 };
 
+// 메시 기반 이펙트의 리소스와 형태를 외부 설정으로 분리하기 위한 구조체입니다.
+// 부스터, 바람 효과처럼 특정 게임에 박혀 있던 텍스처/크기/색/스크롤 값을 변경할 수 있습니다.
+struct EffectMeshConfig {
+	float radius;
+	int sliceCount;
+	int stackCount;
+	std::vector<std::wstring> textureFiles;
+	XMFLOAT3 color;
+	XMFLOAT3 scale;
+	XMFLOAT3 scrollSpeed;
+
+	EffectMeshConfig()
+		: radius(1.0f)
+		, sliceCount(20)
+		, stackCount(20)
+		, color(1.0f, 1.0f, 1.0f)
+		, scale(1.0f, 1.0f, 1.0f)
+		, scrollSpeed(0.0f, 0.0f, 0.0f)
+	{
+	}
+};
+
 struct CB_RADIAL_BLUR {
 	float strength;
 	float cx;
@@ -131,6 +153,16 @@ public:
 	void SetEffectTypeConfig(EFFECT_TYPE type, const EffectTypeConfig& config);
 	void SetEffectLifeTime(EFFECT_TYPE type, float lifeTime);
 	void SetEffectTextureFileName(EFFECT_TYPE type, const std::wstring& fileName);
+
+	void SetBoosterMeshConfig(const EffectMeshConfig& config);
+	void SetWindMeshConfig(const EffectMeshConfig& config);
+	void SetBoosterTextureFiles(const std::vector<std::wstring>& textureFiles);
+	void SetWindTextureFiles(const std::vector<std::wstring>& textureFiles);
+
+	void StopEffectType(EFFECT_TYPE type);
+	void ClearActiveEffects();
+	int GetActiveEffectCount() const;
+	int GetPooledEffectCount(EFFECT_TYPE type) const;
 
 	void ToggleBooster(bool flag);
 	void UpdateBoosterPosition(const XMFLOAT3&, const XMFLOAT3&);
@@ -191,6 +223,7 @@ private:
 	void CreateParticleEffectPool(EFFECT_TYPE type, ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, int nPoolSize, int nParticleCount);
 
 	void InitializeDefaultEffectConfigs();
+	void InitializeDefaultMeshConfigs();
 	bool IsValidEffectType(EFFECT_TYPE type) const;
 	bool IsItemEffect(EFFECT_TYPE type) const;
 	bool IsDepthParticleEffect(EFFECT_TYPE type) const;
@@ -214,6 +247,8 @@ private:
 	bool m_bSpreadZero = false;
 
 	EffectTypeConfig m_EffectConfigs[(int)EFFECT_TYPE::COUNT];
+	EffectMeshConfig m_BoosterMeshConfig;
+	EffectMeshConfig m_WindMeshConfig;
 	std::queue<EffectEvent> m_qEffectEvents;
 
 public:
