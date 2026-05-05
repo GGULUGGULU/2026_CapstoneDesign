@@ -137,6 +137,20 @@ struct CB_RADIAL_BLUR {
 class CEffectLibrary
 {
 public:
+
+	ID3D12RootSignature* GetRootSignature() const { return m_pRootSignature; }
+	ID3D12DescriptorHeap* GetSrvHeap() const { return m_pd3dSrvHeap; }
+
+	ID3D12PipelineState* GetParticlePSO() const { return m_pPipelineState; }
+	ID3D12PipelineState* GetParticleDepthPSO() const { return m_pParticleDepthPSO; }
+	ID3D12PipelineState* GetMeshPSO() const { return m_pMeshEffectPSO; }
+	ID3D12PipelineState* GetBoosterPSO() const { return m_pBoosterPSO; }
+
+	UINT GetSrvIncrementSize() const { return m_nSrvDescriptorIncrementSize; }
+	D3D12_GPU_DESCRIPTOR_HANDLE GetSrvGpuStart() const { return m_d3dSrvGpuHandleStart; }
+
+
+
 	static CEffectLibrary* Instance();
 
 	void Initialize(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
@@ -171,6 +185,9 @@ public:
 
 	void ToggleBooster(bool flag);
 	void UpdateBoosterPosition(const XMFLOAT3&, const XMFLOAT3&);
+
+	bool IsDepthParticleEffect(EFFECT_TYPE type) const;
+
 
 private:
 	CEffectLibrary();
@@ -231,7 +248,7 @@ private:
 	void InitializeDefaultMeshConfigs();
 	bool IsValidEffectType(EFFECT_TYPE type) const;
 	bool IsItemEffect(EFFECT_TYPE type) const;
-	bool IsDepthParticleEffect(EFFECT_TYPE type) const;
+	
 	float GetConfiguredSpread(EFFECT_TYPE type) const;
 	float GetConfiguredLifeTime(EFFECT_TYPE type) const;
 	bool GetConfiguredLoop(EFFECT_TYPE type) const;

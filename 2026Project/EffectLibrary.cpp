@@ -494,32 +494,12 @@ void CEffectLibrary::LoadAssets(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandL
 
 void CEffectLibrary::Render(ID3D12GraphicsCommandList* pd3dCommandList, const XMFLOAT4X4& view, const XMFLOAT4X4& proj)
 {
-	if (!pd3dCommandList) return;
-	if (m_vActiveEffects.empty() || m_pd3dSrvHeap == nullptr) return;
-	if (m_pRootSignature == nullptr) return;
-
-	pd3dCommandList->SetGraphicsRootSignature(m_pRootSignature);
-
-	XMFLOAT4X4 tMats[2];
-	XMStoreFloat4x4(&tMats[0], XMMatrixTranspose(XMLoadFloat4x4(&view)));
-	XMStoreFloat4x4(&tMats[1], XMMatrixTranspose(XMLoadFloat4x4(&proj)));
-	pd3dCommandList->SetGraphicsRoot32BitConstants(1, 32, tMats, 0);
-
-	ID3D12DescriptorHeap* pParticleHeap[] = { m_pd3dSrvHeap };
-
-	int currentPsoType = 0;
-
-	for (auto eff : m_vActiveEffects)
+	if (m_pRenderer)
 	{
-		if (!eff || !eff->bActive) continue;
-
-		if (eff->pParticleSys)
-			RenderParticleEffect(pd3dCommandList, eff, currentPsoType, pParticleHeap);
-
-		if (eff->pMeshEffect)
-			RenderMeshEffect(pd3dCommandList, eff, currentPsoType);
+		m_pRenderer->Render(pd3dCommandList, this, view, proj);
 	}
 }
+
 
 void CEffectLibrary::RenderParticleEffect(ID3D12GraphicsCommandList* pd3dCommandList, ActiveEffect* eff, int& currentPsoType, ID3D12DescriptorHeap** ppParticleHeap)
 {
