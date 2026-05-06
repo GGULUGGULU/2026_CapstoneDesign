@@ -209,6 +209,12 @@ private:
 	D2D1_POINT_2F WorldToMinimap(const XMFLOAT3& worldPos, const D2D1_RECT_F& minimapRect);
 
 
+	// µµ¿ò¸»ui
+	bool m_bShowHelpUI = false;
+	Microsoft::WRL::ComPtr<ID2D1Bitmap1> m_pHelpUID2DBitmap;
+	void LoadHelpUIResource();
+	void DrawHelpUI();
+
 
 
 private:

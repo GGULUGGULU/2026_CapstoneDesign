@@ -101,6 +101,7 @@ bool CGameFramework::OnCreate(HINSTANCE hInstance, HWND hMainWnd)
 	CreateRenderTargetView();
 	LoadMinimapUIResource();
 	LoadDashVignetteResource();
+	LoadHelpUIResource();
 
 
 
@@ -519,8 +520,6 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 			m_eHoldItem = ITEM_LOCK;
 			break;
 
-			break;
-
 		default:
 			break;
 		}
@@ -751,6 +750,8 @@ void CGameFramework::ProcessInputGameStage()
 	const bool bRight = ((pKeysBuffer[VK_RIGHT] & 0xF0) != 0);
 	const bool bHasDriveInput = (bForward || bBackward);
 	const bool bDashKeyDown = ((::GetAsyncKeyState('Z') & 0x8000) != 0);
+	m_bShowHelpUI = ((::GetAsyncKeyState(VK_TAB) & 0x8000) != 0);
+
 
 	const float fTimeElapsed = m_GameTimer.GetTimeElapsed();
 
@@ -2078,6 +2079,12 @@ void CGameFramework::RenderUI()
 
 
 
+		if (m_nStage == 2 && m_bShowHelpUI)
+		{
+			DrawHelpUI();
+		}
+
+
 	m_d2dDeviceContext->EndDraw();
 	m_d3d11On12Device->ReleaseWrappedResources(m_wrappedBackBuffers[m_nSwapChainBufferIndex].GetAddressOf(), 1);
 	m_d3d11DeviceContext->Flush();
@@ -3011,4 +3018,74 @@ void CGameFramework::ConsumeNetworkItemEvents()
 			ApplyDashLock(ev.duration);
 		}
 	}
+}
+
+
+void CGameFramework::LoadHelpUIResource()
+{
+	if (!m_pWICFactory || !m_d2dDeviceContext) return;
+
+	m_pHelpUID2DBitmap.Reset();
+
+	ComPtr<IWICBitmapDecoder> decoder;
+	ComPtr<IWICBitmapFrameDecode> frame;
+	ComPtr<IWICFormatConverter> converter;
+
+	HRESULT hr = m_pWICFactory->CreateDecoderFromFilename(
+		L"Asset/image/help_ui_dummy.png",
+		nullptr,
+		GENERIC_READ,
+		WICDecodeMetadataCacheOnLoad,
+		decoder.GetAddressOf()
+	);
+	if (FAILED(hr)) return;
+
+	hr = decoder->GetFrame(0, frame.GetAddressOf());
+	if (FAILED(hr)) return;
+
+	hr = m_pWICFactory->CreateFormatConverter(converter.GetAddressOf());
+	if (FAILED(hr)) return;
+
+	hr = converter->Initialize(
+		frame.Get(),
+		GUID_WICPixelFormat32bppPBGRA,
+		WICBitmapDitherTypeNone,
+		nullptr,
+		0.0f,
+		WICBitmapPaletteTypeMedianCut
+	);
+	if (FAILED(hr)) return;
+
+	m_d2dDeviceContext->CreateBitmapFromWicBitmap(
+		converter.Get(),
+		nullptr,
+		m_pHelpUID2DBitmap.GetAddressOf()
+	);
+}
+
+// 도움말 ui 
+
+void CGameFramework::DrawHelpUI()
+{
+	if (!m_pHelpUID2DBitmap) return;
+
+	float width = 900.0f;
+	float height = 500.0f;
+
+	float left = ((float)m_nWndClientWidth - width) * 0.5f;
+	float top = ((float)m_nWndClientHeight - height) * 0.5f;
+
+	D2D1_RECT_F rect = D2D1::RectF(
+		left,
+		top,
+		left + width,
+		top + height
+	);
+
+	m_d2dDeviceContext->DrawBitmap(
+		m_pHelpUID2DBitmap.Get(),
+		rect,
+		0.7f, // 투명도
+		D2D1_BITMAP_INTERPOLATION_MODE_LINEAR
+	);
 }
