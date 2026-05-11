@@ -1082,7 +1082,7 @@ void CGameFramework::BuildGameObjects()
 	// 맵
 	m_pScene = new CScene();
 	//if (m_pScene) m_pScene->BuildGameObjects(m_pd3dDevice, m_pd3dCommandList);
-     if (m_pScene) m_pScene->BuildGameStage2(m_pd3dDevice, m_pd3dCommandList);
+    if (m_pScene) m_pScene->BuildGameStage2(m_pd3dDevice, m_pd3dCommandList);
 
 	CreateShadowMap();
 
