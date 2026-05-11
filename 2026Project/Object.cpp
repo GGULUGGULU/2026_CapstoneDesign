@@ -83,16 +83,6 @@ void CMaterial::PrepareShaders(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLi
 	m_pDiffusedShader->CreateShader(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature);
 	m_pDiffusedShader->CreateShaderVariables(pd3dDevice, pd3dCommandList);
 	m_pDiffusedShader->AddRef();
-
-	m_pBillboardShader = new CBillboardShader();
-	m_pBillboardShader->CreateShader(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature);
-	m_pBillboardShader->CreateShaderVariables(pd3dDevice, pd3dCommandList);
-	m_pBillboardShader->AddRef();
-
-	m_pParticleShader = new CParticleShader();
-	m_pParticleShader->CreateShader(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature);
-	m_pParticleShader->CreateShaderVariables(pd3dDevice, pd3dCommandList);
-	m_pParticleShader->AddRef();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
