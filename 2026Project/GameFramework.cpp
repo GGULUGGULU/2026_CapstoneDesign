@@ -2740,6 +2740,29 @@ void CGameFramework::FrameAdvance()
 		return;
 	}
 
+	if (m_bPlayingIntroVideo)
+	{
+		if (GetAsyncKeyState(VK_ESCAPE) & 0x0001)
+		{
+			::PostQuitMessage(0);
+			return;
+		}
+
+		if (GetAsyncKeyState(VK_F9) & 0x0001)
+		{
+			ChangeSwapChainState();
+			if (m_pVideoPlayer)
+				m_pVideoPlayer->Resize(m_nWndClientWidth, m_nWndClientHeight);
+			return;
+		}
+
+		if (GetAsyncKeyState(VK_SPACE) & 0x0001) // 스킵
+		{
+			FinishIntroVideo();
+			return;
+		}
+	}
+	// 
 
 	SetUIInfo();
 

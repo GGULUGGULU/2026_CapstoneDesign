@@ -51,6 +51,10 @@ bool CVideoPlayer::Initialize(HWND hParentWnd)
 	ShowWindow(m_hVideoWnd, SW_SHOW);
 	UpdateWindow(m_hVideoWnd);
 
+
+	//
+	SetFocus(m_hParentWnd);
+
 	return m_hVideoWnd != NULL;
 }
 
@@ -64,7 +68,6 @@ bool CVideoPlayer::Play(const wchar_t* filePath, int width, int height)
 	wchar_t command[1024] = {};
 	MCIERROR err = 0;
 
-	// 1. 파일 열기
 	swprintf_s(command, L"open \"%s\" alias %s", filePath, m_alias.c_str());
 	err = mciSendStringW(command, NULL, 0, NULL);
 	if (err != 0)
@@ -74,7 +77,6 @@ bool CVideoPlayer::Play(const wchar_t* filePath, int width, int height)
 		return false;
 	}
 
-	// 2. 영상 출력 윈도우 연결
 	swprintf_s(command, L"window %s handle %llu", m_alias.c_str(), (unsigned long long)m_hVideoWnd);
 	err = mciSendStringW(command, NULL, 0, NULL);
 	if (err != 0)
@@ -84,7 +86,6 @@ bool CVideoPlayer::Play(const wchar_t* filePath, int width, int height)
 		return false;
 	}
 
-	// 3. 화면 크기 지정
 	swprintf_s(command, L"put %s destination at 0 0 %d %d", m_alias.c_str(), width, height);
 	err = mciSendStringW(command, NULL, 0, NULL);
 	if (err != 0)
@@ -93,7 +94,7 @@ bool CVideoPlayer::Play(const wchar_t* filePath, int width, int height)
 		OutputDebugStringW(L"[VideoPlayer] put failed\n");
 	}
 
-	// 4. 재생
+	
 	swprintf_s(command, L"play %s", m_alias.c_str());
 	err = mciSendStringW(command, NULL, 0, NULL);
 	if (err != 0)
@@ -161,4 +162,11 @@ void CVideoPlayer::Resize(int width, int height)
 		height,
 		SWP_SHOWWINDOW
 	);
+
+	wchar_t command[256] = {};
+	swprintf_s(command, L"put %s destination at 0 0 %d %d",
+		m_alias.c_str(), width, height);
+
+	MCIERROR err = mciSendStringW(command, NULL, 0, NULL);
+	PrintMciError(err);
 }
