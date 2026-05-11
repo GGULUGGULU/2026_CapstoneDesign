@@ -123,14 +123,29 @@ bool CGameFramework::OnCreate(HINSTANCE hInstance, HWND hMainWnd)
 
 	CEffectLibrary::Instance()->InitializePostProcess(m_pd3dDevice, m_nWndClientWidth, m_nWndClientHeight);
 	
-	m_SoundManager.Init();
+	
 
-	//m_SoundManager.PlayBGM("Asset/Audio/BGM2.mp3");
-	m_SoundManager.PlayBGM("Asset/Audio/TRBGM.mp3");
-	//m_SoundManager.SetBGMVolume(0.1f);
+	m_SoundManager.Init();
 	m_SoundManager.SetMasterVolume(0.5f);
 
+	m_pVideoPlayer = std::make_unique<CVideoPlayer>();
+	m_pVideoPlayer->Initialize(m_hWnd);
+
+	m_bPlayingIntroVideo = m_pVideoPlayer->Play(
+		L"Asset/Video/intro.wmv",
+		m_nWndClientWidth,
+		m_nWndClientHeight
+	);
+
+
+	if (!m_bPlayingIntroVideo)
+	{
+		m_SoundManager.PlayBGM("Asset/Audio/TRBGM.mp3");
+	}
+
 	return(true);
+
+
 }
 
 //#define _WITH_CREATE_SWAPCHAIN_FOR_HWND
@@ -377,6 +392,14 @@ void CGameFramework::ChangeSwapChainState()
 	m_nWndClientWidth = dxgiSwapChainDesc.BufferDesc.Width;
 	m_nWndClientHeight = dxgiSwapChainDesc.BufferDesc.Height;
 
+
+	if (m_pVideoPlayer)
+	{
+		m_pVideoPlayer->Resize(m_nWndClientWidth, m_nWndClientHeight);
+	}
+
+
+
 	CreateRenderTargetView();
 	CreateDepthStencilView();
 
@@ -398,6 +421,9 @@ void CGameFramework::ChangeSwapChainState()
 		pPlayerCamera->SetScissorRect(0, 0, m_nWndClientWidth, m_nWndClientHeight);
 		pPlayerCamera->GenerateProjectionMatrix(1.01f, 50000.0f, fAspectRatio, 60.0f);
 	}
+
+
+
 }
 
 void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
@@ -457,6 +483,33 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 
 void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
+	if (m_bPlayingIntroVideo)
+	{
+		if (nMessageID == WM_KEYDOWN)
+		{
+			if (wParam == VK_F9)
+			{
+				ChangeSwapChainState();
+
+				if (m_pVideoPlayer)
+					m_pVideoPlayer->Resize(m_nWndClientWidth, m_nWndClientHeight);
+
+				return;
+			}
+
+			if (wParam == VK_ESCAPE)
+			{
+				::PostQuitMessage(0);
+				return;
+			}
+
+			FinishIntroVideo();
+		}
+
+		return;
+	}
+
+
 	if (m_pScene) m_pScene->OnProcessingKeyboardMessage(hWnd, nMessageID, wParam, lParam);
 	switch (nMessageID)
 	{
@@ -613,6 +666,14 @@ LRESULT CALLBACK CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMess
 
 void CGameFramework::OnDestroy()
 {
+
+	if (m_pVideoPlayer)
+	{
+		m_pVideoPlayer->Stop();
+		m_pVideoPlayer.reset();
+	}
+
+
 	if (m_pLobbyD2DBitmap) m_pLobbyD2DBitmap.Reset();
 	if (m_pResultD2DBitmap) m_pResultD2DBitmap.Reset();
 	if (m_pWICFactory) m_pWICFactory.Reset();
@@ -2649,9 +2710,36 @@ void CGameFramework::ConsumeNetworkCollisionEvents()
 }
 //#define _WITH_PLAYER_TOP
 
+
+
+void CGameFramework::FinishIntroVideo()
+{
+	if (m_pVideoPlayer)
+	{
+		m_pVideoPlayer->Stop();
+	}
+
+	m_bPlayingIntroVideo = false;
+
+	m_SoundManager.PlayBGM("Asset/Audio/TRBGM.mp3");
+}
+
+
+
 void CGameFramework::FrameAdvance()
 {
 	m_GameTimer.Tick(0.0f);
+
+	if (m_bPlayingIntroVideo)
+	{
+		if (!m_pVideoPlayer || m_pVideoPlayer->IsFinished())
+		{
+			FinishIntroVideo();
+		}
+
+		return;
+	}
+
 
 	SetUIInfo();
 

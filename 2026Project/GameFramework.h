@@ -4,6 +4,11 @@
 #define FRAME_BUFFER_HEIGHT		480
 
 #include <wincodec.h>
+#include <memory>
+
+
+
+
 #include "Timer.h"
 #include "Player.h"
 #include "Scene.h"
@@ -11,6 +16,7 @@
 #include "EffectLibrary.h"
 #include "NetworkManager.h"
 #include "SoundManager.h"
+#include "VideoPlayer.h"
 
 struct UIButton {
 	float xRatio, yRatio, wRatio, hRatio; 
@@ -216,6 +222,12 @@ private:
 	void DrawHelpUI();
 
 
+	// ¿µ»ó
+
+	std::unique_ptr<CVideoPlayer> m_pVideoPlayer;
+	void FinishIntroVideo();
+	bool m_bPlayingIntroVideo = true;
+	
 
 private:
 	enum ITEM_TYPE
