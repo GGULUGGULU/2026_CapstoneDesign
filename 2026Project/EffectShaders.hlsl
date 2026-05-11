@@ -64,7 +64,7 @@ void CS_RadialBlur(uint3 dispatchThreadID : SV_DispatchThreadID)
     float dist = length(uvCorrected - centerCorrected);
 
     float4 color = float4(0, 0, 0, 0);
-    int nSamples = 12;
+    int nSamples = 8;
     for (int i = 0; i < nSamples; ++i)
     {
         float scale = strength * (i / (float) (nSamples - 1)) * dist;

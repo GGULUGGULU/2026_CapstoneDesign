@@ -130,7 +130,9 @@ float4 PSLighting(VS_LIGHTING_OUTPUT input) : SV_TARGET
     }
     float4 lightingColor = Lighting(input.positionW, input.normalW);
 
-
+    //lightingColor.rgb += gMaterial.m_cAmbient.rgb;
+    //너무밝아서 주석처리
+    
     float4 texColor = gAlbedoTexture.Sample(gSampler, input.uv);
     
     texColor.rgb = pow(texColor.rgb, 2.2f);

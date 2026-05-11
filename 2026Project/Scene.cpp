@@ -119,8 +119,8 @@ void CScene::BuildDefaultLightsAndMaterials()
 	m_pLights[0].m_xmf3Position = XMFLOAT3(30.0f, 30.0f, 30.0f);
 	m_pLights[0].m_xmf3Direction = XMFLOAT3(0.0f, 0.0f, 0.0f);
 	m_pLights[0].m_xmf3Attenuation = XMFLOAT3(1.0f, 0.001f, 0.0001f);
+	
 	m_pLights[1].m_bEnable = true;
-
 	m_pLights[1].m_nType = SPOT_LIGHT;
 	m_pLights[1].m_fRange = 500.0f;
 	m_pLights[1].m_xmf4Ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
@@ -132,15 +132,15 @@ void CScene::BuildDefaultLightsAndMaterials()
 	m_pLights[1].m_fFalloff = 8.0f;
 	m_pLights[1].m_fPhi = (float)cos(XMConvertToRadians(40.0f));
 	m_pLights[1].m_fTheta = (float)cos(XMConvertToRadians(20.0f));
+	
 	m_pLights[2].m_bEnable = true;
-
 	m_pLights[2].m_nType = DIRECTIONAL_LIGHT;
-	m_pLights[2].m_xmf4Ambient = XMFLOAT4(0.8f, 0.8f, 0.8f, 1.0f);
-	m_pLights[2].m_xmf4Diffuse = XMFLOAT4(0.8f, 0.8f, 0.8f, 1.0f); // 0.3 -> 0.8 //  
+	m_pLights[2].m_xmf4Ambient = XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f);
+	m_pLights[2].m_xmf4Diffuse = XMFLOAT4(0.9f, 0.9f, 0.9f, 1.0f); // 0.3 -> 0.8 //  
 	m_pLights[2].m_xmf4Specular = XMFLOAT4(0.4f, 0.4f, 0.4f, 0.0f);
 	m_pLights[2].m_xmf3Direction = XMFLOAT3(1.0f, -1.0f, 0.5f); //   -> 7
+	
 	m_pLights[3].m_bEnable = true;
-
 	m_pLights[3].m_nType = SPOT_LIGHT;
 	m_pLights[3].m_fRange = 600.0f;
 	m_pLights[3].m_xmf4Ambient = XMFLOAT4(0.3f, 0.3f, 0.3f, 1.0f);
@@ -849,13 +849,12 @@ void CScene::BuildGameStage2(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 	m_nGameObjects = 1;
 	m_ppGameObjects = new CGameObject * [m_nGameObjects];
 
-	CGameObject* pMapModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/FORTR.bin");
+	CGameObject* pMapModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/ToyWorld2.bin");
 	ApplyMeshTextures(pd3dDevice, pd3dCommandList, pMapModel);
 	CGameObject* pMapObject = new CGameObject();
 	pMapObject->SetChild(pMapModel);
 	pMapObject->SetPosition(0.0f, -2500.0f, 0.0f);
-	pMapObject->Rotate(0.0f, 0.0f, 0.0f);
-	pMapObject->SetScale(10, 10, 10);
+	pMapObject->SetScale(1, 1, 1);
 	pMapObject->m_bIsGround = true;
 	m_ppGameObjects[0] = pMapObject;
 
