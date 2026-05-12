@@ -609,9 +609,8 @@ void CEffectLibrary::BuildPipelineState(ID3D12Device* pd3dDevice)
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 20, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+		{ "COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 20, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
 	};
-
 	psoDesc.InputLayout = { inputElementDescs, _countof(inputElementDescs) };
 
 	psoDesc.VS = CompileShaderHelper(L"EffectShaders.hlsl", "VS_Particle", "vs_5_1");
@@ -647,25 +646,11 @@ void CEffectLibrary::BuildPipelineState(ID3D12Device* pd3dDevice)
 		OutputDebugStringA("[EffectLibrary] CreateGraphicsPipelineState(Particle) failed.\n");
 	}
 
-	D3D12_GRAPHICS_PIPELINE_STATE_DESC depthPsoDesc = psoDesc;
 
-	depthPsoDesc.VS = CompileShaderHelper(L"EffectShaders.hlsl", "VS_Dust", "vs_5_1");
-	depthPsoDesc.GS = CompileShaderHelper(L"EffectShaders.hlsl", "GS_Dust", "gs_5_1");
-	depthPsoDesc.PS = CompileShaderHelper(L"EffectShaders.hlsl", "PS_Dust", "ps_5_1");
+	psoDesc.DepthStencilState.DepthEnable = TRUE;
+	psoDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
 
-	D3D12_BLEND_DESC dustBlendDesc = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
-	dustBlendDesc.RenderTarget[0].BlendEnable = TRUE;
-	dustBlendDesc.RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA;
-	dustBlendDesc.RenderTarget[0].DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
-	dustBlendDesc.RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD;
-	depthPsoDesc.BlendState = dustBlendDesc;
-
-	depthPsoDesc.DepthStencilState.DepthEnable = TRUE;
-	depthPsoDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
-	depthPsoDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO; 
-
-	hr = pd3dDevice->CreateGraphicsPipelineState(&depthPsoDesc, IID_PPV_ARGS(&m_pParticleDepthPSO));
-
+	hr = pd3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pParticleDepthPSO));
 	if (FAILED(hr) || (m_pParticleDepthPSO == nullptr))
 	{
 		OutputDebugStringA("[EffectLibrary] CreateGraphicsPipelineState(Particle Depth) failed.\n");
@@ -748,7 +733,7 @@ void CEffectLibrary::BuildPipelineState(ID3D12Device* pd3dDevice)
 	}
 }
 
-ActiveEffect* CEffectLibrary::Play(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT2 size, XMFLOAT4 color)
+ActiveEffect* CEffectLibrary::Play(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT2 size, XMFLOAT3 color)
 {
 	if (!IsValidEffectType(type)) return nullptr;
 	if (m_vEffectPool[(int)type].empty()) return nullptr;
@@ -793,7 +778,7 @@ ActiveEffect* CEffectLibrary::Play(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT2
 	return pEffectData;
 }
 
-void CEffectLibrary::PlayCarDustParticle(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT3 right, XMFLOAT3 look, XMFLOAT2 size, XMFLOAT2 offset, XMFLOAT4 color)
+void CEffectLibrary::PlayCarDustParticle(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT3 right, XMFLOAT3 look, XMFLOAT2 size, XMFLOAT2 offset, XMFLOAT3 color)
 {
 	XMVECTOR vPos = XMLoadFloat3(&position);
 	XMVECTOR vRight = XMVector3Normalize(XMLoadFloat3(&right));
@@ -821,12 +806,12 @@ void CEffectLibrary::PushEffectEvent(const EffectEvent& eventData)
 	m_qEffectEvents.push(eventData);
 }
 
-void CEffectLibrary::PushEffectEvent(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT2 size, XMFLOAT4 color)
+void CEffectLibrary::PushEffectEvent(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT2 size, XMFLOAT3 color)
 {
 	m_qEffectEvents.push(EffectEvent(type, position, size, color));
 }
 
-void CEffectLibrary::PushEffectEvent(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT2 size, XMFLOAT4 color, float lifeTime, bool loop)
+void CEffectLibrary::PushEffectEvent(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT2 size, XMFLOAT3 color, float lifeTime, bool loop)
 {
 	m_qEffectEvents.push(EffectEvent(type, position, size, color, lifeTime, loop));
 }
