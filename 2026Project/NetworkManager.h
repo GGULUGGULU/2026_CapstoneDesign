@@ -17,10 +17,19 @@ struct CollisionEventNet
 struct EffectEventNet
 {
     int effectType = 0;
+
+    
+    int action = 0;
+
     float x = 0.0f, y = 0.0f, z = 0.0f;
+
+   
+    float lx = 0.0f, ly = 0.0f, lz = 1.0f;
+
     float sx = 0.0f, sy = 0.0f;
     float r = 1.0f, g = 1.0f, b = 1.0f;
 };
+
 
 struct ItemEventNet
 {

@@ -264,6 +264,8 @@ private:
 	float m_fDashGaugeIncreaseAmount;
 
 	bool  m_bIsDashing;
+	bool m_bPrevBoosterSyncActive = false;
+
 
 public:
 	// UI

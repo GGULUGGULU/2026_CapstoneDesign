@@ -72,6 +72,7 @@ CGameFramework::CGameFramework()
 	m_fDashGaugeIncreaseAmount = 50.0f;
 
 	m_bIsDashing = false;
+	m_bPrevBoosterSyncActive = false;
 
 	m_bDashLocked = false;
 	m_fDashLockTime = 0.0f;
@@ -941,18 +942,52 @@ void CGameFramework::ProcessInputGameStage()
 
 		m_nPlayerCurrentSpeed = (int)XMVectorGetX(XMVector3Length(vVel));
 
+		
 		if (m_nPlayerCurrentSpeed > 20)
 		{
 			if (2 < m_cnt)
 			{
+				XMFLOAT3 pos = m_pPlayer->GetPosition();
+				XMFLOAT3 right = m_pPlayer->GetRightVector();
+				XMFLOAT3 look = m_pPlayer->GetLookVector();
+
+				
 				CEffectLibrary::Instance()->PlayCarDustParticle(
 					EFFECT_TYPE::DUST,
-					m_pPlayer->GetPosition(),
-					m_pPlayer->GetRightVector(),
-					m_pPlayer->GetLookVector(),
+					pos,
+					right,
+					look,
 					XMFLOAT2(5, 5),
 					XMFLOAT2(10, 20)
 				);
+
+			
+				if (m_pNetwork && m_pNetwork->IsConnected())
+				{
+					EffectEventNet ev{};
+					ev.effectType = (int)EFFECT_TYPE::DUST;
+					ev.action = 0;
+
+					ev.x = pos.x;
+					ev.y = pos.y;
+					ev.z = pos.z;
+
+					
+					ev.lx = look.x;
+					ev.ly = look.y;
+					ev.lz = look.z;
+
+					
+					ev.r = right.x;
+					ev.g = right.y;
+					ev.b = right.z;
+
+					ev.sx = 5.0f;
+					ev.sy = 5.0f;
+
+					m_pNetwork->SendEffectEvent(ev);
+				}
+
 				m_cnt = 0;
 			}
 			else
@@ -960,6 +995,7 @@ void CGameFramework::ProcessInputGameStage()
 				++m_cnt;
 			}
 		}
+
 	}
 
 	m_pPlayer->Update(fTimeElapsed);
@@ -973,13 +1009,47 @@ void CGameFramework::AnimateObjects()
 
 	m_pPlayer->Animate(fTimeElapsed, NULL);
 
-	if (m_pPlayer)
+
+	if (m_pPlayer && m_bIsDashing)
 	{
-		CEffectLibrary::Instance()->UpdateBoosterPosition(
-			XMFLOAT3(m_pPlayer->GetPosition().x, m_pPlayer->GetPosition().y, m_pPlayer->GetPosition().z),
-			m_pPlayer->GetLookVector()
-		);
+		XMFLOAT3 pos = m_pPlayer->GetPosition();
+		XMFLOAT3 look = m_pPlayer->GetLookVector();
+
+		CEffectLibrary::Instance()->UpdateBoosterPosition(pos, look);
+
+		if (m_pNetwork && m_pNetwork->IsConnected())
+		{
+			EffectEventNet ev{};
+			ev.effectType = (int)EFFECT_TYPE::BOOSTER;
+			ev.action = 3;
+
+			ev.x = pos.x;
+			ev.y = pos.y;
+			ev.z = pos.z;
+
+			ev.lx = look.x;
+			ev.ly = look.y;
+			ev.lz = look.z;
+
+			m_pNetwork->SendEffectEvent(ev);
+		}
 	}
+	else if (m_bPrevBoosterSyncActive)
+	{
+		if (m_pNetwork && m_pNetwork->IsConnected())
+		{
+			EffectEventNet ev{};
+			ev.effectType = (int)EFFECT_TYPE::BOOSTER;
+			ev.action = 2;
+
+			m_pNetwork->SendEffectEvent(ev);
+		}
+	}
+
+	m_bPrevBoosterSyncActive = m_bIsDashing;
+
+
+
 	if (m_pRemotePlayer && m_pRemotePlayer->m_bIsActive)
 	{
 		m_pRemotePlayer->Animate(fTimeElapsed, NULL);
@@ -1117,6 +1187,7 @@ void CGameFramework::BuildGameObjects()
 
 	m_bIsDashing = false;
 	m_nPlayerCurrentSpeed = 0;
+	m_bPrevBoosterSyncActive = false;
 
 	m_bDashLocked = false;
 	m_fDashLockTime = 0.0f;
@@ -2494,14 +2565,57 @@ void CGameFramework::SendEffectEvent(EFFECT_TYPE eType, const XMFLOAT3& xmf3Posi
 	m_pNetwork->SendEffectEvent(ev);
 }
 
+
+
 void CGameFramework::ConsumeNetworkEffectEvents()
 {
 	if (!m_pNetwork) return;
 
 	EffectEventNet ev{};
+
 	while (m_pNetwork->ConsumeEffectEvent(ev))
 	{
-		CEffectLibrary::Instance()->Play(static_cast<EFFECT_TYPE>(ev.effectType), XMFLOAT3(ev.x, ev.y, ev.z), XMFLOAT2(ev.sx, ev.sy), XMFLOAT3(ev.r, ev.g, ev.b));
+		if (ev.effectType == (int)EFFECT_TYPE::BOOSTER)
+		{
+			if (ev.action == 2)
+			{
+				CEffectLibrary::Instance()->ToggleBooster(false);
+			}
+			else if (ev.action == 1 || ev.action == 3)
+			{
+				XMFLOAT3 pos(ev.x, ev.y, ev.z);
+				XMFLOAT3 look(ev.lx, ev.ly, ev.lz);
+
+				CEffectLibrary::Instance()->ToggleBooster(true);
+				CEffectLibrary::Instance()->UpdateBoosterPosition(pos, look);
+			}
+		}
+		else if (ev.effectType == (int)EFFECT_TYPE::DUST)
+		{
+			XMFLOAT3 pos(ev.x, ev.y, ev.z);
+			XMFLOAT3 look(ev.lx, ev.ly, ev.lz);
+
+			
+			XMFLOAT3 right(ev.r, ev.g, ev.b);
+
+			CEffectLibrary::Instance()->PlayCarDustParticle(
+				EFFECT_TYPE::DUST,
+				pos,
+				right,
+				look,
+				XMFLOAT2(ev.sx, ev.sy),
+				XMFLOAT2(10, 20)
+			);
+		}
+		else
+		{
+			CEffectLibrary::Instance()->Play(
+				static_cast<EFFECT_TYPE>(ev.effectType),
+				XMFLOAT3(ev.x, ev.y, ev.z),
+				XMFLOAT2(ev.sx, ev.sy),
+				XMFLOAT3(ev.r, ev.g, ev.b)
+			);
+		}
 	}
 }
 
