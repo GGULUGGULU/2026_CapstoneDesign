@@ -66,6 +66,14 @@ void CEffectLibrary::InitializeDefaultEffectConfigs()
 	m_EffectConfigs[(int)EFFECT_TYPE::WIND_EFFECT].poolSize = 1;
 	m_EffectConfigs[(int)EFFECT_TYPE::WIND_EFFECT].lifeTime = 999999.0f;
 	m_EffectConfigs[(int)EFFECT_TYPE::WIND_EFFECT].loop = true;
+
+
+	m_EffectConfigs[(int)EFFECT_TYPE::LOCK_ORBIT].poolSize = 10;
+	m_EffectConfigs[(int)EFFECT_TYPE::LOCK_ORBIT].particleCount = 8;
+	m_EffectConfigs[(int)EFFECT_TYPE::LOCK_ORBIT].lifeTime = 3.0f;
+	m_EffectConfigs[(int)EFFECT_TYPE::LOCK_ORBIT].spread = 0.0f;
+	m_EffectConfigs[(int)EFFECT_TYPE::LOCK_ORBIT].loop = false;
+	m_EffectConfigs[(int)EFFECT_TYPE::LOCK_ORBIT].useDepth = true;
 }
 
 void CEffectLibrary::InitializeDefaultMeshConfigs()
@@ -729,7 +737,14 @@ ActiveEffect* CEffectLibrary::Play(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT2
 		float fSpread = pEffectData->fSpread;
 		pEffectData->bUseSpread = !IsZero(fSpread);
 
-		pEffectData->pParticleSys->ResetParticles(size, fSpread, pEffectData->bUseSpread, color);
+		if (type == EFFECT_TYPE::LOCK_ORBIT)
+		{
+			pEffectData->pParticleSys->ResetLockOrbit(size, color);
+		}
+		else
+		{
+			pEffectData->pParticleSys->ResetParticles(size, fSpread, pEffectData->bUseSpread, color);
+		}
 
 	}
 	else if (pEffectData->pMeshEffect)
@@ -856,6 +871,10 @@ void CEffectLibrary::UpdateParticleEffect(ActiveEffect* eff, float fTimeElapsed)
 	else if (eff->type == EFFECT_TYPE::DUST)
 	{
 		eff->pParticleSys->DustAnimate(fTimeElapsed, eff->bUseSpread);
+	}
+	else if (eff->type == EFFECT_TYPE::LOCK_ORBIT)
+	{
+		eff->pParticleSys->LockOrbitAnimate(fTimeElapsed);
 	}
 	else if (IsItemEffect(eff->type))
 	{
@@ -1008,6 +1027,22 @@ void CEffectLibrary::ToggleBooster(bool flag)
 		}
 	}
 }
+
+
+void CEffectLibrary::UpdateLockOrbitPosition(const XMFLOAT3& position)
+{
+	for (ActiveEffect* eff : m_vActiveEffects)
+	{
+		if (!eff || !eff->bActive) continue;
+		if (eff->type != EFFECT_TYPE::LOCK_ORBIT) continue;
+
+		if (eff->pParticleSys)
+		{
+			eff->pParticleSys->SetPosition(position);
+		}
+	}
+}
+
 
 void CEffectLibrary::UpdateBoosterPosition(const XMFLOAT3& pos, const XMFLOAT3& lookDir)
 {

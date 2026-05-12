@@ -75,6 +75,10 @@ CGameFramework::CGameFramework()
 
 	m_bDashLocked = false;
 	m_fDashLockTime = 0.0f;
+	m_bRemoteLockEffectActive = false;
+	m_fRemoteLockEffectTime = 0.0f;
+
+
 
 	_tcscpy_s(m_pszFrameRate, _T("2026Project ("));
 
@@ -1081,8 +1085,8 @@ void CGameFramework::BuildGameObjects()
 
 	// 맵
 	m_pScene = new CScene();
-	//if (m_pScene) m_pScene->BuildGameObjects(m_pd3dDevice, m_pd3dCommandList);
-    if (m_pScene) m_pScene->BuildGameStage2(m_pd3dDevice, m_pd3dCommandList);
+	if (m_pScene) m_pScene->BuildGameObjects(m_pd3dDevice, m_pd3dCommandList);
+    //if (m_pScene) m_pScene->BuildGameStage2(m_pd3dDevice, m_pd3dCommandList);
 
 	CreateShadowMap();
 
@@ -1189,9 +1193,20 @@ void CGameFramework::ApplyItemReward(ITEM_TYPE eItemType)
 		break;
 
 	case ITEM_LOCK:
-		// 자물쇠
-		SendItemEvent(ITEM_LOCK, 3.0f);
-		break;
+	{
+		const float fLockDuration = 3.0f;
+
+	
+		SendItemEvent(ITEM_LOCK, fLockDuration);
+
+		
+		PlayLockEffectOnPlayer(m_pRemotePlayer, fLockDuration);
+
+		m_bRemoteLockEffectActive = true;
+		m_fRemoteLockEffectTime = fLockDuration;
+	}
+	break;
+
 	default:
 		break;
 	}
@@ -2730,6 +2745,7 @@ void CGameFramework::FrameAdvance()
 {
 	m_GameTimer.Tick(0.0f);
 
+
 	if (m_bPlayingIntroVideo)
 	{
 		if (!m_pVideoPlayer || m_pVideoPlayer->IsFinished())
@@ -2782,6 +2798,32 @@ void CGameFramework::FrameAdvance()
 		CollisionProcess();
 		//m_pPlayer->SetGravity(XMFLOAT3(0, 0, 0));
 		const float fTimeElapsed = m_GameTimer.GetTimeElapsed();
+	
+		if (m_bDashLocked && m_pPlayer)
+		{
+			XMFLOAT3 pos = m_pPlayer->GetPosition();
+			pos.y += 0.0f;
+			
+			CEffectLibrary::Instance()->UpdateLockOrbitPosition(pos);
+		}
+
+		if (m_bRemoteLockEffectActive)
+		{
+			m_fRemoteLockEffectTime -= fTimeElapsed;
+
+			if (m_fRemoteLockEffectTime <= 0.0f)
+			{
+				m_fRemoteLockEffectTime = 0.0f;
+				m_bRemoteLockEffectActive = false;
+			}
+			else if (m_pRemotePlayer)
+			{
+				XMFLOAT3 pos = m_pRemotePlayer->GetPosition();
+				pos.y += 0.0f;
+				  // 자물쇠 이펙트 위치 조정
+				CEffectLibrary::Instance()->UpdateLockOrbitPosition(pos);
+			}
+		}
 
 		
 		if (m_bMultiplayerEnabled && m_pNetwork && m_pNetwork->IsConnected())
@@ -3115,7 +3157,27 @@ void CGameFramework::ApplyDashLock(float fDuration)
 		m_pPlayer->m_fMaxVelocityXZ = GetPlayerEffectiveMaxSpeed();
 
 	CEffectLibrary::Instance()->ToggleBooster(false);
+
+	PlayLockEffectOnPlayer(m_pPlayer, fDuration);
 }
+
+void CGameFramework::PlayLockEffectOnPlayer(CPlayer* pTargetPlayer, float fDuration)
+{
+	if (!pTargetPlayer) return;
+
+	XMFLOAT3 pos = pTargetPlayer->GetPosition();
+	pos.y += 0.0f; // 자물쇠 이펙트 위치
+
+	CEffectLibrary::Instance()->PushEffectEvent(
+		EFFECT_TYPE::LOCK_ORBIT,
+		pos,
+		XMFLOAT2(18.0f, 18.0f),
+		XMFLOAT3(1.0f, 1.0f, 1.0f),
+		fDuration,
+		false
+	);
+}
+
 
 void CGameFramework::ConsumeNetworkItemEvents()
 {

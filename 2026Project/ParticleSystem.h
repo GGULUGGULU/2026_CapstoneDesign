@@ -41,6 +41,9 @@ public:
 
 	void Clear();
 
+	void ResetLockOrbit(const XMFLOAT2& size, const XMFLOAT3& color);
+	void LockOrbitAnimate(float fTimeElapsed);
+
 private:
 	XMFLOAT3 m_xmf3Position;
 	XMFLOAT4X4 m_xmf4x4World;

@@ -34,6 +34,7 @@ enum class EFFECT_TYPE
 	BOOSTER, // 부스터
 	WIND_EFFECT,
 	SPEED_LINE,
+	LOCK_ORBIT,
 	COUNT, // 개수
 };
 
@@ -185,6 +186,7 @@ public:
 
 	bool IsDepthParticleEffect(EFFECT_TYPE type) const;
 
+	void UpdateLockOrbitPosition(const XMFLOAT3& position);
 
 private:
 	CEffectLibrary();
@@ -217,7 +219,8 @@ private:
 		/////////////////////////////////////////////////
 		L"Asset/DDS_File/Booster.dds",
 		L"Asset/DDS_File/WindShield.dds",
-		L"Asset/DDS_File/SpeedLine1.dds"
+		L"Asset/DDS_File/SpeedLine1.dds",
+		L"Asset/DDS_File/LockOrbit.dds"
 	};
 
 	UINT m_nSrvDescriptorIncrementSize = 0;

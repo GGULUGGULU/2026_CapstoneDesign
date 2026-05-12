@@ -222,6 +222,72 @@ void CParticleSystem::ItemAnimate(float fTimeElapsed)
     }
 }
 
+
+void CParticleSystem::ResetLockOrbit(const XMFLOAT2& size, const XMFLOAT3& color)
+{
+    m_nActiveParticles = 0;
+    m_xmf3BaseColor = color;
+
+    const float fRadius = 45.0f;
+    const float fHeight = 35.0f;
+    const float fAngularSpeed = XM_2PI * 0.8f; 
+
+    for (int i = 0; i < m_nMaxParticles; ++i)
+    {
+        float angle = XM_2PI * ((float)i / (float)m_nMaxParticles);
+
+        m_vCpuParticles[i].m_bIsActive = true;
+        m_vCpuParticles[i].m_xmf3Color = color;
+        m_vCpuParticles[i].m_fAge = 0.0f;
+        m_vCpuParticles[i].m_fLifeTime = 9999.0f;
+
+        m_vCpuParticles[i].m_xmf3Velocity = XMFLOAT3(angle, fAngularSpeed, fRadius);
+
+        m_vCpuParticles[i].m_xmf2MaxSize = size;
+
+        m_vCpuParticles[i].m_xmf3Position = XMFLOAT3(
+            cosf(angle) * fRadius,
+            fHeight,
+            -sinf(angle) * fRadius
+        );
+    }
+
+    LockOrbitAnimate(0.0f);
+}
+
+void CParticleSystem::LockOrbitAnimate(float fTimeElapsed)
+{
+    m_nActiveParticles = 0;
+
+    const float fHeight = 35.0f;
+
+    for (int i = 0; i < m_nMaxParticles; ++i)
+    {
+        if (!m_vCpuParticles[i].m_bIsActive) continue;
+
+        m_vCpuParticles[i].m_fAge += fTimeElapsed;
+
+        float angle = m_vCpuParticles[i].m_xmf3Velocity.x;
+        float angularSpeed = m_vCpuParticles[i].m_xmf3Velocity.y;
+        float radius = m_vCpuParticles[i].m_xmf3Velocity.z;
+
+        
+        angle += angularSpeed * fTimeElapsed;
+
+        m_vCpuParticles[i].m_xmf3Velocity.x = angle;
+
+        m_vCpuParticles[i].m_xmf3Position.x = cosf(angle) * radius;
+        m_vCpuParticles[i].m_xmf3Position.y = fHeight;
+        m_vCpuParticles[i].m_xmf3Position.z = -sinf(angle) * radius;
+
+        m_pMappedParticles[m_nActiveParticles].m_xmf3Position = m_vCpuParticles[i].m_xmf3Position;
+        m_pMappedParticles[m_nActiveParticles].m_xmf2Size = m_vCpuParticles[i].m_xmf2MaxSize;
+        m_pMappedParticles[m_nActiveParticles].m_xmf3Color = m_vCpuParticles[i].m_xmf3Color;
+
+        m_nActiveParticles++;
+    }
+}
+
 void CParticleSystem::BoosterAnimate(float fTimeElapsed)
 {
     m_nActiveParticles = 0;

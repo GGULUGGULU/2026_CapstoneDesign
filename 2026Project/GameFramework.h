@@ -248,6 +248,8 @@ private:
 	void SendItemEvent(ITEM_TYPE eItemType, float fDuration);
 	void ConsumeNetworkItemEvents();
 	void ApplyDashLock(float fDuration);
+	void PlayLockEffectOnPlayer(CPlayer* pTargetPlayer, float fDuration);
+
 
 
 private:
@@ -325,6 +327,10 @@ public:
 
 	bool  m_bDashLocked = false;
 	float m_fDashLockTime = 0.0f;
+
+	bool  m_bRemoteLockEffectActive = false;
+	float m_fRemoteLockEffectTime = 0.0f;
+
 
 };
 
