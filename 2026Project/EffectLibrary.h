@@ -56,7 +56,7 @@ struct EffectEvent {
 	EFFECT_TYPE type;
 	XMFLOAT3 position;
 	XMFLOAT2 size;
-	XMFLOAT4 color;
+	XMFLOAT3 color;
 	float lifeTime;
 	bool loop;
 
@@ -64,13 +64,13 @@ struct EffectEvent {
 		: type(EFFECT_TYPE::COLLISION)
 		, position(0.0f, 0.0f, 0.0f)
 		, size(1.0f, 1.0f)
-		, color(1.0f, 1.0f, 1.0f, 1.0f)
+		, color(1.0f, 1.0f, 1.0f)
 		, lifeTime(-1.0f)
 		, loop(false)
 	{
 	}
 
-	EffectEvent(EFFECT_TYPE effectType, XMFLOAT3 effectPos, XMFLOAT2 effectSize, XMFLOAT4 effectColor = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f), float effectLifeTime = -1.0f, bool effectLoop = false)
+	EffectEvent(EFFECT_TYPE effectType, XMFLOAT3 effectPos, XMFLOAT2 effectSize, XMFLOAT3 effectColor = XMFLOAT3(1.0f, 1.0f, 1.0f), float effectLifeTime = -1.0f, bool effectLoop = false)
 		: type(effectType)
 		, position(effectPos)
 		, size(effectSize)
@@ -92,7 +92,7 @@ struct EffectTypeConfig {
 	EffectTypeConfig()
 		: poolSize(50)
 		, particleCount(3)
-		, lifeTime(1.0f)
+		, lifeTime(2.0f)
 		, spread(0.0f)
 		, loop(false)
 		, useDepth(false)
@@ -159,13 +159,13 @@ public:
 	void Render(ID3D12GraphicsCommandList* pd3dCommandList, const XMFLOAT4X4& view, const XMFLOAT4X4& proj);
 	void Render(EffectRenderContext& context, const EffectMat4& view, const EffectMat4& proj);
 
-	ActiveEffect* Play(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT2 size, XMFLOAT4 color = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
-	void PlayCarDustParticle(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT3 right, XMFLOAT3 look, XMFLOAT2 size, XMFLOAT2 offset, XMFLOAT4 color = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
+	ActiveEffect* Play(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT2 size, XMFLOAT3 color = XMFLOAT3(1.0f, 1.0f, 1.0f));
+	void PlayCarDustParticle(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT3 right, XMFLOAT3 look, XMFLOAT2 size, XMFLOAT2 offset, XMFLOAT3 color = XMFLOAT3(1.0f, 1.0f, 1.0f));
 
 
 	void PushEffectEvent(const EffectEvent& eventData);
-	void PushEffectEvent(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT2 size, XMFLOAT4 color = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
-	void PushEffectEvent(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT2 size, XMFLOAT4 color, float lifeTime, bool loop = false);
+	void PushEffectEvent(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT2 size, XMFLOAT3 color = XMFLOAT3(1.0f, 1.0f, 1.0f));
+	void PushEffectEvent(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT2 size, XMFLOAT3 color, float lifeTime, bool loop = false);
 
 	void SetEffectTypeConfig(EFFECT_TYPE type, const EffectTypeConfig& config);
 	void SetEffectLifeTime(EFFECT_TYPE type, float lifeTime);
@@ -214,8 +214,7 @@ private:
 	std::wstring m_TextureFileNames[(int)EFFECT_TYPE::COUNT] = {
 		L"Asset/DDS_File/WhiteStar1.dds",
 		/////////////////////////////////////////////////
-		//L"Asset/DDS_File/Dust.dds",
-		L"Asset/DDS_File/smoke_04.dds",
+		L"Asset/DDS_File/Dust.dds",
 		/////////////////////////////////////////////////
 		L"Asset/DDS_File/LongPinkRibbon.dds",
 		L"Asset/DDS_File/LongRedRibbon.dds",
@@ -238,9 +237,8 @@ private:
 	ID3D12RootSignature* m_pRootSignature = nullptr;
 	ID3D12PipelineState* m_pPipelineState = nullptr;
 	ID3D12PipelineState* m_pMeshEffectPSO = nullptr;
-	ID3D12PipelineState* m_pParticleDepthPSO = nullptr; // 먼지용
+	ID3D12PipelineState* m_pParticleDepthPSO = nullptr; // 흙먼지용
 	ID3D12PipelineState* m_pBoosterPSO = nullptr; // 부스터용
-
 
 
 	void BuildRootSignature(ID3D12Device* pd3dDevice);

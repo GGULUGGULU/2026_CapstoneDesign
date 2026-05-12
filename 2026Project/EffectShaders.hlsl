@@ -120,14 +120,14 @@ struct VS_PARTICLE_INPUT
 {
     float3 position : POSITION;
     float2 size : TEXCOORD;
-    float4 color : COLOR;
+    float3 color : COLOR;
 };
 
 struct VS_PARTICLE_OUTPUT
 {
     float3 positionW : POSITION;
     float2 size : TEXCOORD;
-    float4 color : COLOR;
+    float3 color : COLOR;
 };
 
 struct GS_PARTICLE_OUTPUT
@@ -135,7 +135,7 @@ struct GS_PARTICLE_OUTPUT
     float4 positionH : SV_POSITION;
     float2 uv : TEXCOORD;
     uint primID : SV_PrimitiveID;
-    float4 color : COLOR;
+    float3 color : COLOR;
 };
 
 VS_PARTICLE_OUTPUT VS_Particle(VS_PARTICLE_INPUT input)
@@ -188,84 +188,16 @@ float4 PS_Particle(GS_PARTICLE_OUTPUT input) : SV_TARGET
 {
     float4 texColor = gParticleTexture.Sample(gParticleSampler, input.uv);
 
-    return float4(texColor.rgb * input.color.rgb, texColor.a);
+    return float4(texColor.rgb * input.color, texColor.a);
 }
 
 // ================================================================================
-struct VS_DUST_INPUT
-{
-    float3 position : POSITION;
-    float2 size : TEXCOORD;
-    float4 color : COLOR; 
-};
 
-struct VS_DUST_OUTPUT
-{
-    float3 positionW : POSITION;
-    float2 size : TEXCOORD;
-    float4 color : COLOR;
-};
-
-struct GS_DUST_OUTPUT
-{
-    float4 positionH : SV_POSITION;
-    float2 uv : TEXCOORD;
-    float4 color : COLOR;
-};
-
-VS_DUST_OUTPUT VS_Dust(VS_DUST_INPUT input)
-{
-    VS_DUST_OUTPUT output;
-    output.positionW = mul(float4(input.position, 1.0f), gmtxParticleWorld).xyz;
-    output.size = input.size;
-    output.color = input.color;
-    return output;
-}
-
-[maxvertexcount(4)]
-void GS_Dust(point VS_DUST_OUTPUT input[1], inout TriangleStream<GS_DUST_OUTPUT> outStream)
-{
-    float3 vRight = float3(gmtxParticleView._11, gmtxParticleView._21, gmtxParticleView._31);
-    float3 vUp = float3(gmtxParticleView._12, gmtxParticleView._22, gmtxParticleView._32);
-
-    float3 p = input[0].positionW;
-    float2 halfSize = input[0].size * 0.5f;
-    
-    float4 v[4];
-    v[0] = float4(p + halfSize.x * vRight - halfSize.y * vUp, 1.0f);
-    v[1] = float4(p + halfSize.x * vRight + halfSize.y * vUp, 1.0f);
-    v[2] = float4(p - halfSize.x * vRight - halfSize.y * vUp, 1.0f);
-    v[3] = float4(p - halfSize.x * vRight + halfSize.y * vUp, 1.0f);
-    
-    float2 uv[4] = { float2(1.0f, 1.0f), float2(1.0f, 0.0f), float2(0.0f, 1.0f), float2(0.0f, 0.0f) };
-    
-    GS_DUST_OUTPUT output;
-    [unroll]
-    for (int i = 0; i < 4; ++i)
-    {
-        float4 posV = mul(v[i], gmtxParticleView);
-        output.positionH = mul(posV, gmtxParticleProjection);
-        output.uv = uv[i];
-        output.color = input[0].color; 
-        outStream.Append(output);
-    }
-}
-
-float4 PS_Dust(GS_DUST_OUTPUT input) : SV_TARGET
-{
-    float4 texColor = gParticleTexture.Sample(gParticleSampler, input.uv);
-    
-    float customAlpha = texColor.r;
-    
-    return float4(texColor.rgb * input.color.rgb, customAlpha * input.color.a);
-}
-
-// ================================================================================
 cbuffer cbWindShield : register(b7)
 {
     matrix gmtxShieldWorld;
-    float gfShieldTime; // ì‹œê°„
-    float3 gvShieldScrollSpeed; // ì†ë„
+    float gfShieldTime; // ½Ã°£
+    float3 gvShieldScrollSpeed; // ¼Óµµ
 };
 
 struct VS_SHIELD_INPUT
