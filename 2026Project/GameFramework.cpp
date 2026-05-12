@@ -951,13 +951,14 @@ void CGameFramework::ProcessInputGameStage()
 				XMFLOAT3 right = m_pPlayer->GetRightVector();
 				XMFLOAT3 look = m_pPlayer->GetLookVector();
 
+				int size = (rand() % 3) + 1;
 				
 				CEffectLibrary::Instance()->PlayCarDustParticle(
 					EFFECT_TYPE::DUST,
 					pos,
 					right,
 					look,
-					XMFLOAT2(5, 5),
+					XMFLOAT2(size, size),
 					XMFLOAT2(10, 20)
 				);
 
@@ -1483,9 +1484,9 @@ void CGameFramework::CollisionProcess()
 				(localPos.z + remotePos.z) * 0.5f
 			);
 
-			PlayAndSyncEffect(EFFECT_TYPE::COLLISION, hitPos, XMFLOAT2(50, 50), XMFLOAT3(1, 0, 0));
-			PlayAndSyncEffect(EFFECT_TYPE::COLLISION, hitPos, XMFLOAT2(50, 50), XMFLOAT3(0, 1, 0));
-			PlayAndSyncEffect(EFFECT_TYPE::COLLISION, hitPos, XMFLOAT2(50, 50), XMFLOAT3(0, 0, 1));
+			PlayAndSyncEffect(EFFECT_TYPE::COLLISION, hitPos, XMFLOAT2(50, 50), XMFLOAT4(1, 0, 0, 1.0f));
+			PlayAndSyncEffect(EFFECT_TYPE::COLLISION, hitPos, XMFLOAT2(50, 50), XMFLOAT4(0, 1, 0, 1.0f));
+			PlayAndSyncEffect(EFFECT_TYPE::COLLISION, hitPos, XMFLOAT2(50, 50), XMFLOAT4(0, 0, 1, 1.0f));
 
 			m_bIsStun = true;
 			m_fCollisionCurrentTime = m_fTotalTime;
@@ -1588,9 +1589,9 @@ void CGameFramework::CollisionProcess()
 			m_SoundManager.PlaySFX("Asset/Audio/Collision.mp3");
 
 			XMFLOAT3 vPos = m_pPlayer->GetPosition();
-			PlayAndSyncEffect(EFFECT_TYPE::COLLISION, XMFLOAT3(vPos.x, vPos.y + 10, vPos.z), XMFLOAT2(25, 25), XMFLOAT3(1, 1, 0));
-			PlayAndSyncEffect(EFFECT_TYPE::COLLISION, XMFLOAT3(vPos.x + 10, vPos.y, vPos.z), XMFLOAT2(25, 25), XMFLOAT3(1, 0, 1));
-			PlayAndSyncEffect(EFFECT_TYPE::COLLISION, XMFLOAT3(vPos.x, vPos.y, vPos.z + 10), XMFLOAT2(25, 25), XMFLOAT3(0, 1, 1));
+			PlayAndSyncEffect(EFFECT_TYPE::COLLISION, XMFLOAT3(vPos.x, vPos.y + 10, vPos.z), XMFLOAT2(25, 25), XMFLOAT4(1, 1, 0, 1.0f));
+			PlayAndSyncEffect(EFFECT_TYPE::COLLISION, XMFLOAT3(vPos.x + 10, vPos.y, vPos.z), XMFLOAT2(25, 25), XMFLOAT4(1, 0, 1, 1.0f));
+			PlayAndSyncEffect(EFFECT_TYPE::COLLISION, XMFLOAT3(vPos.x, vPos.y, vPos.z + 10), XMFLOAT2(25, 25), XMFLOAT4(0, 1, 1, 1.0f));
 
 			XMMATRIX mWallWorld = XMLoadFloat4x4(&pCollidedObject->GetWorldMatrix());
 			XMVECTOR vDet;
@@ -1645,9 +1646,9 @@ void CGameFramework::CollisionProcess()
 		{
 			XMFLOAT3 vPos = pCollidedObject->GetPosition();
 
-			PlayAndSyncEffect(EFFECT_TYPE::COLLISION, XMFLOAT3(vPos.x, vPos.y + 10, vPos.z), XMFLOAT2(50, 50), XMFLOAT3(1, 0, 0));
-			PlayAndSyncEffect(EFFECT_TYPE::COLLISION, XMFLOAT3(vPos.x, vPos.y + 10, vPos.z), XMFLOAT2(50, 50), XMFLOAT3(0, 1, 0));
-			PlayAndSyncEffect(EFFECT_TYPE::COLLISION, XMFLOAT3(vPos.x, vPos.y + 10, vPos.z), XMFLOAT2(50, 50), XMFLOAT3(0, 0, 1));
+			PlayAndSyncEffect(EFFECT_TYPE::COLLISION, XMFLOAT3(vPos.x, vPos.y + 10, vPos.z), XMFLOAT2(50, 50), XMFLOAT4(1, 0, 0, 1.0f));
+			PlayAndSyncEffect(EFFECT_TYPE::COLLISION, XMFLOAT3(vPos.x, vPos.y + 10, vPos.z), XMFLOAT2(50, 50), XMFLOAT4(0, 1, 0, 1.0f));
+			PlayAndSyncEffect(EFFECT_TYPE::COLLISION, XMFLOAT3(vPos.x, vPos.y + 10, vPos.z), XMFLOAT2(50, 50), XMFLOAT4(0, 0, 1, 1.0f));
 
 			pCollidedObject->Disable();
 
@@ -2540,13 +2541,13 @@ void CGameFramework::SyncMultiplayer()
 }
 
 
-void CGameFramework::PlayAndSyncEffect(EFFECT_TYPE eType, const XMFLOAT3& xmf3Position, const XMFLOAT2& xmf2Size, const XMFLOAT3& xmf3Color)
+void CGameFramework::PlayAndSyncEffect(EFFECT_TYPE eType, const XMFLOAT3& xmf3Position, const XMFLOAT2& xmf2Size, const XMFLOAT4& xmf4Color)
 {
-	CEffectLibrary::Instance()->Play(eType, xmf3Position, xmf2Size, xmf3Color);
-	SendEffectEvent(eType, xmf3Position, xmf2Size, xmf3Color);
+	CEffectLibrary::Instance()->Play(eType, xmf3Position, xmf2Size, xmf4Color);
+	SendEffectEvent(eType, xmf3Position, xmf2Size, xmf4Color);
 }
 
-void CGameFramework::SendEffectEvent(EFFECT_TYPE eType, const XMFLOAT3& xmf3Position, const XMFLOAT2& xmf2Size, const XMFLOAT3& xmf3Color)
+void CGameFramework::SendEffectEvent(EFFECT_TYPE eType, const XMFLOAT3& xmf3Position, const XMFLOAT2& xmf2Size, const XMFLOAT4& xmf4Color)
 {
 	if (!m_pNetwork || !m_pNetwork->IsConnected()) return;
 	if (!m_pNetwork->IsHosting()) return;
@@ -2558,14 +2559,12 @@ void CGameFramework::SendEffectEvent(EFFECT_TYPE eType, const XMFLOAT3& xmf3Posi
 	ev.z = xmf3Position.z;
 	ev.sx = xmf2Size.x;
 	ev.sy = xmf2Size.y;
-	ev.r = xmf3Color.x;
-	ev.g = xmf3Color.y;
-	ev.b = xmf3Color.z;
+	ev.r = xmf4Color.x;
+	ev.g = xmf4Color.y;
+	ev.b = xmf4Color.z;
 
 	m_pNetwork->SendEffectEvent(ev);
 }
-
-
 
 void CGameFramework::ConsumeNetworkEffectEvents()
 {
@@ -2613,7 +2612,7 @@ void CGameFramework::ConsumeNetworkEffectEvents()
 				static_cast<EFFECT_TYPE>(ev.effectType),
 				XMFLOAT3(ev.x, ev.y, ev.z),
 				XMFLOAT2(ev.sx, ev.sy),
-				XMFLOAT3(ev.r, ev.g, ev.b)
+				XMFLOAT4(ev.r, ev.g, ev.b, 1.0f)
 			);
 		}
 	}
@@ -3286,7 +3285,7 @@ void CGameFramework::PlayLockEffectOnPlayer(CPlayer* pTargetPlayer, float fDurat
 		EFFECT_TYPE::LOCK_ORBIT,
 		pos,
 		XMFLOAT2(18.0f, 18.0f),
-		XMFLOAT3(1.0f, 1.0f, 1.0f),
+		XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f),
 		fDuration,
 		false
 	);
