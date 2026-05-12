@@ -303,56 +303,76 @@ void CEffectLibrary::CreateEffectPools(ID3D12Device* pd3dDevice, ID3D12GraphicsC
 		CreateParticleEffectPool(type, pd3dDevice, pd3dCommandList, config.poolSize, config.particleCount);
 	}
 }
-
 void CEffectLibrary::CreateWindEffect(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
-	CMeshEffect* pShield = new CMeshEffect(pd3dDevice, pd3dCommandList);
-	pShield->CreateMesh(pd3dDevice, pd3dCommandList, m_WindMeshConfig.radius, m_WindMeshConfig.sliceCount, m_WindMeshConfig.stackCount);
-	pShield->CreateTextures(pd3dDevice, pd3dCommandList, m_WindMeshConfig.textureFiles);
-	pShield->SetColor(m_WindMeshConfig.color);
-	pShield->SetScale(m_WindMeshConfig.scale);
-	pShield->SetScrollSpeed(m_WindMeshConfig.scrollSpeed);
+	auto CreateOneWindEffect = [&](ActiveEffect*& outEffect)
+		{
+			CMeshEffect* pShield = new CMeshEffect(pd3dDevice, pd3dCommandList);
+			pShield->CreateMesh(pd3dDevice, pd3dCommandList,
+				m_WindMeshConfig.radius,
+				m_WindMeshConfig.sliceCount,
+				m_WindMeshConfig.stackCount);
+			pShield->CreateTextures(pd3dDevice, pd3dCommandList, m_WindMeshConfig.textureFiles);
+			pShield->SetColor(m_WindMeshConfig.color);
+			pShield->SetScale(m_WindMeshConfig.scale);
+			pShield->SetScrollSpeed(m_WindMeshConfig.scrollSpeed);
+			pShield->SetActive(false);
 
-	ActiveEffect* pEffect = new ActiveEffect;
-	pEffect->type = EFFECT_TYPE::WIND_EFFECT;
-	pEffect->bActive = false;
-	pEffect->fAge = 0.0f;
-	pEffect->fLifeTime = GetConfiguredLifeTime(EFFECT_TYPE::WIND_EFFECT);
-	pEffect->bLoop = GetConfiguredLoop(EFFECT_TYPE::WIND_EFFECT);
-	pEffect->fSpread = 0.0f;
-	pEffect->bUseSpread = false;
-	pEffect->pParticleSys = nullptr;
-	pEffect->pMeshEffect = pShield;
+			ActiveEffect* pEffect = new ActiveEffect;
+			pEffect->type = EFFECT_TYPE::WIND_EFFECT;
+			pEffect->bActive = false;
+			pEffect->fAge = 0.0f;
+			pEffect->fLifeTime = GetConfiguredLifeTime(EFFECT_TYPE::WIND_EFFECT);
+			pEffect->bLoop = GetConfiguredLoop(EFFECT_TYPE::WIND_EFFECT);
+			pEffect->fSpread = 0.0f;
+			pEffect->bUseSpread = false;
+			pEffect->pParticleSys = nullptr;
+			pEffect->pMeshEffect = pShield;
 
-	m_vActiveEffects.push_back(pEffect);
-	m_pWindShieldEffect = pEffect;
+			m_vActiveEffects.push_back(pEffect);
+			outEffect = pEffect;
+		};
+
+	CreateOneWindEffect(m_pLocalWindShieldEffect);
+	CreateOneWindEffect(m_pRemoteWindShieldEffect);
 }
-
 void CEffectLibrary::CreateBoosterEffect(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
-	const EffectTypeConfig& boosterConfig = m_EffectConfigs[(int)EFFECT_TYPE::BOOSTER];
-	CParticleSystem* pBoosterParticles = new CParticleSystem(pd3dDevice, pd3dCommandList, boosterConfig.particleCount);
+	auto CreateOneBoosterEffect = [&](ActiveEffect*& outEffect)
+		{
+			const EffectTypeConfig& boosterConfig = m_EffectConfigs[(int)EFFECT_TYPE::BOOSTER];
 
-	CMeshEffect* pBoosterMesh = new CMeshEffect(pd3dDevice, pd3dCommandList);
-	pBoosterMesh->CreateMesh(pd3dDevice, pd3dCommandList, m_BoosterMeshConfig.radius, m_BoosterMeshConfig.sliceCount, m_BoosterMeshConfig.stackCount);
-	pBoosterMesh->CreateTextures(pd3dDevice, pd3dCommandList, m_BoosterMeshConfig.textureFiles);
-	pBoosterMesh->SetColor(m_BoosterMeshConfig.color);
-	pBoosterMesh->SetScale(m_BoosterMeshConfig.scale);
-	pBoosterMesh->SetScrollSpeed(m_BoosterMeshConfig.scrollSpeed);
+			CParticleSystem* pBoosterParticles =
+				new CParticleSystem(pd3dDevice, pd3dCommandList, boosterConfig.particleCount);
 
-	ActiveEffect* pEffect = new ActiveEffect;
-	pEffect->type = EFFECT_TYPE::BOOSTER;
-	pEffect->bActive = false;
-	pEffect->fAge = 0.0f;
-	pEffect->fLifeTime = GetConfiguredLifeTime(EFFECT_TYPE::BOOSTER);
-	pEffect->bLoop = GetConfiguredLoop(EFFECT_TYPE::BOOSTER);
-	pEffect->fSpread = GetConfiguredSpread(EFFECT_TYPE::BOOSTER);
-	pEffect->bUseSpread = (pEffect->fSpread > 0.0001f);
-	pEffect->pParticleSys = pBoosterParticles;
-	pEffect->pMeshEffect = pBoosterMesh;
+			CMeshEffect* pBoosterMesh = new CMeshEffect(pd3dDevice, pd3dCommandList);
+			pBoosterMesh->CreateMesh(pd3dDevice, pd3dCommandList,
+				m_BoosterMeshConfig.radius,
+				m_BoosterMeshConfig.sliceCount,
+				m_BoosterMeshConfig.stackCount);
+			pBoosterMesh->CreateTextures(pd3dDevice, pd3dCommandList, m_BoosterMeshConfig.textureFiles);
+			pBoosterMesh->SetColor(m_BoosterMeshConfig.color);
+			pBoosterMesh->SetScale(m_BoosterMeshConfig.scale);
+			pBoosterMesh->SetScrollSpeed(m_BoosterMeshConfig.scrollSpeed);
+			pBoosterMesh->SetActive(false);
 
-	m_vActiveEffects.push_back(pEffect);
-	m_pBoosterEffect = pEffect;
+			ActiveEffect* pEffect = new ActiveEffect;
+			pEffect->type = EFFECT_TYPE::BOOSTER;
+			pEffect->bActive = false;
+			pEffect->fAge = 0.0f;
+			pEffect->fLifeTime = GetConfiguredLifeTime(EFFECT_TYPE::BOOSTER);
+			pEffect->bLoop = GetConfiguredLoop(EFFECT_TYPE::BOOSTER);
+			pEffect->fSpread = GetConfiguredSpread(EFFECT_TYPE::BOOSTER);
+			pEffect->bUseSpread = (pEffect->fSpread > 0.0001f);
+			pEffect->pParticleSys = pBoosterParticles;
+			pEffect->pMeshEffect = pBoosterMesh;
+
+			m_vActiveEffects.push_back(pEffect);
+			outEffect = pEffect;
+		};
+
+	CreateOneBoosterEffect(m_pLocalBoosterEffect);
+	CreateOneBoosterEffect(m_pRemoteBoosterEffect);
 }
 
 void CEffectLibrary::CreateParticleEffectPool(EFFECT_TYPE type, ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, int nPoolSize, int nParticleCount)
@@ -993,8 +1013,12 @@ void CEffectLibrary::Release()
 		m_vEffectPool[i].clear();
 	}
 
-	m_pBoosterEffect = nullptr;
-	m_pWindShieldEffect = nullptr;
+	m_pLocalBoosterEffect = nullptr;
+	m_pLocalWindShieldEffect = nullptr;
+	m_pRemoteBoosterEffect = nullptr;
+	m_pRemoteWindShieldEffect = nullptr;
+
+
 	while (!m_qEffectEvents.empty()) m_qEffectEvents.pop();
 
 	if (m_pRadialBlurPSO) { m_pRadialBlurPSO->Release(); m_pRadialBlurPSO = nullptr; }
@@ -1004,29 +1028,51 @@ void CEffectLibrary::Release()
 	if (m_pd3dPostProcessRtvHeap) { m_pd3dPostProcessRtvHeap->Release(); m_pd3dPostProcessRtvHeap = nullptr; }
 	if (m_pd3dCbvSrvUavHeap) { m_pd3dCbvSrvUavHeap->Release(); m_pd3dCbvSrvUavHeap = nullptr; }
 }
+void CEffectLibrary::ToggleLocalBooster(bool flag)
+{
+	if (m_pLocalWindShieldEffect && m_pLocalWindShieldEffect->pMeshEffect)
+	{
+		m_pLocalWindShieldEffect->bActive = flag;
+		m_pLocalWindShieldEffect->pMeshEffect->SetActive(flag);
+	}
+
+	if (m_pLocalBoosterEffect)
+	{
+		m_pLocalBoosterEffect->bActive = flag;
+
+		if (m_pLocalBoosterEffect->pMeshEffect)
+			m_pLocalBoosterEffect->pMeshEffect->SetActive(flag);
+
+		if (!flag && m_pLocalBoosterEffect->pParticleSys)
+			m_pLocalBoosterEffect->pParticleSys->Clear();
+	}
+}
+
+void CEffectLibrary::ToggleRemoteBooster(bool flag)
+{
+	if (m_pRemoteWindShieldEffect && m_pRemoteWindShieldEffect->pMeshEffect)
+	{
+		m_pRemoteWindShieldEffect->bActive = flag;
+		m_pRemoteWindShieldEffect->pMeshEffect->SetActive(flag);
+	}
+
+	if (m_pRemoteBoosterEffect)
+	{
+		m_pRemoteBoosterEffect->bActive = flag;
+
+		if (m_pRemoteBoosterEffect->pMeshEffect)
+			m_pRemoteBoosterEffect->pMeshEffect->SetActive(flag);
+
+		if (!flag && m_pRemoteBoosterEffect->pParticleSys)
+			m_pRemoteBoosterEffect->pParticleSys->Clear();
+	}
+}
 
 void CEffectLibrary::ToggleBooster(bool flag)
 {
-	if (m_pWindShieldEffect && m_pWindShieldEffect->pMeshEffect)
-	{
-		m_pWindShieldEffect->pMeshEffect->SetActive(flag);
-	}
-
-	if (m_pBoosterEffect)
-	{
-		m_pBoosterEffect->bActive = flag;
-
-		if (m_pBoosterEffect->pMeshEffect)
-		{
-			m_pBoosterEffect->pMeshEffect->SetActive(flag);
-		}
-
-		if (!flag && m_pBoosterEffect->pParticleSys)
-		{
-			m_pBoosterEffect->pParticleSys->Clear();
-		}
-	}
+	ToggleLocalBooster(flag);
 }
+
 
 
 void CEffectLibrary::UpdateLockOrbitPosition(const XMFLOAT3& position)
@@ -1043,46 +1089,47 @@ void CEffectLibrary::UpdateLockOrbitPosition(const XMFLOAT3& position)
 	}
 }
 
-
-void CEffectLibrary::UpdateBoosterPosition(const XMFLOAT3& pos, const XMFLOAT3& lookDir)
+static void UpdateBoosterEffectSet(
+	ActiveEffect* pWindShieldEffect,
+	ActiveEffect* pBoosterEffect,
+	const XMFLOAT3& pos,
+	const XMFLOAT3& lookDir)
 {
 	XMVECTOR vLook = XMLoadFloat3(&lookDir);
 	vLook = XMVector3Normalize(vLook);
 
-	if (m_pWindShieldEffect && m_pWindShieldEffect->pMeshEffect)
+	if (pWindShieldEffect && pWindShieldEffect->pMeshEffect)
 	{
-		//XMVECTOR vFrontPos = XMLoadFloat3(&pos) - (vLook * 150.0f);
 		XMVECTOR vFrontPos = XMLoadFloat3(&pos) - (vLook * 50.0f);
 		XMFLOAT3 fFrontPos;
 		XMStoreFloat3(&fFrontPos, vFrontPos);
 
-		m_pWindShieldEffect->pMeshEffect->SetPosition(fFrontPos);
+		pWindShieldEffect->pMeshEffect->SetPosition(fFrontPos);
 
 		float yaw = XMConvertToDegrees(atan2(lookDir.x, lookDir.z));
 
 		float yVal = lookDir.y;
 		if (yVal > 1.0f) yVal = 1.0f;
 		if (yVal < -1.0f) yVal = -1.0f;
-		float pitch = XMConvertToDegrees(asin(yVal));
 
+		float pitch = XMConvertToDegrees(asin(yVal));
 		XMFLOAT3 rot = XMFLOAT3(90.0f - pitch, yaw, 0.0f);
-		m_pWindShieldEffect->pMeshEffect->SetRotation(rot);
+
+		pWindShieldEffect->pMeshEffect->SetRotation(rot);
 	}
 
-	if (m_pBoosterEffect)
+	if (pBoosterEffect)
 	{
-		XMVECTOR vRearPos = XMLoadFloat3(&pos) - (vLook * 40.0f); // 부스터 생성위치
+		XMVECTOR vRearPos = XMLoadFloat3(&pos) - (vLook * 40.0f);
 		XMFLOAT3 fRearPos;
 		XMStoreFloat3(&fRearPos, vRearPos);
 
-		if (m_pBoosterEffect->pParticleSys)
-		{
-			m_pBoosterEffect->pParticleSys->SetPosition(fRearPos);
-		}
+		if (pBoosterEffect->pParticleSys)
+			pBoosterEffect->pParticleSys->SetPosition(fRearPos);
 
-		if (m_pBoosterEffect->pMeshEffect)
+		if (pBoosterEffect->pMeshEffect)
 		{
-			m_pBoosterEffect->pMeshEffect->SetPosition(fRearPos);
+			pBoosterEffect->pMeshEffect->SetPosition(fRearPos);
 
 			XMFLOAT3 backDir = XMFLOAT3(-lookDir.x, -lookDir.y, -lookDir.z);
 
@@ -1091,12 +1138,28 @@ void CEffectLibrary::UpdateBoosterPosition(const XMFLOAT3& pos, const XMFLOAT3& 
 			float yVal = backDir.y;
 			if (yVal > 1.0f) yVal = 1.0f;
 			if (yVal < -1.0f) yVal = -1.0f;
-			float pitch = XMConvertToDegrees(asin(yVal));
 
+			float pitch = XMConvertToDegrees(asin(yVal));
 			XMFLOAT3 rot = XMFLOAT3(90.0f - pitch, yaw, 0.0f);
-			m_pBoosterEffect->pMeshEffect->SetRotation(rot);
+
+			pBoosterEffect->pMeshEffect->SetRotation(rot);
 		}
 	}
+}
+
+void CEffectLibrary::UpdateLocalBoosterPosition(const XMFLOAT3& pos, const XMFLOAT3& lookDir)
+{
+	UpdateBoosterEffectSet(m_pLocalWindShieldEffect, m_pLocalBoosterEffect, pos, lookDir);
+}
+
+void CEffectLibrary::UpdateRemoteBoosterPosition(const XMFLOAT3& pos, const XMFLOAT3& lookDir)
+{
+	UpdateBoosterEffectSet(m_pRemoteWindShieldEffect, m_pRemoteBoosterEffect, pos, lookDir);
+}
+
+void CEffectLibrary::UpdateBoosterPosition(const XMFLOAT3& pos, const XMFLOAT3& lookDir)
+{
+	UpdateLocalBoosterPosition(pos, lookDir);
 }
 
 void CEffectLibrary::InitializePostProcess(ID3D12Device* pd3dDevice, int width, int height)

@@ -1015,7 +1015,7 @@ void CGameFramework::AnimateObjects()
 		XMFLOAT3 pos = m_pPlayer->GetPosition();
 		XMFLOAT3 look = m_pPlayer->GetLookVector();
 
-		CEffectLibrary::Instance()->UpdateBoosterPosition(pos, look);
+		CEffectLibrary::Instance()->UpdateLocalBoosterPosition(pos, look);
 
 		if (m_pNetwork && m_pNetwork->IsConnected())
 		{
@@ -1294,7 +1294,7 @@ void CGameFramework::UpdateDashSystem(float fTimeElapsed, bool bDashKeyDown, boo
 	if (!m_pPlayer)
 	{
 		m_bIsDashing = false;
-		CEffectLibrary::Instance()->ToggleBooster(false);
+		CEffectLibrary::Instance()->ToggleLocalBooster(false);
 		return;
 	}
 
@@ -1310,7 +1310,7 @@ void CGameFramework::UpdateDashSystem(float fTimeElapsed, bool bDashKeyDown, boo
 		}
 
 		m_bIsDashing = false;
-		CEffectLibrary::Instance()->ToggleBooster(false);
+		CEffectLibrary::Instance()->ToggleLocalBooster(false);
 
 		if (m_pPlayer)
 			m_pPlayer->m_fMaxVelocityXZ = GetPlayerEffectiveMaxSpeed();
@@ -1394,7 +1394,7 @@ void CGameFramework::UpdateDashSystem(float fTimeElapsed, bool bDashKeyDown, boo
 	{
 		m_fDashVignetteAlpha = 0.0f;
 	}
-	CEffectLibrary::Instance()->ToggleBooster(m_bIsDashing);
+	CEffectLibrary::Instance()->ToggleLocalBooster(m_bIsDashing);
 }
 
 void CGameFramework::CollisionProcess()
@@ -2579,15 +2579,15 @@ void CGameFramework::ConsumeNetworkEffectEvents()
 		{
 			if (ev.action == 2)
 			{
-				CEffectLibrary::Instance()->ToggleBooster(false);
+				CEffectLibrary::Instance()->ToggleRemoteBooster(false);
 			}
 			else if (ev.action == 1 || ev.action == 3)
 			{
 				XMFLOAT3 pos(ev.x, ev.y, ev.z);
 				XMFLOAT3 look(ev.lx, ev.ly, ev.lz);
 
-				CEffectLibrary::Instance()->ToggleBooster(true);
-				CEffectLibrary::Instance()->UpdateBoosterPosition(pos, look);
+				CEffectLibrary::Instance()->ToggleRemoteBooster(true);
+				CEffectLibrary::Instance()->UpdateRemoteBoosterPosition(pos, look);
 			}
 		}
 		else if (ev.effectType == (int)EFFECT_TYPE::DUST)
@@ -3270,7 +3270,7 @@ void CGameFramework::ApplyDashLock(float fDuration)
 	if (m_pPlayer)
 		m_pPlayer->m_fMaxVelocityXZ = GetPlayerEffectiveMaxSpeed();
 
-	CEffectLibrary::Instance()->ToggleBooster(false);
+	CEffectLibrary::Instance()->ToggleRemoteBooster(false);
 
 	PlayLockEffectOnPlayer(m_pPlayer, fDuration);
 }

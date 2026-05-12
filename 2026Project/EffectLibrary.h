@@ -184,6 +184,15 @@ public:
 	void ToggleBooster(bool flag);
 	void UpdateBoosterPosition(const XMFLOAT3&, const XMFLOAT3&);
 
+	void ToggleLocalBooster(bool flag);
+	void UpdateLocalBoosterPosition(const XMFLOAT3& pos, const XMFLOAT3& lookDir);
+
+	void ToggleRemoteBooster(bool flag);
+	void UpdateRemoteBoosterPosition(const XMFLOAT3& pos, const XMFLOAT3& lookDir);
+
+
+
+
 	bool IsDepthParticleEffect(EFFECT_TYPE type) const;
 
 	void UpdateLockOrbitPosition(const XMFLOAT3& position);
@@ -262,8 +271,15 @@ private:
 	void RenderParticleEffect(ID3D12GraphicsCommandList* pd3dCommandList, ActiveEffect* eff, int& currentPsoType, ID3D12DescriptorHeap** ppParticleHeap);
 	void RenderMeshEffect(ID3D12GraphicsCommandList* pd3dCommandList, ActiveEffect* eff, int& currentPsoType);
 
-	ActiveEffect* m_pBoosterEffect = nullptr;
-	ActiveEffect* m_pWindShieldEffect = nullptr;
+	//ActiveEffect* m_pBoosterEffect = nullptr;
+	//ActiveEffect* m_pWindShieldEffect = nullptr;
+
+	ActiveEffect* m_pLocalBoosterEffect = nullptr;
+	ActiveEffect* m_pLocalWindShieldEffect = nullptr;
+
+	ActiveEffect* m_pRemoteBoosterEffect = nullptr;
+	ActiveEffect* m_pRemoteWindShieldEffect = nullptr;
+
 
 	bool m_bSpreadZero = false;
 
