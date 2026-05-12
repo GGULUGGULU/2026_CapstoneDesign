@@ -98,8 +98,8 @@ public:
 	void ReleaseRemotePlayer();
 	void SetupPlayerTransform(CPlayer* pPlayer, const XMFLOAT3& xmf3Position, float fYaw);
 	void ApplyMultiplayerSpawn();
-	void PlayAndSyncEffect(EFFECT_TYPE eType, const XMFLOAT3& xmf3Position, const XMFLOAT2& xmf2Size, const XMFLOAT3& xmf3Color = XMFLOAT3(1.0f, 1.0f, 1.0f));
-	void SendEffectEvent(EFFECT_TYPE eType, const XMFLOAT3& xmf3Position, const XMFLOAT2& xmf2Size, const XMFLOAT3& xmf3Color = XMFLOAT3(1.0f, 1.0f, 1.0f));
+	void PlayAndSyncEffect(EFFECT_TYPE eType, const XMFLOAT3& xmf3Position, const XMFLOAT2& xmf2Size, const XMFLOAT4& xmf3Color = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
+	void SendEffectEvent(EFFECT_TYPE eType, const XMFLOAT3& xmf3Position, const XMFLOAT2& xmf2Size, const XMFLOAT4& xmf3Color = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
 	void ConsumeNetworkEffectEvents();
 	void ConsumeNetworkCollisionEvents();
 
