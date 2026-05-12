@@ -480,7 +480,7 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 	pSuperCobraObject = new CSuperCobraObject();
 	pSuperCobraObject->SetChild(pSuperCobraModel, true);
 	pSuperCobraObject->OnInitialize();
-	pSuperCobraObject->SetPosition(20.0f, -9008.0f, 100.0f);
+	pSuperCobraObject->SetPosition(20.0f, 8.0f, 100.0f);
 	pSuperCobraObject->SetScale(4.5f, 4.5f, 4.5f);
 	pSuperCobraObject->Rotate(0.0f, -90.0f, 0.0f);
 	pSuperCobraObject->ComputeNewLocalAABB();
@@ -513,7 +513,7 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 			pSuperCobraObject = new CSuperCobraObject();
 			pSuperCobraObject->SetChild(pSuperCobraModel, true);
 			pSuperCobraObject->OnInitialize();
-			pSuperCobraObject->SetPosition(uid1(dre), -9000.0f, uid3(dre));
+			pSuperCobraObject->SetPosition(uid1(dre), 0.0f, uid3(dre));
 			pSuperCobraObject->SetScale(10.5f, 10.5f, 10.5f);
 			pSuperCobraObject->Rotate(0.0f, uid(dre), 0.0f);
 			pSuperCobraObject->ComputeNewLocalAABB();
@@ -529,7 +529,7 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 			pSuperCobraObject = new CSuperCobraObject();
 			pSuperCobraObject->SetChild(pSuperCobraModel, true);
 			pSuperCobraObject->OnInitialize();
-			pSuperCobraObject->SetPosition(uid2(dre), -9000.0f, uid3(dre));
+			pSuperCobraObject->SetPosition(uid2(dre), 0.0f, uid3(dre));
 			pSuperCobraObject->SetScale(10.5f, 10.5f, 10.5f);
 			pSuperCobraObject->Rotate(0.0f, uid(dre), 0.0f);
 			pSuperCobraObject->ComputeNewLocalAABB();
@@ -545,7 +545,7 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 			pSuperCobraObject = new CSuperCobraObject();
 			pSuperCobraObject->SetChild(pSuperCobraModel, true);
 			pSuperCobraObject->OnInitialize();
-			pSuperCobraObject->SetPosition(uid4(dre), -9000.0f, uid2(dre));
+			pSuperCobraObject->SetPosition(uid4(dre), 0.0f, uid2(dre));
 			pSuperCobraObject->SetScale(10.5f, 10.5f, 10.5f);
 			pSuperCobraObject->Rotate(0.0f, uid(dre), 0.0f);
 			pSuperCobraObject->ComputeNewLocalAABB();
@@ -561,7 +561,7 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 			pSuperCobraObject = new CSuperCobraObject();
 			pSuperCobraObject->SetChild(pSuperCobraModel, true);
 			pSuperCobraObject->OnInitialize();
-			pSuperCobraObject->SetPosition(1000.0f, -9000.0f, uid1(dre));
+			pSuperCobraObject->SetPosition(1000.0f, 0.0f, uid1(dre));
 			pSuperCobraObject->SetScale(0.5f, 10.5f, 10.5f);
 			pSuperCobraObject->Rotate(0.0f, uid(dre), 0.0f);
 			pSuperCobraObject->ComputeNewLocalAABB();
@@ -1802,7 +1802,7 @@ void CScene::CreateSkybox(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	std::unique_ptr<uint8_t[]> ddsData;
 	std::vector<D3D12_SUBRESOURCE_DATA> subresources;
 
-	DirectX::LoadDDSTextureFromFile(pd3dDevice, L"Asset/DDS_File/SkyBox_1210.dds", &m_pSkyboxTexture, ddsData, subresources);
+	DirectX::LoadDDSTextureFromFile(pd3dDevice, L"Asset/DDS_File/SkyBox_0.dds", &m_pSkyboxTexture, ddsData, subresources);
 
 	UINT64 nUploadBufferSize = GetRequiredIntermediateSize(m_pSkyboxTexture, 0, (UINT)subresources.size());
 	pd3dDevice->CreateCommittedResource(
