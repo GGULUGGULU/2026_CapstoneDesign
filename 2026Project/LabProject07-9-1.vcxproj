@@ -153,13 +153,13 @@
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="MeshEffect.h" />
     <ClInclude Include="miniaudio.h" />
-    <ClInclude Include="NetworkManager.h" />
-    <ClInclude Include="NetworkTypes.h" />
     <ClInclude Include="Object.h" />
     <ClInclude Include="ParticleSystem.h" />
     <ClInclude Include="Player.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="Scene.h" />
+    <ClInclude Include="ClientNetworkManager.h" />
+    <ClInclude Include="ClientNetworkTypes.h" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="SoundManager.h" />
     <ClInclude Include="stdafx.h" />
@@ -190,7 +190,6 @@
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">EffectPCH.h</PrecompiledHeaderFile>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">EffectPCH.h</PrecompiledHeaderFile>
     </ClCompile>
-    <ClCompile Include="NetworkManager.cpp" />
     <ClCompile Include="Object.cpp" />
     <ClCompile Include="ParticleSystem.cpp">
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">EffectPCH.h</PrecompiledHeaderFile>
@@ -198,6 +197,7 @@
     </ClCompile>
     <ClCompile Include="Player.cpp" />
     <ClCompile Include="Scene.cpp" />
+    <ClCompile Include="ClientNetworkManager.cpp" />
     <ClCompile Include="Shader.cpp" />
     <ClCompile Include="SoundManager.cpp" />
     <ClCompile Include="stdafx.cpp">

@@ -6,15 +6,12 @@
 #include <wincodec.h>
 #include <memory>
 
-
-
-
 #include "Timer.h"
 #include "Player.h"
 #include "Scene.h"
-#include "NetworkTypes.h"
+#include "ClientNetworkTypes.h"
 #include "EffectLibrary.h"
-#include "NetworkManager.h"
+#include "ClientNetworkManager.h"
 #include "SoundManager.h"
 #include "VideoPlayer.h"
 
@@ -103,7 +100,10 @@ public:
 	void ConsumeNetworkEffectEvents();
 	void ConsumeNetworkCollisionEvents();
 
-
+	void CheckMulti(const float&);
+	void AdjustSound();
+	void ShowResult();
+	void CheckResult();
 
 	void LoadLobbyUIResource();
 	void LoadResultUIResource();
@@ -157,6 +157,8 @@ private:
 	float						m_fRemotePlayerYaw = 180.0f;
 	bool						m_bMultiplayerEnabled = false;
 	bool						m_bIsHostPlayer = false;
+
+	int m_nMyPlayerId{ 0 };
 
 	POINT						m_ptOldCursorPos;
 

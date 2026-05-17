@@ -5,7 +5,7 @@
 #include "stdafx.h"
 #include "GameFramework.h"
 #include "EffectLibrary.h"
-#include "NetworkManager.h"
+#include "ClientNetworkManager.h"
 
 namespace {
 	//const XMFLOAT3 SINGLE_PLAYER_SPAWN = XMFLOAT3(0.0f, 10.0f, 0.0f);
@@ -46,7 +46,7 @@ CGameFramework::CGameFramework()
 	m_pScene = NULL;
 	m_pPlayer = NULL;
 	m_pRemotePlayer = NULL;
-	m_pNetwork = NULL;
+	m_pNetwork = new CNetworkManager();
 
 	m_nStage = 0;
 	m_nScore = 0;
@@ -2180,20 +2180,35 @@ void CGameFramework::RenderUI()
 		{
 			OutputDebugStringA("안나옴");
 		}
-		wchar_t resultBuffer[256];
+		wchar_t resultBuffer[512] = L"===== RACE RESULTS =====\n\n";
+		wchar_t tempBuffer[128];
 
-		std::uint32_t myId = m_bIsHostPlayer ? 1 : 2;
-		const wchar_t* myRankStr = (m_FinalRaceResult.firstId == myId) ? L"1st Place! (WINNER)" : L"2nd Place";
+		std::uint32_t myId = (m_nMyPlayerId > 0) ? m_nMyPlayerId : 1;
+		int myRank = -1;
 
-		swprintf_s(resultBuffer, 256,
-			L"===== RACE RESULTS =====\n\n"
-			L"[Your Rank: %s]\n\n"
-			L"1st - Player %d : %.2f sec\n"
-			L"2nd - Player %d : %.2f sec\n",
-			myRankStr,
-			m_FinalRaceResult.firstId, m_FinalRaceResult.firstPlaceTime,
-			m_FinalRaceResult.secondId, m_FinalRaceResult.secondPlaceTime
-		);
+		for (std::uint32_t i = 0; i < m_FinalRaceResult.playerCount; ++i)
+		{
+			if (m_FinalRaceResult.playerRecords[i].playerId == myId)
+			{
+				myRank = i + 1;
+				break;
+			}
+		}
+
+		if (myRank != -1)
+		{
+			swprintf_s(tempBuffer, 128, L"[Your Rank: %d Place!]\n\n", myRank);
+			wcscat_s(resultBuffer, tempBuffer);
+		}
+
+		for (std::uint32_t i = 0; i < m_FinalRaceResult.playerCount; ++i)
+		{
+			swprintf_s(tempBuffer, 128, L"%d Place - Player %d : %.2f sec\n",
+				i + 1,
+				m_FinalRaceResult.playerRecords[i].playerId,
+				m_FinalRaceResult.playerRecords[i].finishTime);
+			wcscat_s(resultBuffer, tempBuffer);
+		}
 
 
 		m_d2dDeviceContext->DrawTextW(
@@ -2400,7 +2415,13 @@ void CGameFramework::ApplyMultiplayerSpawn()
 {
 	if (m_pPlayer)
 	{
-		const XMFLOAT3& xmf3LocalSpawn = (m_bMultiplayerEnabled ? (m_bIsHostPlayer ? HOST_PLAYER_SPAWN : CLIENT_PLAYER_SPAWN) : SINGLE_PLAYER_SPAWN);
+		XMFLOAT3 xmf3LocalSpawn = SINGLE_PLAYER_SPAWN;
+		if (m_bMultiplayerEnabled)
+		{
+			if (m_nMyPlayerId == 1) xmf3LocalSpawn = HOST_PLAYER_SPAWN;
+			else if (m_nMyPlayerId == 2) xmf3LocalSpawn = CLIENT_PLAYER_SPAWN;
+			// 3, 4 번 플레이어 위치 추가해야함
+		}
 		SetupPlayerTransform(m_pPlayer, xmf3LocalSpawn, PLAYER_SPAWN_YAW);
 		m_nPlayerCurrentSpeed = 0;
 	}
@@ -2436,13 +2457,28 @@ bool CGameFramework::ConnectToListenServer(const char* pszAddress, unsigned shor
 	if (!m_pNetwork) m_pNetwork = new CNetworkManager();
 	else m_pNetwork->Shutdown();
 
-	m_bMultiplayerEnabled = m_pNetwork->ConnectToHost(pszAddress, port);
+	bool bConnectSuccess = m_pNetwork->ConnectToHost(pszAddress, port);
+
+	if (!bConnectSuccess)
+	{
+		
+		::MessageBoxA(m_hWnd, "서버연결 실패", "연결 실패", MB_OK | MB_ICONERROR);
+
+		m_bMultiplayerEnabled = false;
+		return false;
+	}
+
+	m_bMultiplayerEnabled = bConnectSuccess;
 	m_bIsHostPlayer = false;
 
 	if (m_bMultiplayerEnabled && (m_nStage == 2))
 	{
 		CreateRemotePlayer();
 		ApplyMultiplayerSpawn();
+
+		m_bRaceStarted = false;
+		m_bRaceStartDelayStarted = false;
+		m_fRaceStartDelayTime = 0.0f;
 	}
 
 	return(m_bMultiplayerEnabled);
@@ -2483,7 +2519,7 @@ PlayerNetState CGameFramework::BuildLocalPlayerState() const
 
 	const XMFLOAT3 position = m_pPlayer->GetPosition();
 
-	state.playerId = (m_bIsHostPlayer) ? 1u : 2u;
+	state.playerId = m_nMyPlayerId;
 	state.x = position.x;
 	state.y = position.y;
 	state.z = position.z;
@@ -2525,8 +2561,25 @@ void CGameFramework::SyncMultiplayer()
 {
 	if (!m_pNetwork || !m_pPlayer) return;
 
-	PlayerNetState localState = BuildLocalPlayerState();
-	m_pNetwork->Update(m_GameTimer.GetTimeElapsed(), &localState);
+	if (m_nMyPlayerId == 0)
+	{
+		m_pNetwork->Update(m_GameTimer.GetTimeElapsed(), nullptr);
+	}
+	else
+	{
+		PlayerNetState localState = BuildLocalPlayerState();
+		m_pNetwork->Update(m_GameTimer.GetTimeElapsed(), &localState);
+	}
+
+	int assignedId = 0;
+	if (m_pNetwork->ConsumeWelomeEvent(assignedId))
+	{
+		m_nMyPlayerId = assignedId;
+		m_bIsHostPlayer = (m_nMyPlayerId == 1);
+		ApplyMultiplayerSpawn();
+	}
+
+	if (m_nMyPlayerId == 0) return;
 
 	PlayerNetState remoteState{};
 	while (m_pNetwork->ConsumeRemoteState(remoteState))
@@ -2538,7 +2591,6 @@ void CGameFramework::SyncMultiplayer()
 	ConsumeNetworkEffectEvents();
 	ConsumeNetworkItemEvents();
 }
-
 
 void CGameFramework::PlayAndSyncEffect(EFFECT_TYPE eType, const XMFLOAT3& xmf3Position, const XMFLOAT2& xmf2Size, const XMFLOAT3& xmf3Color)
 {
@@ -2837,9 +2889,6 @@ void CGameFramework::ConsumeNetworkCollisionEvents()
 		m_fCollisionCurrentTime = m_fTotalTime;
 	}
 }
-//#define _WITH_PLAYER_TOP
-
-
 
 void CGameFramework::FinishIntroVideo()
 {
@@ -2853,7 +2902,115 @@ void CGameFramework::FinishIntroVideo()
 	m_SoundManager.PlayBGM("Asset/Audio/TRBGM.mp3");
 }
 
+void CGameFramework::CheckMulti(const float& fTimeElapsed)
+{
+	if (m_bMultiplayerEnabled && m_pNetwork && m_pNetwork->IsConnected() && !m_bRaceStarted)
+	{
+		// 숫자 2 바꾸면 여러명 가능
+		if (m_pNetwork->GetCurrentPlayerCount() < 2)
+		{
+			if (m_pPlayer) m_pPlayer->SetVelocity(XMFLOAT3(0.0f, 0.0f, 0.0f));
+			UpdateDashSystem(fTimeElapsed, false, false);
+			if (m_pPlayer) m_pPlayer->Update(fTimeElapsed);
 
+		}
+		// 게임 스타트
+		else
+		{
+			if (!m_bRaceStartDelayStarted)
+			{
+				m_bRaceStartDelayStarted = true;
+				m_bRaceStarted = false;
+				m_fRaceStartDelayTime = 0.0f;
+
+				if (!m_bCountdownSoundPlayed)
+				{
+					m_SoundManager.PlaySFX("Asset/Audio/Count.mp3");
+					m_bCountdownSoundPlayed = true;
+				}
+
+				if (m_pPlayer) m_pPlayer->SetVelocity(XMFLOAT3(0.0f, 0.0f, 0.0f));
+			}
+
+			if (!m_bRaceStarted)
+			{
+				m_fRaceStartDelayTime += fTimeElapsed;
+
+				UpdateDashSystem(fTimeElapsed, false, false);
+
+				if (m_pPlayer)
+				{
+					m_pPlayer->SetVelocity(XMFLOAT3(0.0f, 0.0f, 0.0f));
+					m_pPlayer->Update(fTimeElapsed);
+				}
+
+				if (m_fRaceStartDelayTime >= m_fRaceStartDelayDuration)
+				{
+					m_bRaceStarted = true;
+				}
+			}
+		}
+	}
+}
+
+void CGameFramework::AdjustSound()
+{
+	// 사운드 피치 조절
+	float speedRatio = (float)m_nPlayerCurrentSpeed / GetPlayerEffectiveMaxSpeed();
+	if (speedRatio < 0.0f) speedRatio = 0.0f;
+	if (speedRatio > 1.0f) speedRatio = 1.0f;
+
+	float targetPitch = 1.0f + (speedRatio * 1.0f);
+
+	if (m_bIsDashing) {
+		targetPitch += 0.5f;
+	}
+
+	m_SoundManager.SetCarEnginePitch(targetPitch);
+}
+
+void CGameFramework::ShowResult()
+{
+	if (m_pNetwork && m_pNetwork->IsConnected())
+	{
+		RaceResultNet finalResult;
+		if (m_pNetwork->ConsumeRaceResult(finalResult))
+		{
+			m_FinalRaceResult = finalResult;
+			BuildObjectEnd();
+			m_nStage = 100;
+		}
+	}
+	else
+	{
+		m_FinalRaceResult.playerCount = 1;
+		m_FinalRaceResult.playerRecords[0].playerId = m_nMyPlayerId > 0 ? m_nMyPlayerId : 1;
+		m_FinalRaceResult.playerRecords[0].finishTime = m_fMyFinalTime;
+
+		BuildObjectEnd();
+		m_nStage = 100;
+	}
+}
+
+void CGameFramework::CheckResult()
+{
+	if (m_nCurrentLap > MAX_LAPS && 2 == m_nStage)
+	{
+		m_fMyFinalTime = m_GameTimer.GetTotalTime();
+		m_nStage = 99;
+		++m_nScore;
+
+		if (m_pNetwork && m_pNetwork->IsConnected())
+		{
+			// 내 ID와 최종 시간을 담아서 서버로 바로 쏜다.
+			RaceRecordNet record;
+			record.playerId = m_nMyPlayerId;
+			record.finishTime = m_fMyFinalTime;
+
+			m_pNetwork->SendRaceFinish(record);
+		}
+	}
+}
 
 void CGameFramework::FrameAdvance()
 {
@@ -2939,43 +3096,7 @@ void CGameFramework::FrameAdvance()
 			}
 		}
 
-		
-		if (m_bMultiplayerEnabled && m_pNetwork && m_pNetwork->IsConnected())
-		{
-			if (!m_bRaceStartDelayStarted)
-			{
-				m_bRaceStartDelayStarted = true;
-				m_bRaceStarted = false;
-				m_fRaceStartDelayTime = 0.0f;
-
-			
-				if (!m_bCountdownSoundPlayed)
-				{
-					m_SoundManager.PlaySFX("Asset/Audio/Count.mp3");
-					m_bCountdownSoundPlayed = true;
-				}
-
-				if (m_pPlayer) m_pPlayer->SetVelocity(XMFLOAT3(0.0f, 0.0f, 0.0f));
-			}
-
-			if (!m_bRaceStarted)
-			{
-				m_fRaceStartDelayTime += fTimeElapsed;
-
-				UpdateDashSystem(fTimeElapsed, false, false);
-
-				if (m_pPlayer)
-				{
-					m_pPlayer->SetVelocity(XMFLOAT3(0.0f, 0.0f, 0.0f));
-					m_pPlayer->Update(fTimeElapsed);
-				}
-
-				if (m_fRaceStartDelayTime >= m_fRaceStartDelayDuration)
-				{
-					m_bRaceStarted = true;
-				}
-			}
-		}
+		CheckMulti(fTimeElapsed);
 
 		if (!m_bRaceStarted)
 		{
@@ -2991,19 +3112,8 @@ void CGameFramework::FrameAdvance()
 			m_pPlayer->Update(fTimeElapsed);
 		}
 
+		AdjustSound();
 
-		// 사운드 피치 조절
-		float speedRatio = (float)m_nPlayerCurrentSpeed / GetPlayerEffectiveMaxSpeed();
-		if (speedRatio < 0.0f) speedRatio = 0.0f;
-		if (speedRatio > 1.0f) speedRatio = 1.0f;
-
-		float targetPitch = 1.0f + (speedRatio * 1.0f);
-
-		if (m_bIsDashing) {
-			targetPitch += 0.5f;
-		}
-
-		m_SoundManager.SetCarEnginePitch(targetPitch);
 	}//
 	else if (99 == m_nStage) {
 		const float fTimeElapsed = m_GameTimer.GetTimeElapsed();
@@ -3036,68 +3146,10 @@ void CGameFramework::FrameAdvance()
 		m_pNetwork->Update(m_GameTimer.GetTimeElapsed(), NULL);
 	}
 
-	if (m_nCurrentLap > MAX_LAPS && 2 == m_nStage)
-	{
-		m_fMyFinalTime = m_GameTimer.GetTotalTime();
-		m_nStage = 99; 
-		++m_nScore;    
-	
-		if (m_pNetwork)
-		{
-			RaceRecordNet record;
-			record.playerId = m_bIsHostPlayer ? 1 : 2;
-			record.finishTime = m_fMyFinalTime;
-			if (m_pNetwork->IsHosting()) {
-				m_pNetwork->AddServerRecord(record);
-			}
-			else {
-				m_pNetwork->SendRaceFinish(record);
-			}
-		}
-	}
+	CheckResult();
 	
 	if (99 == m_nStage) {
-		
-		if (m_pNetwork)
-		{
-			RaceRecordNet finishRecord;
-			while (m_pNetwork->ConsumeRaceFinish(finishRecord))
-			{
-				m_pNetwork->AddServerRecord(finishRecord);
-			}
-
-			if (m_pNetwork->IsHosting())
-			{
-				if (m_pNetwork->HasBothRecords()) 
-				{
-					RaceResultNet finalResult = m_pNetwork->CalculateRankings();
-					m_pNetwork->SendRaceResult(finalResult);
-	
-					m_FinalRaceResult = finalResult; 
-					BuildObjectEnd();
-					m_nStage = 100;
-				}
-			}
-			else
-			{
-				RaceResultNet finalResult;
-				if (m_pNetwork->ConsumeRaceResult(finalResult))
-				{
-					m_FinalRaceResult = finalResult; 
-					BuildObjectEnd();
-					m_nStage = 100;
-				}
-			}
-		}
-		else {
-			m_FinalRaceResult.firstId = 1;
-			m_FinalRaceResult.firstPlaceTime = m_fMyFinalTime;
-			m_FinalRaceResult.secondId = 0;
-			m_FinalRaceResult.secondPlaceTime = 0.0f;
-
-			BuildObjectEnd();
-			m_nStage = 100;
-		}
+		ShowResult();
 	}
 
 	if (0 != m_nStage) {
