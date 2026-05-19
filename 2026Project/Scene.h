@@ -73,10 +73,7 @@ public:
 	//void CreateParticle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 	void CreateWireFrameBox(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 	void CreateAABBWireFrameBox(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
-	//void CreateMirror(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
-	void CreateRockBillboard(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
-	void CreateFlowerBillboard(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
-	void CreateTreeBillboard(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+
 	void CreateShadowMapSRV(ID3D12Device* pd3dDevice, ID3D12Resource* pShadowMapResource);
 	void RenderShadowMap(ID3D12GraphicsCommandList* pd3dCommandList, D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle); 
 	XMMATRIX GetShadowLightViewProj();
@@ -120,14 +117,9 @@ public:
 	D3D12_GPU_DESCRIPTOR_HANDLE	m_d3dGpuFlowerSrvHandle;
 	D3D12_GPU_DESCRIPTOR_HANDLE	m_d3dGpuRockSrvHandle;
 
-	CGameObject* m_pMirrorObject = NULL; // °Å¿ï °´Ã¼
-	CReflectedObjectShader* m_pReflectedShader = NULL; // ¹Ý»çµÈ ¹°Ã¼ ±×¸± ¼ÎÀÌ´õ
-
 	CShadowShader* m_pShadowShader = NULL; // ½¦µµ¿ì ¸Ê »ý¼º¿ë ¼ÎÀÌ´õ
 
 	UINT m_nDescriptorIncrementSize;
-
-	CTerrainShader* m_pTerrainShader = NULL;
 
 	CGameObject* m_pSkyboxObject = NULL;
 	ID3D12Resource* m_pSkyboxTexture = NULL;

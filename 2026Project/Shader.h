@@ -89,75 +89,6 @@ public:
 	virtual void CreateShader(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature);
 };
 
-class CBillboardShader : public CShader
-{
-public:
-	CBillboardShader();
-	virtual ~CBillboardShader();
-
-protected:
-	ID3DBlob* m_pd3dGeometryShaderBlob = NULL;
-
-public:
-	virtual D3D12_INPUT_LAYOUT_DESC CreateInputLayout();
-
-	virtual D3D12_RASTERIZER_DESC CreateRasterizerState();
-
-	virtual D3D12_SHADER_BYTECODE CreateVertexShader();
-	virtual D3D12_SHADER_BYTECODE CreatePixelShader();
-	virtual D3D12_SHADER_BYTECODE CreateGeometryShader(); // GS 컴파일 함수
-
-	virtual void CreateShader(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature);
-};
-
-class CParticleShader : public CShader
-{
-public:
-	CParticleShader();
-	virtual ~CParticleShader();
-
-protected:
-	ID3DBlob* m_pd3dGeometryShaderBlob = NULL;
-	ID3DBlob* m_pd3dVertexShaderBlob = NULL;
-
-public:
-	virtual D3D12_INPUT_LAYOUT_DESC CreateInputLayout();
-	virtual D3D12_RASTERIZER_DESC CreateRasterizerState();
-
-	virtual D3D12_SHADER_BYTECODE CreateVertexShader();
-	virtual D3D12_SHADER_BYTECODE CreatePixelShader();
-	virtual D3D12_SHADER_BYTECODE CreateGeometryShader();
-
-	virtual void CreateShader(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature);
-};
-
-class CMirrorShader : public CShader
-{
-public:
-	CMirrorShader();
-	virtual ~CMirrorShader();
-
-	virtual D3D12_INPUT_LAYOUT_DESC CreateInputLayout();
-	virtual D3D12_DEPTH_STENCIL_DESC CreateDepthStencilState();
-	virtual D3D12_BLEND_DESC CreateBlendState();
-	virtual D3D12_SHADER_BYTECODE CreateVertexShader();
-	virtual D3D12_SHADER_BYTECODE CreatePixelShader();
-
-	virtual void CreateShader(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature);
-};
-
-class CReflectedObjectShader : public CIlluminatedShader
-{
-public:
-	CReflectedObjectShader();
-	virtual ~CReflectedObjectShader();
-
-	virtual D3D12_RASTERIZER_DESC CreateRasterizerState();
-	virtual D3D12_DEPTH_STENCIL_DESC CreateDepthStencilState();
-
-	virtual void CreateShader(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature);
-};
-
 class CShadowShader :public CShader
 {
 public:
@@ -170,25 +101,6 @@ public:
 	virtual D3D12_SHADER_BYTECODE CreatePixelShader();
 
 	virtual void CreateShader(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature);
-};
-
-class CTerrainShader : public CShader
-{
-public:
-	CTerrainShader();
-	virtual ~CTerrainShader();
-
-	virtual D3D12_INPUT_LAYOUT_DESC CreateInputLayout();
-	virtual D3D12_SHADER_BYTECODE CreateVertexShader();
-	virtual D3D12_SHADER_BYTECODE CreatePixelShader();
-	virtual D3D12_SHADER_BYTECODE CreateHullShader();   
-	virtual D3D12_SHADER_BYTECODE CreateDomainShader(); 
-
-	virtual void CreateShader(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature);
-
-protected:
-	ID3DBlob* m_pd3dHullShaderBlob = NULL;
-	ID3DBlob* m_pd3dDomainShaderBlob = NULL;
 };
 
 class CSkyboxShader : public CShader
