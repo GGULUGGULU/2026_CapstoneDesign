@@ -13,7 +13,8 @@ namespace {
 	//const XMFLOAT3 CLIENT_PLAYER_SPAWN = XMFLOAT3(35.0f, 10.0f, 0.0f);
 	//constexpr float PLAYER_SPAWN_YAW = 180.0f;
 
-	const XMFLOAT3 SINGLE_PLAYER_SPAWN = XMFLOAT3(-1938.0f, -200.0f, 188.0f);
+	//const XMFLOAT3 SINGLE_PLAYER_SPAWN = XMFLOAT3(-1938.0f, -200.0f, 188.0f);
+	const XMFLOAT3 SINGLE_PLAYER_SPAWN = XMFLOAT3(-6538.0f, -200.0f, 3088.0f);
 	const XMFLOAT3 HOST_PLAYER_SPAWN = XMFLOAT3(-1980.0f, -200.0f, 188.0f);
 	const XMFLOAT3 CLIENT_PLAYER_SPAWN = XMFLOAT3(-1920.0f, -200.0f, 188.0f);
 	constexpr float PLAYER_SPAWN_YAW = 0.0f;
@@ -402,8 +403,6 @@ void CGameFramework::ChangeSwapChainState()
 	{
 		m_pVideoPlayer->Resize(m_nWndClientWidth, m_nWndClientHeight);
 	}
-
-
 
 	CreateRenderTargetView();
 	CreateDepthStencilView();
@@ -1155,8 +1154,8 @@ void CGameFramework::BuildGameObjects()
 
 	// 맵
 	m_pScene = new CScene();
-	if (m_pScene) m_pScene->BuildGameObjects(m_pd3dDevice, m_pd3dCommandList);
-    //if (m_pScene) m_pScene->BuildGameStage2(m_pd3dDevice, m_pd3dCommandList);
+	//if (m_pScene) m_pScene->BuildGameObjects(m_pd3dDevice, m_pd3dCommandList);
+    if (m_pScene) m_pScene->BuildGameStage2(m_pd3dDevice, m_pd3dCommandList);
 
 	CreateShadowMap();
 

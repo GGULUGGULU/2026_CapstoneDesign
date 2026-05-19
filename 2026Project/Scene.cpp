@@ -740,17 +740,27 @@ void CScene::BuildGameStage2(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 	BuildUIResources(pd3dDevice, pd3dCommandList);
 
 	// 
-	m_nGameObjects = 1;
+	m_nGameObjects = 1 + 1;
 	m_ppGameObjects = new CGameObject * [m_nGameObjects];
 
-	CGameObject* pMapModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/ToyWorld2.bin");
+	CGameObject* pMapModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/FORTR.bin");
 	ApplyMeshTextures(pd3dDevice, pd3dCommandList, pMapModel);
 	CGameObject* pMapObject = new CGameObject();
 	pMapObject->SetChild(pMapModel);
 	pMapObject->SetPosition(0.0f, -2500.0f, 0.0f);
-	pMapObject->SetScale(1, 1, 1);
+	pMapObject->SetScale(8, 8, 8);
 	pMapObject->m_bIsGround = true;
 	m_ppGameObjects[0] = pMapObject;
+
+	// 사이드 벽 모델링
+	CGameObject* pSideWallModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/SideWall.bin");
+	ApplyMeshTextures(pd3dDevice, pd3dCommandList, pSideWallModel);
+	CGameObject* pSideWallObject = new CGameObject();
+	pSideWallObject->SetChild(pSideWallModel);
+	pSideWallObject->SetPosition(0.0f, -2500.0f, 0.0f);
+	pSideWallObject->SetScale(8, 8, 8);
+	pSideWallObject->m_bIsInvisibleWall = true;
+	m_ppGameObjects[1] = pSideWallObject;
 
 	CreateWireFrameBox(pd3dDevice, pd3dCommandList);
 	CreateAABBWireFrameBox(pd3dDevice, pd3dCommandList);
@@ -1473,22 +1483,22 @@ bool CScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 		switch (wParam)
 		{
 		case 'Q':
-			m_ppGameObjects[115]->MoveUp(10);
+			m_ppGameObjects[1]->MoveUp(10);
 			break;
 		case 'R':
-			m_ppGameObjects[115]->MoveUp(-10);
+			m_ppGameObjects[1]->MoveUp(-10);
 			break;
 		case 'W':
-			m_ppGameObjects[115]->MoveForward(10);
+			m_ppGameObjects[1]->MoveForward(10);
 			break;
 		case 'S':
-			m_ppGameObjects[115]->MoveForward(-10);
+			m_ppGameObjects[1]->MoveForward(-10);
 			break;
 		case 'A':
-			m_ppGameObjects[115]->MoveStrafe(-10);
+			m_ppGameObjects[1]->MoveStrafe(-10);
 			break;
 		case 'D':
-			m_ppGameObjects[115]->MoveStrafe(10);
+			m_ppGameObjects[1]->MoveStrafe(10);
 			break;
 		case 'Z':
 			//m_ppGameObjects[114]->Rotate(0, 10, 0);
@@ -1799,7 +1809,7 @@ void CScene::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera
 	{
 		if (m_ppGameObjects[i] )
 		{
-			if (i >= 1 && i <= 12) continue; // 스테이지 1 index 1~12번은 체크포인트&벽
+			//if (i >= 1 && i <= 12) continue; // 스테이지 1 index 1~12번은 체크포인트&벽
 			m_ppGameObjects[i]->Animate(m_fElapsedTime, NULL);
 			m_ppGameObjects[i]->UpdateTransform(NULL);
 			m_ppGameObjects[i]->Render(pd3dCommandList, pDebugBoxToRender, pCamera);
