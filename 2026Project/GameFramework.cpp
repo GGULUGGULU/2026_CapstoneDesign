@@ -13,10 +13,11 @@ namespace {
 	//const XMFLOAT3 CLIENT_PLAYER_SPAWN = XMFLOAT3(35.0f, 10.0f, 0.0f);
 	//constexpr float PLAYER_SPAWN_YAW = 180.0f;
 
-	//const XMFLOAT3 SINGLE_PLAYER_SPAWN = XMFLOAT3(-1938.0f, -200.0f, 188.0f);
-	const XMFLOAT3 SINGLE_PLAYER_SPAWN = XMFLOAT3(-6538.0f, -200.0f, 3088.0f);
-	const XMFLOAT3 HOST_PLAYER_SPAWN = XMFLOAT3(-1980.0f, -200.0f, 188.0f);
-	const XMFLOAT3 CLIENT_PLAYER_SPAWN = XMFLOAT3(-1920.0f, -200.0f, 188.0f);
+	const XMFLOAT3 SINGLE_PLAYER_SPAWN = XMFLOAT3(-1938.0f, -200.0f, 188.0f);
+	
+	const XMFLOAT3 PLAYER1_SPAWN = XMFLOAT3(-1980.0f, -200.0f, 188.0f);
+	const XMFLOAT3 PLAYER2_SPAWN = XMFLOAT3(-1920.0f, -200.0f, 188.0f);
+	const XMFLOAT3 PLAYER3_SPAWN = XMFLOAT3(-1860.0f, -200.0f, 188.0f);
 	constexpr float PLAYER_SPAWN_YAW = 0.0f;
 };
 
@@ -46,7 +47,6 @@ CGameFramework::CGameFramework()
 
 	m_pScene = NULL;
 	m_pPlayer = NULL;
-	m_pRemotePlayer = NULL;
 	m_pNetwork = new CNetworkManager();
 
 	m_nStage = 0;
@@ -743,8 +743,9 @@ void CGameFramework::BuildObjectGameStart()
 	
 	if (m_pScene) m_pScene->ReleaseUploadBuffers();
 	if (m_pPlayer) m_pPlayer->ReleaseUploadBuffers();
-	if (m_pRemotePlayer) m_pRemotePlayer->ReleaseUploadBuffers();
-	
+
+
+
 	m_GameTimer.Reset();
 	
 	LoadLobbyUIResource();
@@ -753,7 +754,7 @@ void CGameFramework::BuildObjectGameStart()
 void CGameFramework::ReleaseObjects()
 {
 	if (m_pPlayer) m_pPlayer->Release();
-	ReleaseRemotePlayer();
+	ReleaseRemotePlayers();
 
 	if (m_pScene) m_pScene->ReleaseObjects();
 	if (m_pScene) delete m_pScene;
@@ -1047,11 +1048,12 @@ void CGameFramework::AnimateObjects()
 
 	m_bPrevBoosterSyncActive = m_bIsDashing;
 
-
-
-	if (m_pRemotePlayer && m_pRemotePlayer->m_bIsActive)
+	for (auto& info : m_vRemotePlayers)
 	{
-		m_pRemotePlayer->Animate(fTimeElapsed, NULL);
+		if (info.playerID != -1 && info.pPlayer && info.pPlayer->m_bIsActive)
+		{
+			info.pPlayer->Animate(fTimeElapsed, NULL);
+		}
 	}
 
 	float speedRatio = (float)m_nPlayerCurrentSpeed / GetPlayerEffectiveMaxSpeed();
@@ -1144,7 +1146,9 @@ void CGameFramework::BuildGameObjects()
 		m_pPlayer->Release();
 		m_pPlayer = NULL;
 	}
-	ReleaseRemotePlayer();
+
+	ReleaseRemotePlayers();
+	
 	if (m_pScene)
 	{
 		m_pScene->ReleaseObjects();
@@ -1154,8 +1158,8 @@ void CGameFramework::BuildGameObjects()
 
 	// 맵
 	m_pScene = new CScene();
-	//if (m_pScene) m_pScene->BuildGameObjects(m_pd3dDevice, m_pd3dCommandList);
-    if (m_pScene) m_pScene->BuildGameStage2(m_pd3dDevice, m_pd3dCommandList);
+	if (m_pScene) m_pScene->BuildGameObjects(m_pd3dDevice, m_pd3dCommandList);
+    //if (m_pScene) m_pScene->BuildGameStage2(m_pd3dDevice, m_pd3dCommandList);
 
 	CreateShadowMap();
 
@@ -1168,7 +1172,7 @@ void CGameFramework::BuildGameObjects()
 	m_pPlayer->ComputeNewLocalAABB();
 	m_pPlayer->SetGravity(XMFLOAT3(0, -1, 0));
 
-	CreateRemotePlayer();
+	CreateRemotePlayers();
 	ApplyMultiplayerSpawn();
 	m_pCamera = m_pPlayer->GetCamera();
 
@@ -1207,8 +1211,7 @@ void CGameFramework::BuildGameObjects()
 
 	if (m_pScene) m_pScene->ReleaseUploadBuffers();
 	if (m_pPlayer) m_pPlayer->ReleaseUploadBuffers();
-	if (m_pRemotePlayer) m_pRemotePlayer->ReleaseUploadBuffers();
-
+	
 	m_GameTimer.Reset();
 	m_bRaceStartDelayStarted = false;
 	m_fRaceStartDelayTime = 0.0f;
@@ -1265,12 +1268,12 @@ void CGameFramework::ApplyItemReward(ITEM_TYPE eItemType)
 	case ITEM_LOCK:
 	{
 		const float fLockDuration = 3.0f;
-
-	
 		SendItemEvent(ITEM_LOCK, fLockDuration);
-
-		
-		PlayLockEffectOnPlayer(m_pRemotePlayer, fLockDuration);
+		for (auto& info : m_vRemotePlayers) {
+			if (info.playerID != -1 && info.pPlayer && info.pPlayer->m_bIsActive == true) {
+				PlayLockEffectOnPlayer(info.pPlayer, fLockDuration);
+			}
+		}
 
 		m_bRemoteLockEffectActive = true;
 		m_fRemoteLockEffectTime = fLockDuration;
@@ -1398,103 +1401,107 @@ void CGameFramework::UpdateDashSystem(float fTimeElapsed, bool bDashKeyDown, boo
 
 void CGameFramework::CollisionProcess()
 {
-	
-	if (m_bMultiplayerEnabled && m_pPlayer && m_pRemotePlayer && m_pRemotePlayer->m_bIsActive)
+	if (m_bMultiplayerEnabled && m_pPlayer)
 	{
 		BoundingBox localAABB = m_pPlayer->GetCombinedAABB();
 		BoundingBox worldAABB_Local;
 		localAABB.Transform(worldAABB_Local, XMLoadFloat4x4(&m_pPlayer->GetWorldMatrix()));
 
-		BoundingBox remoteAABB = m_pRemotePlayer->GetCombinedAABB();
-		BoundingBox worldAABB_Remote;
-		remoteAABB.Transform(worldAABB_Remote, XMLoadFloat4x4(&m_pRemotePlayer->GetWorldMatrix()));
+		for (auto& info : m_vRemotePlayers) {
+			CPlayer* pTargetPlayer = info.pPlayer;
+			if (info.playerID == -1 || !pTargetPlayer || !pTargetPlayer->m_bIsActive) continue;
+		
+			BoundingBox remoteAABB = pTargetPlayer->GetCombinedAABB();
+			BoundingBox worldAABB_Remote;
+			remoteAABB.Transform(worldAABB_Remote, XMLoadFloat4x4(&pTargetPlayer->GetWorldMatrix()));
 
-		if (worldAABB_Local.Intersects(worldAABB_Remote))
-		{
-			XMFLOAT3 localPos = m_pPlayer->GetPosition();
-			XMFLOAT3 remotePos = m_pRemotePlayer->GetPosition();
-
-			XMFLOAT3 pushDir = Vector3::Subtract(localPos, remotePos);
-			pushDir.y = 0.0f;
-
-			if (Vector3::Length(pushDir) < 0.001f)
-				pushDir = m_pPlayer->GetLookVector();
-			else
-				pushDir = Vector3::Normalize(pushDir);
-
-			const float fSeparation = 8.0f;
-
-			XMFLOAT3 localNewPos = Vector3::Add(
-				localPos,
-				Vector3::ScalarProduct(pushDir, fSeparation * 0.25f, false)
-			);
-
-			XMFLOAT3 remoteNewPos = Vector3::Add(
-				remotePos,
-				Vector3::ScalarProduct(pushDir, -fSeparation * 0.75f, false)
-			);
-
-			m_pPlayer->SetPosition(localNewPos);
-			m_pRemotePlayer->SetPosition(remoteNewPos);
-
-			m_pPlayer->OnPrepareRender();
-			m_pRemotePlayer->OnPrepareRender();
-
-			XMFLOAT3 localVel = m_pPlayer->GetVelocity();
-			float localSpeed = max(120.0f, Vector3::Length(localVel));
-
-			float attackerBouncePower = localSpeed * 0.25f;
-			float victimBouncePower = localSpeed * 0.90f;
-
-			XMFLOAT3 localBounceVel =
-				Vector3::ScalarProduct(pushDir, attackerBouncePower, false);
-
-			XMFLOAT3 remoteBounceVel =
-				Vector3::ScalarProduct(pushDir, -victimBouncePower, false);
-
-			m_pPlayer->SetVelocity(localBounceVel);
-			m_pRemotePlayer->SetVelocity(remoteBounceVel);
-
-	
-			if (m_pNetwork && m_pNetwork->IsConnected())
+			if (worldAABB_Local.Intersects(worldAABB_Remote))
 			{
-				CollisionEventNet ev{};
+				XMFLOAT3 localPos = m_pPlayer->GetPosition();
+				XMFLOAT3 remotePos = pTargetPlayer->GetPosition();
 
-				ev.type = 1;
-				ev.objectIndex = -1;
+				XMFLOAT3 pushDir = Vector3::Subtract(localPos, remotePos);
+				pushDir.y = 0.0f;
 
-				ev.x = remoteNewPos.x;
-				ev.y = remoteNewPos.y;
-				ev.z = remoteNewPos.z;
+				if (Vector3::Length(pushDir) < 0.001f)
+					pushDir = m_pPlayer->GetLookVector();
+				else
+					pushDir = Vector3::Normalize(pushDir);
 
-				ev.nx = -pushDir.x;
-				ev.ny = 0.0f;
-				ev.nz = -pushDir.z;
+				const float fSeparation = 8.0f;
 
-				ev.reboundPower = victimBouncePower;
+				XMFLOAT3 localNewPos = Vector3::Add(
+					localPos,
+					Vector3::ScalarProduct(pushDir, fSeparation * 0.25f, false)
+				);
 
-				m_pNetwork->SendCollisionEvent(ev);
+				XMFLOAT3 remoteNewPos = Vector3::Add(
+					remotePos,
+					Vector3::ScalarProduct(pushDir, -fSeparation * 0.75f, false)
+				);
+
+				m_pPlayer->SetPosition(localNewPos);
+				pTargetPlayer->SetPosition(remoteNewPos);
+
+				m_pPlayer->OnPrepareRender();
+				pTargetPlayer->OnPrepareRender();
+
+				XMFLOAT3 localVel = m_pPlayer->GetVelocity();
+				float localSpeed = max(120.0f, Vector3::Length(localVel));
+
+				float attackerBouncePower = localSpeed * 0.25f;
+				float victimBouncePower = localSpeed * 0.90f;
+
+				XMFLOAT3 localBounceVel =
+					Vector3::ScalarProduct(pushDir, attackerBouncePower, false);
+
+				XMFLOAT3 remoteBounceVel =
+					Vector3::ScalarProduct(pushDir, -victimBouncePower, false);
+
+				m_pPlayer->SetVelocity(localBounceVel);
+				pTargetPlayer->SetVelocity(remoteBounceVel);
+
+
+				if (m_pNetwork && m_pNetwork->IsConnected())
+				{
+					CollisionEventNet ev{};
+
+					ev.playerId = m_nMyPlayerId;
+					ev.type = 1;
+					ev.objectIndex = -1;
+
+					ev.x = remoteNewPos.x;
+					ev.y = remoteNewPos.y;
+					ev.z = remoteNewPos.z;
+
+					ev.nx = -pushDir.x;
+					ev.ny = 0.0f;
+					ev.nz = -pushDir.z;
+
+					ev.reboundPower = victimBouncePower;
+
+					m_pNetwork->SendCollisionEvent(ev);
+				}
+
+				XMFLOAT3 hitPos = XMFLOAT3(
+					(localPos.x + remotePos.x) * 0.5f,
+					(localPos.y + remotePos.y) * 0.5f + 10.0f,
+					(localPos.z + remotePos.z) * 0.5f
+				);
+
+				PlayAndSyncEffect(EFFECT_TYPE::COLLISION, hitPos, XMFLOAT2(50, 50), XMFLOAT3(1, 0, 0));
+				PlayAndSyncEffect(EFFECT_TYPE::COLLISION, hitPos, XMFLOAT2(50, 50), XMFLOAT3(0, 1, 0));
+				PlayAndSyncEffect(EFFECT_TYPE::COLLISION, hitPos, XMFLOAT2(50, 50), XMFLOAT3(0, 0, 1));
+
+				m_bIsStun = true;
+				m_fCollisionCurrentTime = m_fTotalTime;
+
+				m_SoundManager.PlaySFX("Asset/Audio/Collision.mp3");
+
+				return;
 			}
-
-			XMFLOAT3 hitPos = XMFLOAT3(
-				(localPos.x + remotePos.x) * 0.5f,
-				(localPos.y + remotePos.y) * 0.5f + 10.0f,
-				(localPos.z + remotePos.z) * 0.5f
-			);
-
-			PlayAndSyncEffect(EFFECT_TYPE::COLLISION, hitPos, XMFLOAT2(50, 50), XMFLOAT3(1, 0, 0));
-			PlayAndSyncEffect(EFFECT_TYPE::COLLISION, hitPos, XMFLOAT2(50, 50), XMFLOAT3(0, 1, 0));
-			PlayAndSyncEffect(EFFECT_TYPE::COLLISION, hitPos, XMFLOAT2(50, 50), XMFLOAT3(0, 0, 1));
-
-			m_bIsStun = true;
-			m_fCollisionCurrentTime = m_fTotalTime;
-
-			m_SoundManager.PlaySFX("Asset/Audio/Collision.mp3");
-
-			return;
 		}
 	} // 플레이어들끼리 충돌 판정
-	
 
 	if (m_pPlayer) m_pPlayer->OnPrepareRender();
 
@@ -2260,7 +2267,7 @@ void CGameFramework::BuildObjectEnd()
 		m_pPlayer->Release();
 		m_pPlayer = NULL;
 	}
-	ReleaseRemotePlayer();
+	ReleaseRemotePlayers();
 	if (m_pScene)
 	{
 		m_pScene->ReleaseObjects();
@@ -2365,9 +2372,10 @@ void CGameFramework::RenderShadowPass()
 	m_pd3dCommandList->ResourceBarrier(1, &toShadowWrite);
 
 	m_pScene->RenderShadowMap(m_pd3dCommandList, m_d3dCPUShadowDSVHandle);
-	if (m_pRemotePlayer && m_pRemotePlayer->m_bIsActive)
-	{
-		m_pRemotePlayer->Render(m_pd3dCommandList, NULL, NULL);
+	for (auto& info : m_vRemotePlayers) {
+		if (info.playerID != -1 && info.pPlayer && info.pPlayer->m_bIsActive) {
+			info.pPlayer->Render(m_pd3dCommandList, NULL, NULL);
+		}
 	}
 
 	D3D12_RESOURCE_BARRIER toGenericRead = {};
@@ -2417,20 +2425,21 @@ void CGameFramework::ApplyMultiplayerSpawn()
 		XMFLOAT3 xmf3LocalSpawn = SINGLE_PLAYER_SPAWN;
 		if (m_bMultiplayerEnabled)
 		{
-			if (m_nMyPlayerId == 1) xmf3LocalSpawn = HOST_PLAYER_SPAWN;
-			else if (m_nMyPlayerId == 2) xmf3LocalSpawn = CLIENT_PLAYER_SPAWN;
+			if (m_nMyPlayerId == 1) xmf3LocalSpawn = PLAYER1_SPAWN;
+			else if (m_nMyPlayerId == 2) xmf3LocalSpawn = PLAYER2_SPAWN;
+			else if (m_nMyPlayerId == 3)xmf3LocalSpawn = PLAYER3_SPAWN;
 			// 3, 4 번 플레이어 위치 추가해야함
 		}
 		SetupPlayerTransform(m_pPlayer, xmf3LocalSpawn, PLAYER_SPAWN_YAW);
 		m_nPlayerCurrentSpeed = 0;
 	}
 
-	if (m_pRemotePlayer)
-	{
-		const XMFLOAT3& xmf3RemoteSpawn = (m_bIsHostPlayer ? CLIENT_PLAYER_SPAWN : HOST_PLAYER_SPAWN);
-		SetupPlayerTransform(m_pRemotePlayer, xmf3RemoteSpawn, PLAYER_SPAWN_YAW);
-		m_pRemotePlayer->m_bIsActive = false;
-		m_fRemotePlayerYaw = PLAYER_SPAWN_YAW;
+	for (auto& info : m_vRemotePlayers) {
+		if (info.pPlayer) {
+			SetupPlayerTransform(info.pPlayer, SINGLE_PLAYER_SPAWN, PLAYER_SPAWN_YAW);
+			info.pPlayer->m_bIsActive = false;
+			info.yaw = PLAYER_SPAWN_YAW;
+		}
 	}
 }
 
@@ -2444,8 +2453,7 @@ bool CGameFramework::StartListenServer(unsigned short port)
 
 	if (m_bMultiplayerEnabled && (m_nStage == 2))
 	{
-		CreateRemotePlayer();
-		ApplyMultiplayerSpawn();
+		m_bNeedRemotePlayerInit = true;
 	}
 
 	return(m_bMultiplayerEnabled);
@@ -2472,8 +2480,7 @@ bool CGameFramework::ConnectToListenServer(const char* pszAddress, unsigned shor
 
 	if (m_bMultiplayerEnabled && (m_nStage == 2))
 	{
-		CreateRemotePlayer();
-		ApplyMultiplayerSpawn();
+		m_bNeedRemotePlayerInit = true;
 
 		m_bRaceStarted = false;
 		m_bRaceStartDelayStarted = false;
@@ -2481,33 +2488,6 @@ bool CGameFramework::ConnectToListenServer(const char* pszAddress, unsigned shor
 	}
 
 	return(m_bMultiplayerEnabled);
-}
-
-void CGameFramework::CreateRemotePlayer()
-{
-	if (!m_pScene || m_pRemotePlayer) return;
-
-	CCarPlayer* pRemotePlayer = new CCarPlayer(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature());
-	pRemotePlayer->SetScale(10.2f, 10.2f, 10.2f);
-	m_pScene->ApplyMeshTextures(m_pd3dDevice, m_pd3dCommandList, pRemotePlayer);
-	pRemotePlayer->ComputeNewLocalAABB();
-	pRemotePlayer->Rotate(0, 180, 0);
-	pRemotePlayer->SetPosition(XMFLOAT3(30.0f, 10.0f, 0.0f));
-	pRemotePlayer->OnPrepareRender();
-	pRemotePlayer->m_bIsActive = false;
-
-	m_pRemotePlayer = pRemotePlayer;
-	m_fRemotePlayerYaw = 180.0f;
-}
-
-void CGameFramework::ReleaseRemotePlayer()
-{
-	if (m_pRemotePlayer)
-	{
-		m_pRemotePlayer->Release();
-		m_pRemotePlayer = NULL;
-	}
-	m_fRemotePlayerYaw = 180.0f;
 }
 
 PlayerNetState CGameFramework::BuildLocalPlayerState() const
@@ -2532,28 +2512,28 @@ PlayerNetState CGameFramework::BuildLocalPlayerState() const
 
 void CGameFramework::ApplyRemotePlayerState(const PlayerNetState& state)
 {
-	if (!m_pRemotePlayer) return;
+	if (state.playerId == m_nMyPlayerId) return;
+	
+	RemotePlayerInfo* pInfo = FindOrAllocateRemotePlayer(state.playerId);
+	if (!pInfo || !pInfo->pPlayer) return;
 
-	if (!m_pRemotePlayer->m_bIsActive) {
-		m_GameTimer.Reset();
-		m_fTotalTime = 0.0f;
-	}
+	CPlayer* pTargetPlayer = pInfo->pPlayer;
+	
+	pTargetPlayer->m_bIsActive = true;
+	pTargetPlayer->SetVelocity(XMFLOAT3(0, 0, 0));
+	pTargetPlayer->SetPosition(XMFLOAT3(state.x, state.y, state.z));
 
-	m_pRemotePlayer->m_bIsActive = true;
-	m_pRemotePlayer->SetVelocity(XMFLOAT3(0.0f, 0.0f, 0.0f));
-	m_pRemotePlayer->SetPosition(XMFLOAT3(state.x, state.y, state.z));
-
-	float fDeltaYaw = state.yaw - m_fRemotePlayerYaw;
+	float fDeltaYaw = state.yaw - pInfo->yaw;
 	if (fDeltaYaw > 180.0f) fDeltaYaw -= 360.0f;
 	if (fDeltaYaw < -180.0f) fDeltaYaw += 360.0f;
 
 	if (fabsf(fDeltaYaw) > 0.001f)
 	{
-		m_pRemotePlayer->Rotate(0.0f, fDeltaYaw, 0.0f);
+		pTargetPlayer->Rotate(0.0f, fDeltaYaw, 0.0f);
 	}
 
-	m_fRemotePlayerYaw = state.yaw;
-	m_pRemotePlayer->OnPrepareRender();
+	pInfo->yaw = state.yaw;
+	pTargetPlayer->OnPrepareRender();
 }
 
 void CGameFramework::SyncMultiplayer()
@@ -2836,8 +2816,54 @@ void CGameFramework::LoadDashVignetteResource()
 	);
 }
 
+void CGameFramework::CreateRemotePlayers()
+{
+	if (!m_pScene) return;
 
+	m_vRemotePlayers.clear();
 
+	for (int i = 0; i < 3; ++i) {
+		CPlayer* pRemotePlayer = new CCarPlayer(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature());
+		pRemotePlayer->SetScale(10.2f, 10.2f, 10.2f);
+		m_pScene->ApplyMeshTextures(m_pd3dDevice, m_pd3dCommandList, pRemotePlayer);
+		pRemotePlayer->ComputeNewLocalAABB();
+
+		pRemotePlayer->m_bIsActive = false ;
+	
+		RemotePlayerInfo info;
+		info.playerID = -1;
+		info.pPlayer = pRemotePlayer;
+		info.yaw = 0.0f;
+
+		m_vRemotePlayers.emplace_back(info);
+	}
+}
+
+void CGameFramework::ReleaseRemotePlayers()
+{
+	for (auto& info : m_vRemotePlayers) {
+		if (info.pPlayer) {
+			info.pPlayer->Release();
+		}
+	}
+	m_vRemotePlayers.clear();
+}
+
+RemotePlayerInfo* CGameFramework::FindOrAllocateRemotePlayer(int targetId)
+{
+	for (auto& info : m_vRemotePlayers) {
+		if (info.playerID == targetId) return &info;
+	}
+
+	for (auto& info : m_vRemotePlayers) {
+		if (info.playerID == -1) {
+			info.playerID = targetId;
+			return &info;
+		}
+	}
+
+	return nullptr;
+}
 
 D2D1_POINT_2F CGameFramework::WorldToMinimap(
 	const XMFLOAT3& worldPos,
@@ -2869,23 +2895,17 @@ void CGameFramework::ConsumeNetworkCollisionEvents()
 
 	while (m_pNetwork->ConsumeCollisionEvent(ev))
 	{
-		XMFLOAT3 newPos(ev.x, ev.y, ev.z);
-		XMFLOAT3 pushDir(ev.nx, ev.ny, ev.nz);
+		if (ev.playerId == m_nMyPlayerId) continue;
 
-		if (Vector3::Length(pushDir) > 0.001f)
-			pushDir = Vector3::Normalize(pushDir);
-		else
-			pushDir = m_pPlayer->GetLookVector();
+		RemotePlayerInfo* pInfo = FindOrAllocateRemotePlayer(ev.playerId);
 
-		XMFLOAT3 newVel =
-			Vector3::ScalarProduct(pushDir, ev.reboundPower, false);
+		if (pInfo && pInfo->pPlayer) {
+			XMFLOAT3 hitPos(ev.x, ev.y, ev.z);
 
-		m_pPlayer->SetPosition(newPos);
-		m_pPlayer->SetVelocity(newVel);
-		m_pPlayer->OnPrepareRender();
-
-		m_bIsStun = true;
-		m_fCollisionCurrentTime = m_fTotalTime;
+			PlayAndSyncEffect(EFFECT_TYPE::COLLISION, hitPos, XMFLOAT2(50, 50), XMFLOAT3(1, 0, 0));
+			PlayAndSyncEffect(EFFECT_TYPE::COLLISION, hitPos, XMFLOAT2(50, 50), XMFLOAT3(0, 1, 0));
+			PlayAndSyncEffect(EFFECT_TYPE::COLLISION, hitPos, XMFLOAT2(50, 50), XMFLOAT3(0, 0, 1));
+		}
 	}
 }
 
@@ -2906,7 +2926,7 @@ void CGameFramework::CheckMulti(const float& fTimeElapsed)
 	if (m_bMultiplayerEnabled && m_pNetwork && m_pNetwork->IsConnected() && !m_bRaceStarted)
 	{
 		// 숫자 2 바꾸면 여러명 가능
-		if (m_pNetwork->GetCurrentPlayerCount() < 2)
+		if (m_pNetwork->GetCurrentPlayerCount() < 3)
 		{
 			if (m_pPlayer) m_pPlayer->SetVelocity(XMFLOAT3(0.0f, 0.0f, 0.0f));
 			UpdateDashSystem(fTimeElapsed, false, false);
@@ -3086,12 +3106,16 @@ void CGameFramework::FrameAdvance()
 				m_fRemoteLockEffectTime = 0.0f;
 				m_bRemoteLockEffectActive = false;
 			}
-			else if (m_pRemotePlayer)
+			else
 			{
-				XMFLOAT3 pos = m_pRemotePlayer->GetPosition();
-				pos.y += 0.0f;
-				  // 자물쇠 이펙트 위치 조정
-				CEffectLibrary::Instance()->UpdateLockOrbitPosition(pos);
+				for (auto& info : m_vRemotePlayers){
+					if (info.playerID != -1 && info.pPlayer && info.pPlayer->m_bIsActive){
+						XMFLOAT3 pos = info.pPlayer->GetPosition();
+						pos.y += 0.0f;
+						CEffectLibrary::Instance()->UpdateLockOrbitPosition(pos);
+						break;
+					}
+				}
 			}
 		}
 
@@ -3159,6 +3183,13 @@ void CGameFramework::FrameAdvance()
 	HRESULT hResult = m_d3dCommandAllocators[m_nSwapChainBufferIndex].Get()->Reset();
 	hResult = m_pd3dCommandList->Reset(m_d3dCommandAllocators[m_nSwapChainBufferIndex].Get(), NULL);
 
+	if (m_bNeedRemotePlayerInit)
+	{
+		CreateRemotePlayers();
+		ApplyMultiplayerSpawn();
+		m_bNeedRemotePlayerInit = false;
+	}//
+
 	if (2 == m_nStage || 99 == m_nStage)
 	{
 		RenderShadowPass();
@@ -3202,7 +3233,11 @@ void CGameFramework::FrameAdvance()
 		}
 
 		if (m_pPlayer) m_pPlayer->Render(m_pd3dCommandList, NULL, m_pCamera);
-		if (m_pRemotePlayer && m_pRemotePlayer->m_bIsActive) m_pRemotePlayer->Render(m_pd3dCommandList, NULL, m_pCamera);
+		for (auto& info : m_vRemotePlayers) {
+			if (info.playerID != -1 && info.pPlayer && info.pPlayer->m_bIsActive) {
+				info.pPlayer->Render(m_pd3dCommandList, NULL, m_pCamera);
+			}
+		}
 		CEffectLibrary::Instance()->Render(m_pd3dCommandList, m_pCamera->GetViewMatrix(), m_pCamera->GetProjectionMatrix());
 
 	}

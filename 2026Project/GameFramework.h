@@ -32,6 +32,12 @@ struct UIButton {
 	}
 };
 
+struct RemotePlayerInfo {
+	int playerID{ -1 };
+	CPlayer* pPlayer{ nullptr };
+	float yaw{ 180 };
+};
+
 class CGameFramework
 {
 public:
@@ -91,8 +97,7 @@ public:
 	void SyncMultiplayer();
 	PlayerNetState BuildLocalPlayerState() const;
 	void ApplyRemotePlayerState(const PlayerNetState& state);
-	void CreateRemotePlayer();
-	void ReleaseRemotePlayer();
+	
 	void SetupPlayerTransform(CPlayer* pPlayer, const XMFLOAT3& xmf3Position, float fYaw);
 	void ApplyMultiplayerSpawn();
 	void PlayAndSyncEffect(EFFECT_TYPE eType, const XMFLOAT3& xmf3Position, const XMFLOAT2& xmf2Size, const XMFLOAT3& xmf3Color = XMFLOAT3(1.0f, 1.0f, 1.0f));
@@ -109,6 +114,10 @@ public:
 	void LoadResultUIResource();
 	void LoadDashVignetteResource();
 	
+	void CreateRemotePlayers();
+	void ReleaseRemotePlayers();
+	RemotePlayerInfo* FindOrAllocateRemotePlayer(int targetId);
+
 	//
 private:
 	HINSTANCE					m_hInstance;
@@ -151,7 +160,6 @@ private:
 
 	CScene* m_pScene = NULL;
 	CPlayer* m_pPlayer = NULL;
-	CPlayer* m_pRemotePlayer = NULL;
 	CCamera* m_pCamera = NULL;
 	CNetworkManager* m_pNetwork = NULL;
 	float						m_fRemotePlayerYaw = 180.0f;
@@ -230,6 +238,8 @@ private:
 	void FinishIntroVideo();
 	bool m_bPlayingIntroVideo = true;
 	
+	std::vector<RemotePlayerInfo> m_vRemotePlayers;
+	bool m_bNeedRemotePlayerInit{ false };
 
 private:
 	enum ITEM_TYPE

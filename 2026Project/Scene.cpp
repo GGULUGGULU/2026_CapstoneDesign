@@ -1809,7 +1809,7 @@ void CScene::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera
 	{
 		if (m_ppGameObjects[i] )
 		{
-			//if (i >= 1 && i <= 12) continue; // 스테이지 1 index 1~12번은 체크포인트&벽
+			if (i >= 1 && i <= 12) continue; // 스테이지 1 index 1~12번은 체크포인트&벽
 			m_ppGameObjects[i]->Animate(m_fElapsedTime, NULL);
 			m_ppGameObjects[i]->UpdateTransform(NULL);
 			m_ppGameObjects[i]->Render(pd3dCommandList, pDebugBoxToRender, pCamera);

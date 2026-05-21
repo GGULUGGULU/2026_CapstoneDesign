@@ -36,6 +36,7 @@ struct PlayerNetState
 
 struct CollisionEventNet
 {
+    std::uint32_t playerId;
     int type = 0;
     int objectIndex = -1;
     float x = 0.0f, y = 0.0f, z = 0.0f;
