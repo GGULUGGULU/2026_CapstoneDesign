@@ -33,11 +33,13 @@ public:
     bool ConsumeEffectEvent(EffectEventNet& outEvent);
     bool ConsumeRaceFinish(RaceRecordNet& outEvent);
     bool ConsumeRaceResult(RaceResultNet& outEvent);
+    bool ConsumeMapItemEvent(MapItemEventNet& outEvent);
 
     void SendCollisionEvent(const CollisionEventNet& ev);
     void SendEffectEvent(const EffectEventNet& ev);
     void SendRaceFinish(const RaceRecordNet& ev);
     void SendRaceResult(const RaceResultNet& ev);
+    void SendMapItemEvent(const MapItemEventNet& ev);
 
     bool IsConnected() const;
     bool IsHosting() const;
@@ -65,7 +67,7 @@ private:
     //
 
     std::vector<ItemEventNet> m_itemEvents;
-
+    std::vector<MapItemEventNet> m_mapItemEvents;
 private:
     CNetworkManagerImpl* m_pImpl = nullptr;
     MODE m_eMode = MODE::NONE;

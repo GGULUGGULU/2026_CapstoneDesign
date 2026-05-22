@@ -15,7 +15,8 @@ enum class NET_MESSAGE_TYPE : unsigned int
     RACE_FINISH = 4,
     RACE_RESULT = 5,
     ITEM_EVENT = 6,
-    PLAYER_COUNT = 7
+    PLAYER_COUNT = 7,
+    MAP_ITEM_EVENT
 };
 
 #pragma pack(push, 1)
@@ -71,6 +72,14 @@ struct RaceResultNet
 	std::uint32_t playerCount;
     RaceRecordNet playerRecords[4];
 };
+
+struct MapItemEventNet
+{
+    std::uint32_t playerId;
+    int itemIndex;
+    bool IsActive;
+};
+
 /////
 struct NetMessageHeader
 {
@@ -126,6 +135,12 @@ struct PlayerCountPacket
 {
     NetMessageHeader header{};
     std::uint32_t currentCount = 0;
+};
+
+struct MapItemEventPacket
+{
+    NetMessageHeader header{};
+    MapItemEventNet eventData{};
 };
 
 #pragma pack(pop)

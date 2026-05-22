@@ -1558,35 +1558,45 @@ void CGameFramework::CollisionProcess()
 
 		if (pCollidedObject->m_bIsItemBox)
 		{
-			m_SoundManager.PlaySFX("Asset/Audio/LapSound.mp3");
-		
-			XMFLOAT3 vPos = pCollidedObject->GetPosition();
+			if (m_bMultiplayerEnabled) {
+				m_pScene->m_pCollidedObject->m_bIsActive = false;
 
-			PlayAndSyncEffect(EFFECT_TYPE::ITEM1, vPos, XMFLOAT2(50, 50));
-			PlayAndSyncEffect(EFFECT_TYPE::ITEM2, vPos, XMFLOAT2(50, 50));
-			PlayAndSyncEffect(EFFECT_TYPE::ITEM3, vPos, XMFLOAT2(50, 50));
-			PlayAndSyncEffect(EFFECT_TYPE::ITEM4, vPos, XMFLOAT2(25, 25));
-			PlayAndSyncEffect(EFFECT_TYPE::ITEM5, vPos, XMFLOAT2(50, 50));
-			PlayAndSyncEffect(EFFECT_TYPE::ITEM6, vPos, XMFLOAT2(50, 50));
-			PlayAndSyncEffect(EFFECT_TYPE::ITEM7, vPos, XMFLOAT2(50, 50));
-			PlayAndSyncEffect(EFFECT_TYPE::ITEM8, vPos, XMFLOAT2(25, 25));
-			PlayAndSyncEffect(EFFECT_TYPE::ITEM9, vPos, XMFLOAT2(50, 50));
+				MapItemEventNet ev;
+				ev.playerId = m_nMyPlayerId;
+				ev.itemIndex = m_pScene->m_nCollidedObjectIndex;
+				ev.IsActive = false;
+				m_pNetwork->SendMapItemEvent(ev);
+			}
+			else { // 싱글 플레이
+				m_SoundManager.PlaySFX("Asset/Audio/LapSound.mp3");
 
-			m_fItemDisplayTimer = 3.0f;
-			pCollidedObject->m_fInactiveTime = 0.0f;
+				XMFLOAT3 vPos = pCollidedObject->GetPosition();
 
-			pCollidedObject->Disable();
-			++m_nScore;
+				PlayAndSyncEffect(EFFECT_TYPE::ITEM1, vPos, XMFLOAT2(50, 50));
+				PlayAndSyncEffect(EFFECT_TYPE::ITEM2, vPos, XMFLOAT2(50, 50));
+				PlayAndSyncEffect(EFFECT_TYPE::ITEM3, vPos, XMFLOAT2(50, 50));
+				PlayAndSyncEffect(EFFECT_TYPE::ITEM4, vPos, XMFLOAT2(25, 25));
+				PlayAndSyncEffect(EFFECT_TYPE::ITEM5, vPos, XMFLOAT2(50, 50));
+				PlayAndSyncEffect(EFFECT_TYPE::ITEM6, vPos, XMFLOAT2(50, 50));
+				PlayAndSyncEffect(EFFECT_TYPE::ITEM7, vPos, XMFLOAT2(50, 50));
+				PlayAndSyncEffect(EFFECT_TYPE::ITEM8, vPos, XMFLOAT2(25, 25));
+				PlayAndSyncEffect(EFFECT_TYPE::ITEM9, vPos, XMFLOAT2(50, 50));
 
-			int randItem = rand() % 4;
+				m_fItemDisplayTimer = 3.0f;
+				pCollidedObject->m_fInactiveTime = 0.0f;
+
+				pCollidedObject->Disable();
+				++m_nScore;
+
+				int randItem = rand() % 4;
 
 
-			if (randItem == 0) m_eHoldItem = ITEM_DASH_POTION;
-			else if (randItem == 1) m_eHoldItem = ITEM_MAX_SPEED_UP;
-			else if (randItem == 2) m_eHoldItem = ITEM_MAX_DASH_GAUGE_UP;
-			else if (randItem == 3) m_eHoldItem = ITEM_LOCK;
-
-
+				if (randItem == 0) m_eHoldItem = ITEM_DASH_POTION;
+				else if (randItem == 1) m_eHoldItem = ITEM_MAX_SPEED_UP;
+				else if (randItem == 2) m_eHoldItem = ITEM_MAX_DASH_GAUGE_UP;
+				else if (randItem == 3) m_eHoldItem = ITEM_LOCK;
+			}
+			
 		}
 		else if (pCollidedObject->m_bIsInvisibleWall)
 		{
@@ -2569,6 +2579,7 @@ void CGameFramework::SyncMultiplayer()
 	ConsumeNetworkCollisionEvents();
 	ConsumeNetworkEffectEvents();
 	ConsumeNetworkItemEvents();
+	ConsumeNetworkMapItemEvents();
 }
 
 void CGameFramework::PlayAndSyncEffect(EFFECT_TYPE eType, const XMFLOAT3& xmf3Position, const XMFLOAT2& xmf2Size, const XMFLOAT3& xmf3Color)
@@ -3376,6 +3387,55 @@ void CGameFramework::PlayLockEffectOnPlayer(CPlayer* pTargetPlayer, float fDurat
 		fDuration,
 		false
 	);
+}
+
+void CGameFramework::ConsumeNetworkMapItemEvents()
+{
+	if (!m_pNetwork) return;
+
+	MapItemEventNet mapItemEv{};
+	while (m_pNetwork->ConsumeMapItemEvent(mapItemEv))
+	{
+		if (mapItemEv.IsActive)
+		{
+			if (m_pScene->m_ppGameObjects[mapItemEv.itemIndex]) {
+				m_pScene->m_ppGameObjects[mapItemEv.itemIndex]->m_bIsActive = true;
+			}
+		}
+		else
+		{
+			if (m_pScene->m_ppGameObjects[mapItemEv.itemIndex]) {
+				m_pScene->m_ppGameObjects[mapItemEv.itemIndex]->m_bIsActive = false;
+			}
+
+			if (mapItemEv.playerId == m_nMyPlayerId)
+			{
+				m_SoundManager.PlaySFX("Asset/Audio/LapSound.mp3");
+
+				if (m_pScene->m_ppGameObjects[mapItemEv.itemIndex])
+				{
+					XMFLOAT3 vPos = m_pScene->m_ppGameObjects[mapItemEv.itemIndex]->GetPosition();
+					PlayAndSyncEffect(EFFECT_TYPE::ITEM1, vPos, XMFLOAT2(50, 50));
+					PlayAndSyncEffect(EFFECT_TYPE::ITEM2, vPos, XMFLOAT2(50, 50));
+					PlayAndSyncEffect(EFFECT_TYPE::ITEM3, vPos, XMFLOAT2(50, 50));
+					PlayAndSyncEffect(EFFECT_TYPE::ITEM4, vPos, XMFLOAT2(25, 25));
+					PlayAndSyncEffect(EFFECT_TYPE::ITEM5, vPos, XMFLOAT2(50, 50));
+					PlayAndSyncEffect(EFFECT_TYPE::ITEM6, vPos, XMFLOAT2(50, 50));
+					PlayAndSyncEffect(EFFECT_TYPE::ITEM7, vPos, XMFLOAT2(50, 50));
+					PlayAndSyncEffect(EFFECT_TYPE::ITEM8, vPos, XMFLOAT2(25, 25));
+					PlayAndSyncEffect(EFFECT_TYPE::ITEM9, vPos, XMFLOAT2(50, 50));
+				}
+
+				++m_nScore;
+
+				int randItem = rand() % 4;
+				if (randItem == 0) m_eHoldItem = ITEM_DASH_POTION;
+				else if (randItem == 1) m_eHoldItem = ITEM_MAX_SPEED_UP;
+				else if (randItem == 2) m_eHoldItem = ITEM_MAX_DASH_GAUGE_UP;
+				else if (randItem == 3) m_eHoldItem = ITEM_LOCK;
+			}
+		}
+	}
 }
 
 

@@ -2,9 +2,13 @@
 #include <vector>
 #include <algorithm>
 #include <WinSock2.h>
+#include <chrono>
+#include <map>
 #include "ServerNetworkTypes.h" 
 
 #pragma comment(lib, "ws2_32.lib")
+
+std::map<int, float> g_deadItems;
 
 void BroadcastPlayerCount(const std::vector<SOCKET>& sockets)
 {
@@ -21,6 +25,51 @@ void BroadcastPlayerCount(const std::vector<SOCKET>& sockets)
     {
         int nSend = send(s, reinterpret_cast<const char*>(&pkt), sizeof(pkt), 0);
     }
+}
+
+void UpdateServerItems(float elapsed, const std::vector<SOCKET>& clientSockets)
+{
+    for (auto it = g_deadItems.begin(); it != g_deadItems.end(); )
+    {
+        it->second -= elapsed;
+        if (it->second <= 0.0f)
+        {
+            MapItemEventPacket respawnPkt{};
+            respawnPkt.header.type = static_cast<unsigned int>(NET_MESSAGE_TYPE::MAP_ITEM_EVENT);
+            respawnPkt.header.size = sizeof(MapItemEventPacket);
+            respawnPkt.eventData.itemIndex = it->first;
+            respawnPkt.eventData.IsActive = true;  // 부활 활성화
+            respawnPkt.eventData.playerId = 0;      // 획득 유저 없음
+
+            // 모든 클라이언트에게 아이템 생성 브로드캐스트
+            for (SOCKET s : clientSockets) {
+                send(s, reinterpret_cast<const char*>(&respawnPkt), sizeof(respawnPkt), 0);
+            }
+
+            it = g_deadItems.erase(it); 
+        }
+        else {
+            ++it;
+        }
+    }
+}
+
+void HandleMapItemRequest(int itemIndex, std::uint32_t playerId, const std::vector<SOCKET>& clientSockets, const char* packetBuffer, int bufferSize)
+{
+    if (g_deadItems.find(itemIndex) == g_deadItems.end())
+    {
+        g_deadItems[itemIndex] = 3.0f;
+
+        // 아이템 먹은 유저 정보 브로드캐스트
+        for (SOCKET otherSocket : clientSockets) {
+            send(otherSocket, packetBuffer, bufferSize, 0);
+        }
+    }
+}
+
+void ResetServerItems()
+{
+    g_deadItems.clear();
 }
 
 int main()
@@ -70,8 +119,16 @@ int main()
     int nextPlayerId = 1; 
 	std::vector<RaceRecordNet> raceRecords;
 
+    auto lastTime = std::chrono::system_clock::now();
+
     while (true)
     {
+        auto currTime = std::chrono::system_clock::now();
+        float fElapsed = std::chrono::duration<float>(currTime - lastTime).count();
+        lastTime = currTime;
+
+        UpdateServerItems(fElapsed, clientSockets);
+
         fd_set readSet;
         FD_ZERO(&readSet);
         FD_SET(listenSocket, &readSet);
@@ -81,8 +138,10 @@ int main()
             FD_SET(s, &readSet);
         }
 
-        int activity = select(0, &readSet, nullptr, nullptr, nullptr);
+        timeval tv{ 0, 10000 };
+        int activity = select(0, &readSet, nullptr, nullptr, &tv);
         if (activity == SOCKET_ERROR) break;
+        if (activity == 0) continue;
 
         if (FD_ISSET(listenSocket, &readSet))
         {
@@ -121,7 +180,16 @@ int main()
                 {
                     NetMessageHeader* pHeader = reinterpret_cast<NetMessageHeader*>(buffer);
 
-                    if (pHeader->type == static_cast<unsigned int>(NET_MESSAGE_TYPE::RACE_FINISH))
+                    if (pHeader->type == static_cast<unsigned int>(NET_MESSAGE_TYPE::MAP_ITEM_EVENT)) {
+                        MapItemEventPacket* pItemptk = reinterpret_cast<MapItemEventPacket*>(buffer);
+                        HandleMapItemRequest(pItemptk->eventData.itemIndex,
+                        pItemptk->eventData.playerId,
+                        clientSockets,
+                        buffer,
+                        recvBytes
+                        );
+                    }
+                    else if (pHeader->type == static_cast<unsigned int>(NET_MESSAGE_TYPE::RACE_FINISH))
                     {
                         RaceFinishPacket* pFinishPkt = reinterpret_cast<RaceFinishPacket*>(buffer);
                         raceRecords.push_back(pFinishPkt->record);
@@ -178,6 +246,7 @@ int main()
                     {
                         nextPlayerId = 1;
                         raceRecords.clear();
+                        ResetServerItems();
                     }
 
                     BroadcastPlayerCount(clientSockets);

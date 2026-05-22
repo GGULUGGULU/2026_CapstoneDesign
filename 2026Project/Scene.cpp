@@ -480,7 +480,6 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		pItemObject->SetScale(10, 10, 10);
 		pItemObject->ComputeNewLocalAABB();
 		pItemObject->m_bIsItemBox = true;
-		pItemObject->m_bCanRespawn = true;
 		pItemObject->m_fRespawnDelay = 3.0f;
 		m_ppGameObjects[13] = pItemObject;
 
@@ -491,7 +490,6 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		pItemObject1->SetScale(10, 10, 10);
 		pItemObject1->ComputeNewLocalAABB();
 		pItemObject1->m_bIsItemBox = true;
-		pItemObject1->m_bCanRespawn = true;
 		pItemObject1->m_fRespawnDelay = 3.0f;
 		m_ppGameObjects[14] = pItemObject1;
 
@@ -502,7 +500,6 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		pItemObject2->SetScale(10, 10, 10);
 		pItemObject2->ComputeNewLocalAABB();
 		pItemObject2->m_bIsItemBox = true;
-		pItemObject2->m_bCanRespawn = true;
 		pItemObject2->m_fRespawnDelay = 3.0f;
 		m_ppGameObjects[15] = pItemObject2;
 
@@ -513,7 +510,6 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		pItemObject3->SetScale(10, 10, 10);
 		pItemObject3->ComputeNewLocalAABB();
 		pItemObject3->m_bIsItemBox = true;
-		pItemObject3->m_bCanRespawn = true;
 		pItemObject3->m_fRespawnDelay = 3.0f;
 		m_ppGameObjects[16] = pItemObject3;
 
@@ -525,7 +521,6 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		pItemObject4->SetScale(10, 10, 10);
 		pItemObject4->ComputeNewLocalAABB();
 		pItemObject4->m_bIsItemBox = true;
-		pItemObject4->m_bCanRespawn = true;
 		pItemObject4->m_fRespawnDelay = 3.0f;
 		m_ppGameObjects[17] = pItemObject4;
 
@@ -536,7 +531,6 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		pItemObject5->SetScale(10, 10, 10);
 		pItemObject5->ComputeNewLocalAABB();
 		pItemObject5->m_bIsItemBox = true;
-		pItemObject5->m_bCanRespawn = true;
 		pItemObject5->m_fRespawnDelay = 3.0f;
 		m_ppGameObjects[18] = pItemObject5;
 
@@ -547,7 +541,6 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		pItemObject6->SetScale(10, 10, 10);
 		pItemObject6->ComputeNewLocalAABB();
 		pItemObject6->m_bIsItemBox = true;
-		pItemObject6->m_bCanRespawn = true;
 		pItemObject6->m_fRespawnDelay = 3.0f;
 		m_ppGameObjects[19] = pItemObject6;
 
@@ -558,7 +551,6 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		pItemObject7->SetScale(10, 10, 10);
 		pItemObject7->ComputeNewLocalAABB();
 		pItemObject7->m_bIsItemBox = true;
-		pItemObject7->m_bCanRespawn = true;
 		pItemObject7->m_fRespawnDelay = 3.0f;
 		m_ppGameObjects[20] = pItemObject7;
 
@@ -569,7 +561,6 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		pItemObject8->SetScale(10, 10, 10);
 		pItemObject8->ComputeNewLocalAABB();
 		pItemObject8->m_bIsItemBox = true;
-		pItemObject8->m_bCanRespawn = true;
 		pItemObject8->m_fRespawnDelay = 3.0f;
 		m_ppGameObjects[21] = pItemObject8;
 	
@@ -580,7 +571,6 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		pItemObject9->SetScale(10, 10, 10);
 		pItemObject9->ComputeNewLocalAABB();
 		pItemObject9->m_bIsItemBox = true;
-		pItemObject9->m_bCanRespawn = true;
 		pItemObject9->m_fRespawnDelay = 3.0f;
 		m_ppGameObjects[22] = pItemObject9;
 
@@ -591,7 +581,6 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		pItemObject10->SetScale(10, 10, 10);
 		pItemObject10->ComputeNewLocalAABB();
 		pItemObject10->m_bIsItemBox = true;
-		pItemObject10->m_bCanRespawn = true;
 		pItemObject10->m_fRespawnDelay = 3.0f;
 		m_ppGameObjects[23] = pItemObject10;
 
@@ -602,7 +591,6 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		pItemObject11->SetScale(10, 10, 10);
 		pItemObject11->ComputeNewLocalAABB();
 		pItemObject11->m_bIsItemBox = true;
-		pItemObject11->m_bCanRespawn = true;
 		pItemObject11->m_fRespawnDelay = 3.0f;
 		m_ppGameObjects[24] = pItemObject11;
 
@@ -613,7 +601,6 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		pItemObject12->SetScale(10, 10, 10);
 		pItemObject12->ComputeNewLocalAABB();
 		pItemObject12->m_bIsItemBox = true;
-		pItemObject12->m_bCanRespawn = true;
 		pItemObject12->m_fRespawnDelay = 3.0f;
 		m_ppGameObjects[25] = pItemObject12;
 
@@ -624,7 +611,6 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		pItemObject13->SetScale(10, 10, 10);
 		pItemObject13->ComputeNewLocalAABB();
 		pItemObject13->m_bIsItemBox = true;
-		pItemObject13->m_bCanRespawn = true;
 		pItemObject13->m_fRespawnDelay = 3.0f;
 		m_ppGameObjects[26] = pItemObject13;
 	
@@ -635,7 +621,6 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		pItemObject14->SetScale(10, 10, 10);
 		pItemObject14->ComputeNewLocalAABB();
 		pItemObject14->m_bIsItemBox = true;
-		pItemObject14->m_bCanRespawn = true;
 		pItemObject14->m_fRespawnDelay = 3.0f;
 		m_ppGameObjects[27] = pItemObject14;
 
@@ -646,7 +631,6 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		pItemObject15->SetScale(10, 10, 10);
 		pItemObject15->ComputeNewLocalAABB();
 		pItemObject15->m_bIsItemBox = true;
-		pItemObject15->m_bCanRespawn = true;
 		pItemObject15->m_fRespawnDelay = 3.0f;
 		m_ppGameObjects[28] = pItemObject15;
 
@@ -657,7 +641,6 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		pItemObject16->SetScale(10, 10, 10);
 		pItemObject16->ComputeNewLocalAABB();
 		pItemObject16->m_bIsItemBox = true;
-		pItemObject16->m_bCanRespawn = true;
 		pItemObject16->m_fRespawnDelay = 3.0f;
 		m_ppGameObjects[29] = pItemObject16;
 
@@ -668,7 +651,6 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		pItemObject17->SetScale(10, 10, 10);
 		pItemObject17->ComputeNewLocalAABB();
 		pItemObject17->m_bIsItemBox = true;
-		pItemObject17->m_bCanRespawn = true;
 		pItemObject17->m_fRespawnDelay = 3.0f;
 		m_ppGameObjects[30] = pItemObject17;
 
@@ -679,7 +661,6 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		pItemObject18->SetScale(10, 10, 10);
 		pItemObject18->ComputeNewLocalAABB();
 		pItemObject18->m_bIsItemBox = true;
-		pItemObject18->m_bCanRespawn = true;
 		pItemObject18->m_fRespawnDelay = 3.0f;
 		m_ppGameObjects[31] = pItemObject18;
 
@@ -690,7 +671,6 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		pItemObject19->SetScale(10, 10, 10);
 		pItemObject19->ComputeNewLocalAABB();
 		pItemObject19->m_bIsItemBox = true;
-		pItemObject19->m_bCanRespawn = true;
 		pItemObject19->m_fRespawnDelay = 3.0f;
 		m_ppGameObjects[32] = pItemObject19;
 
@@ -701,7 +681,6 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		pItemObject20->SetScale(10, 10, 10);
 		pItemObject20->ComputeNewLocalAABB();
 		pItemObject20->m_bIsItemBox = true;
-		pItemObject20->m_bCanRespawn = true;
 		pItemObject20->m_fRespawnDelay = 3.0f;
 		m_ppGameObjects[33] = pItemObject20;
 
@@ -712,7 +691,6 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		pItemObject21->SetScale(10, 10, 10);
 		pItemObject21->ComputeNewLocalAABB();
 		pItemObject21->m_bIsItemBox = true;
-		pItemObject21->m_bCanRespawn = true;
 		pItemObject21->m_fRespawnDelay = 3.0f;
 		m_ppGameObjects[34] = pItemObject21;
 	}
@@ -1141,6 +1119,7 @@ bool CheckRecursiveCollision(CGameObject* pObject, BoundingOrientedBox& worldPla
 		if (worldPlayerOBB.Intersects(meshOBB))
 		{
 			*ppCollidedObject = pObject;
+			
 			return true;
 		}
 	}
@@ -1197,6 +1176,7 @@ bool CScene::CheckCollision()
 			if (worldPlayerOBB.Intersects(worldObjectOBB))
 			{
 				m_pCollidedObject = pObject;
+				m_nCollidedObjectIndex = i;
 				return true;
 			}
 		}

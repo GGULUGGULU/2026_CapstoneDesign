@@ -368,7 +368,13 @@ void CNetworkManager::TryReceivePackets()
                 m_nTotalPlayerCount = packet.currentCount;
             }
 			break;
-
+        case NET_MESSAGE_TYPE::MAP_ITEM_EVENT:
+            if (header.size == sizeof(MapItemEventPacket)) {
+                MapItemEventPacket packet{};
+                std::memcpy(&packet, m_recvBuffer.data(), sizeof(packet));
+                m_mapItemEvents.push_back(packet.eventData);
+            }
+            break;
         default:
             OutputDebugStringA("[Network] Unknown packet type.\n");
             break;
@@ -453,6 +459,20 @@ void CNetworkManager::SendRaceResult(const RaceResultNet& ev)
     const char* bytes = reinterpret_cast<const char*>(&packet);
     m_pImpl->pendingSendBuffer.insert(m_pImpl->pendingSendBuffer.end(), bytes, bytes + sizeof(packet));
 
+    FlushPendingSends();
+}
+
+void CNetworkManager::SendMapItemEvent(const MapItemEventNet& ev)
+{
+    if (!m_pImpl || !m_bConnected || m_pImpl->peerSocket == INVALID_SOCKET) return;
+
+    MapItemEventPacket packet{};
+    packet.header.type = static_cast<unsigned int>(NET_MESSAGE_TYPE::MAP_ITEM_EVENT);
+    packet.header.size = sizeof(MapItemEventPacket);
+    packet.eventData = ev;
+
+    const char* bytes = reinterpret_cast<const char*>(&packet);
+    m_pImpl->pendingSendBuffer.insert(m_pImpl->pendingSendBuffer.end(), bytes, bytes + sizeof(packet));
     FlushPendingSends();
 }
 
@@ -558,6 +578,16 @@ bool CNetworkManager::ConsumeRaceResult(RaceResultNet& outEvent)
     return true;
 }
 
+bool CNetworkManager::ConsumeMapItemEvent(MapItemEventNet& outEvent)
+{
+    if (m_mapItemEvents.empty()) return false;
+
+    outEvent = m_mapItemEvents.front();
+    m_mapItemEvents.erase(m_mapItemEvents.begin());
+
+    return true;
+}
+
 bool CNetworkManager::IsConnected() const
 {
     return m_bConnected;
@@ -649,3 +679,4 @@ void CNetworkManager::SendItemEvent(const ItemEventNet& ev)
 
     FlushPendingSends();
 }
+

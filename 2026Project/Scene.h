@@ -153,5 +153,7 @@ public:
 
 	int m_nGFStage{};
 
+	int m_nCollidedObjectIndex{ -1 };
+
 	void ApplyMeshTextures(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CGameObject* pObject);
 };

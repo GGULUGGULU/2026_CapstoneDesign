@@ -262,7 +262,7 @@ private:
 	void ApplyDashLock(float fDuration);
 	void PlayLockEffectOnPlayer(CPlayer* pTargetPlayer, float fDuration);
 
-
+	void ConsumeNetworkMapItemEvents();
 
 private:
 	float m_fBasePlayerMaxSpeed;
@@ -324,7 +324,7 @@ public:
 	int m_nCurrentLap = 1;
 	int m_nPassedCheckPoints = 0;
 	int m_nTotalCheckPoints = 10;
-	const int MAX_LAPS = 3;
+	const int MAX_LAPS = 1;
 	WCHAR lapBuffer[64];
 
 
