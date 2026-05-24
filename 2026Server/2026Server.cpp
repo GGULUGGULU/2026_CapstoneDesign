@@ -178,59 +178,84 @@ int main()
 
                 if (recvBytes > 0)
                 {
-                    NetMessageHeader* pHeader = reinterpret_cast<NetMessageHeader*>(buffer);
+                    int offset = 0;
 
-                    if (pHeader->type == static_cast<unsigned int>(NET_MESSAGE_TYPE::MAP_ITEM_EVENT)) {
-                        MapItemEventPacket* pItemptk = reinterpret_cast<MapItemEventPacket*>(buffer);
-                        HandleMapItemRequest(pItemptk->eventData.itemIndex,
-                        pItemptk->eventData.playerId,
-                        clientSockets,
-                        buffer,
-                        recvBytes
-                        );
-                    }
-                    else if (pHeader->type == static_cast<unsigned int>(NET_MESSAGE_TYPE::RACE_FINISH))
+                    while (offset < recvBytes)
                     {
-                        RaceFinishPacket* pFinishPkt = reinterpret_cast<RaceFinishPacket*>(buffer);
-                        raceRecords.push_back(pFinishPkt->record);
+                        if (recvBytes - offset < sizeof(NetMessageHeader)) break;
 
-                        std::cout << "Player " << pFinishPkt->record.playerId
-                            << " 완주! (기록: " << pFinishPkt->record.finishTime << "초)" << std::endl;
+                        NetMessageHeader* pHeader = reinterpret_cast<NetMessageHeader*>(buffer + offset);
 
-                        if (raceRecords.size() == clientSockets.size())
+                        if (pHeader->size == 0 || offset + pHeader->size > recvBytes) break;
+
+                        if (pHeader->type == static_cast<unsigned int>(NET_MESSAGE_TYPE::PLAYER_STATE))
                         {
-                            std::cout << "모든 유저 완주 완료. 랭킹 전송" << std::endl;
-
-                            std::sort(raceRecords.begin(), raceRecords.end(),
-                                [](const RaceRecordNet& a, const RaceRecordNet& b) {
-                                    return a.finishTime < b.finishTime;
-                                });
-
-                            RaceResultPacket resultPkt{};
-                            resultPkt.header.type = static_cast<unsigned int>(NET_MESSAGE_TYPE::RACE_RESULT);
-                            resultPkt.header.size = sizeof(RaceResultPacket);
-                            resultPkt.result.playerCount = static_cast<std::uint32_t>(raceRecords.size());
-
-                            for (size_t i = 0; i < raceRecords.size(); ++i) {
-                                resultPkt.result.playerRecords[i] = raceRecords[i];
-                            }
-
                             for (SOCKET otherSocket : clientSockets) {
-                                send(otherSocket, reinterpret_cast<const char*>(&resultPkt), sizeof(resultPkt), 0);
-                            }// 모든 플레이어에게 결과 브로드캐스트
-
-                            raceRecords.clear();
-                        }
-                    }
-                    else
-                    {
-                        for (SOCKET otherSocket : clientSockets)
-                        {
-                            if (otherSocket != currentSocket)
-                            {
-                                send(otherSocket, buffer, recvBytes, 0);
+                                if (otherSocket != currentSocket) {
+                                    send(otherSocket, buffer + offset, pHeader->size, 0);
+                                }
                             }
                         }
+                        else if (pHeader->type == static_cast<unsigned int>(NET_MESSAGE_TYPE::MAP_ITEM_EVENT))
+                        {
+                            // 아이템 선점 처리
+                            MapItemEventPacket* pItemPkt = reinterpret_cast<MapItemEventPacket*>(buffer + offset);
+                            HandleMapItemRequest(
+                                pItemPkt->eventData.itemIndex,
+                                pItemPkt->eventData.playerId,
+                                clientSockets,
+                                buffer + offset,
+                                pHeader->size
+                            );
+                        }
+                        else if (pHeader->type == static_cast<unsigned int>(NET_MESSAGE_TYPE::RACE_FINISH))
+                        {
+                            // 완주 패킷 처리
+                            RaceFinishPacket* pFinishPkt = reinterpret_cast<RaceFinishPacket*>(buffer + offset);
+                            raceRecords.push_back(pFinishPkt->record);
+
+                            std::cout << "[Server] Player " << pFinishPkt->record.playerId
+                                << " Finished! (Time: " << pFinishPkt->record.finishTime << "s)\n";
+
+                            // 모든 접속자가 완주했는지 확인
+                            if (raceRecords.size() >= clientSockets.size())
+                            {
+                                std::cout << "[Server] All players finished. Broadcasting results.\n";
+
+                                RaceResultPacket resultPkt{};
+                                resultPkt.header.type = static_cast<unsigned int>(NET_MESSAGE_TYPE::RACE_RESULT);
+                                resultPkt.header.size = sizeof(RaceResultPacket);
+
+                                // 시간순으로 등수 정렬
+                                std::sort(raceRecords.begin(), raceRecords.end(),
+                                    [](const RaceRecordNet& a, const RaceRecordNet& b) {
+                                        return a.finishTime < b.finishTime;
+                                    });
+
+                                resultPkt.result.playerCount = static_cast<std::uint32_t>(raceRecords.size());
+                                for (size_t i = 0; i < raceRecords.size(); ++i) {
+                                    resultPkt.result.playerRecords[i] = raceRecords[i];
+                                }
+
+                                // 모든 플레이어에게 결과 브로드캐스트
+                                for (SOCKET otherSocket : clientSockets) {
+                                    send(otherSocket, reinterpret_cast<const char*>(&resultPkt), sizeof(resultPkt), 0);
+                                }
+
+                                raceRecords.clear(); // 기록 초기화
+                            }
+                        }
+                        else
+                        {
+                            // 이동/아이템/완주가 아닌 일반 패킷(이펙트, 충돌 등) 브로드캐스트
+                            for (SOCKET otherSocket : clientSockets) {
+                                if (otherSocket != currentSocket) {
+                                    send(otherSocket, buffer + offset, pHeader->size, 0);
+                                }
+                            }
+                        }
+
+                        offset += pHeader->size;
                     }
                     ++it;
                 }

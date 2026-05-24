@@ -2937,6 +2937,7 @@ void CGameFramework::CheckMulti(const float& fTimeElapsed)
 	if (m_bMultiplayerEnabled && m_pNetwork && m_pNetwork->IsConnected() && !m_bRaceStarted)
 	{
 		// 숫자 2 바꾸면 여러명 가능
+		// 대기방이 생기면 대기방의 인원수 만큼 하드코딩된 숫자를 바꿔줘야함
 		if (m_pNetwork->GetCurrentPlayerCount() < 3)
 		{
 			if (m_pPlayer) m_pPlayer->SetVelocity(XMFLOAT3(0.0f, 0.0f, 0.0f));
