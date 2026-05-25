@@ -52,6 +52,7 @@ public:
 
 	void BuildDefaultLightsAndMaterials();
 	void BuildObjectsGameStart(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *pd3dCommandList);
+	void BuildObjectsGameRoom(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 	void ReleaseObjects();
 
 	ID3D12RootSignature *CreateGraphicsRootSignature(ID3D12Device *pd3dDevice);
@@ -134,6 +135,10 @@ public:
 	CUIMesh* m_pUIMesh = nullptr;
 
 	D3D12_GPU_DESCRIPTOR_HANDLE m_pd3dUIItemSrvHandles[4];
+
+	int m_nSelectedCarIndex{ 0 };
+	//CGameObject* m_pRoomCars[1]; // 모델링 파일 추가하면 더 늘려야 함
+
 	//
 public:
 	ID3D12RootSignature			*m_pd3dGraphicsRootSignature = NULL;
@@ -156,4 +161,5 @@ public:
 	int m_nCollidedObjectIndex{ -1 };
 
 	void ApplyMeshTextures(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CGameObject* pObject);
+
 };

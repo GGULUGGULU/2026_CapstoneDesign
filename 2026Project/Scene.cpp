@@ -168,6 +168,47 @@ void CScene::BuildObjectsGameStart(ID3D12Device* pd3dDevice, ID3D12GraphicsComma
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
 }//
 
+void CScene::BuildObjectsGameRoom(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
+{
+// 대기방
+	
+	m_pd3dGraphicsRootSignature = CreateGraphicsRootSignature(pd3dDevice);
+
+	CMaterial::PrepareShaders(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature);
+
+	BuildDefaultLightsAndMaterials();
+	
+	LoadTexture(pd3dDevice, pd3dCommandList);
+
+	//m_nGameObjects = 1;
+	//m_ppGameObjects = new CGameObject * [m_nGameObjects];
+	//
+	//for (int i = 0; i < 1; ++i) {
+	//	CGameObject* pCarModel;
+	//	CGameObject* pCarObject = new CGameObject();
+	//	if (0 == i) {
+	//		pCarModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/FINAL_MODEL_241.bin");
+	//		//pCarModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/untitled.bin");
+	//		pCarObject->m_bIsActive = true;
+	//	}
+	//	else if (1 == i) {
+	//		//pCarModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/untitled.bin");
+	//		//pCarObject->m_bIsActive = false;
+	//	}
+	//	else if (2 == i) {
+	//		//pCarModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/untitled.bin");
+	//		//pCarObject->m_bIsActive = false;
+	//	}
+	//	ApplyMeshTextures(pd3dDevice, pd3dCommandList, pCarModel);
+	//	pCarObject->SetChild(pCarModel);
+	//	pCarObject->SetPosition(120.0f, 0.0f, 100.0f);
+	//	pCarObject->Rotate(0.0f, 180.0f, 0.0f);
+	//	pCarObject->SetScale(100, 100, 100);
+	//	m_ppGameObjects[i] = pCarObject;
+	//}
+	CreateShaderVariables(pd3dDevice, pd3dCommandList);
+}//
+
 void CScene::BuildObjectsGameEnd(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
 	m_pd3dGraphicsRootSignature = CreateGraphicsRootSignature(pd3dDevice);
@@ -1463,22 +1504,22 @@ bool CScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 		switch (wParam)
 		{
 		case 'Q':
-			m_ppGameObjects[1]->MoveUp(10);
+			m_ppGameObjects[0]->MoveUp(10);
 			break;
 		case 'R':
-			m_ppGameObjects[1]->MoveUp(-10);
+			m_ppGameObjects[0]->MoveUp(-10);
 			break;
 		case 'W':
-			m_ppGameObjects[1]->MoveForward(10);
+			m_ppGameObjects[0]->MoveForward(10);
 			break;
 		case 'S':
-			m_ppGameObjects[1]->MoveForward(-10);
+			m_ppGameObjects[0]->MoveForward(-10);
 			break;
 		case 'A':
-			m_ppGameObjects[1]->MoveStrafe(-10);
+			m_ppGameObjects[0]->MoveStrafe(-10);
 			break;
 		case 'D':
-			m_ppGameObjects[1]->MoveStrafe(10);
+			m_ppGameObjects[0]->MoveStrafe(10);
 			break;
 		case 'Z':
 			//m_ppGameObjects[114]->Rotate(0, 10, 0);
@@ -1787,14 +1828,14 @@ void CScene::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera
 
 	for (int i = 0; i < m_nGameObjects; ++i)
 	{
-		if (m_ppGameObjects[i] )
+		if (m_ppGameObjects[i])
 		{
 			if (i >= 1 && i <= 12) continue; // 스테이지 1 index 1~12번은 체크포인트&벽
 			m_ppGameObjects[i]->Animate(m_fElapsedTime, NULL);
 			m_ppGameObjects[i]->UpdateTransform(NULL);
 			m_ppGameObjects[i]->Render(pd3dCommandList, pDebugBoxToRender, pCamera);
 		}
-	}
+	} // 인게임 내부 루프
 
 	RenderSkybox(pd3dCommandList, pCamera);
 

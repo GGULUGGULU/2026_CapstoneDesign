@@ -16,19 +16,60 @@
 #include "VideoPlayer.h"
 
 struct UIButton {
+	enum ButtonShape {
+		RECT,
+		TRI_LEFT,
+		TRI_RIGHT
+	};
+
 	float xRatio, yRatio, wRatio, hRatio; 
-	D2D1_RECT_F rect;                     
+	ButtonShape shape{RECT};
+	D2D1_RECT_F rect;           
+	D2D1_TRIANGLE tri;
 
 	void Update(int screenWidth, int screenHeight) {
 		float centerX = screenWidth * xRatio;
 		float centerY = screenHeight * yRatio;
 		float halfW = (screenWidth * wRatio) * 0.5f;
 		float halfH = (screenHeight * hRatio) * 0.5f;
+		
 		rect = D2D1::RectF(centerX - halfW, centerY - halfH, centerX + halfW, centerY + halfH);
+		
+		if (shape == ButtonShape::TRI_LEFT) {
+			tri.point1 = D2D1::Point2F(rect.left, centerY);           // 왼쪽 끝점
+			tri.point2 = D2D1::Point2F(rect.right, rect.top);         // 우측 상단
+			tri.point3 = D2D1::Point2F(rect.right, rect.bottom);      // 우측 하단
+		}
+		else if (shape == ButtonShape::TRI_RIGHT) {
+			tri.point1 = D2D1::Point2F(rect.right, centerY);          // 오른쪽 끝점
+			tri.point2 = D2D1::Point2F(rect.left, rect.top);          // 좌측 상단
+			tri.point3 = D2D1::Point2F(rect.left, rect.bottom);       // 좌측 하단
+		}
+	}
+
+	float Sign(D2D1_POINT_2F p1, D2D1_POINT_2F p2, D2D1_POINT_2F p3) {
+		return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
 	}
 
 	bool IsMouseOver(POINT pt) {
-		return (pt.x >= rect.left && pt.x <= rect.right && pt.y >= rect.top && pt.y <= rect.bottom);
+		if (shape == ButtonShape::RECT) {
+			return (pt.x >= rect.left && pt.x <= rect.right && pt.y >= rect.top && pt.y <= rect.bottom);
+		}
+		else {
+			D2D1_POINT_2F mousePt = D2D1::Point2F(static_cast<float>(pt.x), static_cast<float>(pt.y));
+
+			float d1, d2, d3;
+			bool has_neg, has_pos;
+
+			d1 = Sign(mousePt, tri.point1, tri.point2);
+			d2 = Sign(mousePt, tri.point2, tri.point3);
+			d3 = Sign(mousePt, tri.point3, tri.point1);
+
+			has_neg = (d1 < 0.0f) || (d2 < 0.0f) || (d3 < 0.0f);
+			has_pos = (d1 > 0.0f) || (d2 > 0.0f) || (d3 > 0.0f);
+
+			return !(has_neg && has_pos);
+		}
 	}
 };
 
@@ -58,6 +99,7 @@ public:
 	void ChangeSwapChainState();
 
 	void BuildObjectGameStart();
+	void BuildObjectGameRoom();
 	void ReleaseObjects();
 
 	void ProcessInput();
@@ -92,8 +134,8 @@ public:
 	void RenderShadowPass();
 	void SetMainViewport();
 
-	bool StartListenServer(unsigned short port = NET_DEFAULT_PORT);
-	bool ConnectToListenServer(const char* pszAddress, unsigned short port = NET_DEFAULT_PORT);
+	bool StartServer(unsigned short port = NET_DEFAULT_PORT);
+	bool ConnectToServer(const char* pszAddress, unsigned short port = NET_DEFAULT_PORT);
 	void SyncMultiplayer();
 	PlayerNetState BuildLocalPlayerState() const;
 	void ApplyRemotePlayerState(const PlayerNetState& state);
@@ -113,7 +155,9 @@ public:
 	void LoadLobbyUIResource();
 	void LoadResultUIResource();
 	void LoadDashVignetteResource();
-	
+	void LoadRoomUIResource();
+	void LoadCarImages();
+
 	void CreateRemotePlayers();
 	void ReleaseRemotePlayers();
 	RemotePlayerInfo* FindOrAllocateRemotePlayer(int targetId);
@@ -200,11 +244,14 @@ private:
 	ComPtr<ID2D1SolidColorBrush> m_dashGaugeBorderBrush; // 대시게이지 경계선 색상
 
 	ComPtr<ID2D1SolidColorBrush> m_pBtnHoverBrush;
+	ComPtr<ID2D1SolidColorBrush> m_pTriBtnHoverBrush;
 
 	ComPtr<IWICImagingFactory> m_pWICFactory;
 	ComPtr<ID2D1Bitmap> m_pLobbyD2DBitmap;
 	ComPtr<ID2D1Bitmap> m_pResultD2DBitmap;
 	ComPtr<ID2D1Bitmap> m_pDashVignetteBitmap;
+	ComPtr<ID2D1Bitmap> m_pRoomD2DBitmap;
+	ComPtr<ID2D1Bitmap> m_pCarImages[3];
 	float m_fDashVignetteAlpha = 0.0f;
 
 	ID3D12Resource* m_pd3dShadowMap;
@@ -220,6 +267,7 @@ private:
 	ComPtr<ID2D1SolidColorBrush> m_minimapBorderBrush;
 	ComPtr<ID2D1SolidColorBrush> m_minimapPlayerBrush;
 	ComPtr<ID2D1SolidColorBrush> m_minimapFrameBrush;
+	ComPtr<ID2D1SolidColorBrush> m_minimapOtherBrush;
 
 	void LoadMinimapUIResource();
 	D2D1_POINT_2F WorldToMinimap(const XMFLOAT3& worldPos, const D2D1_RECT_F& minimapRect);
@@ -251,8 +299,6 @@ private:
 		ITEM_LOCK
 	};
 
-
-	ITEM_TYPE GetItemType(CGameObject* pObject) const;
 	void ApplyItemReward(ITEM_TYPE eItemType);
 	void UpdateDashSystem(float fTimeElapsed, bool bDashKeyDown, bool bHasDriveInput);
 	float GetPlayerEffectiveMaxSpeed() const;
@@ -320,6 +366,13 @@ public:
 		{ 0.7908f+0.01, 0.9282f, 0.2523f, 0.0968f }
 	};
 
+	UIButton m_RoomButtons[2]{
+		{0.5137+0.04, 0.2494+0.07, 0.0778, 0.1412}, //0 왼쪽 화살표
+		{0.9113+0.04, 0.2494+0.07, 0.0778, 0.1412} //1 오른쪽 화살표
+	};
+
+	ComPtr<ID2D1PathGeometry> m_pPathGeometry;
+	ComPtr<ID2D1GeometrySink> m_pSink;
 	// lap
 	int m_nCurrentLap = 1;
 	int m_nPassedCheckPoints = 0;
@@ -344,8 +397,4 @@ public:
 
 	bool  m_bRemoteLockEffectActive = false;
 	float m_fRemoteLockEffectTime = 0.0f;
-
-
 };
-
-

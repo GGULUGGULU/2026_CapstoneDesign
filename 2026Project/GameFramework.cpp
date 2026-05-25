@@ -108,8 +108,10 @@ bool CGameFramework::OnCreate(HINSTANCE hInstance, HWND hMainWnd)
 	LoadMinimapUIResource();
 	LoadDashVignetteResource();
 	LoadHelpUIResource();
-
-
+	LoadLobbyUIResource();//
+	LoadResultUIResource();
+	LoadRoomUIResource();
+	LoadCarImages();
 
 	CreateDepthStencilView();
 
@@ -129,7 +131,8 @@ bool CGameFramework::OnCreate(HINSTANCE hInstance, HWND hMainWnd)
 
 	CEffectLibrary::Instance()->InitializePostProcess(m_pd3dDevice, m_nWndClientWidth, m_nWndClientHeight);
 	
-	
+	m_RoomButtons[0].shape = UIButton::ButtonShape::TRI_LEFT;
+	m_RoomButtons[1].shape = UIButton::ButtonShape::TRI_RIGHT;
 
 	m_SoundManager.Init();
 	m_SoundManager.SetMasterVolume(0.5f);
@@ -150,8 +153,6 @@ bool CGameFramework::OnCreate(HINSTANCE hInstance, HWND hMainWnd)
 	}
 
 	return(true);
-
-
 }
 
 //#define _WITH_CREATE_SWAPCHAIN_FOR_HWND
@@ -425,9 +426,6 @@ void CGameFramework::ChangeSwapChainState()
 		pPlayerCamera->SetScissorRect(0, 0, m_nWndClientWidth, m_nWndClientHeight);
 		pPlayerCamera->GenerateProjectionMatrix(1.01f, 50000.0f, fAspectRatio, 60.0f);
 	}
-
-
-
 }
 
 void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
@@ -441,7 +439,15 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 	m_ptMousePos.x = LOWORD(lParam);
 	m_ptMousePos.y = HIWORD(lParam);
 
-	if (m_nStage == 0)
+	// m_nStage
+	// 0 -> 메인로비 
+	// 1 -> 게임으로 들어가는 중간단계
+	// -1 -> 대기룸으로 들어가는 중간단계
+	// -2 -> 메인대기룸
+	// 2 -> 인게임
+	// 99 -> 피니시대기
+	// 100 -> 게임결과
+	if (0 == m_nStage)
 	{
 		m_nHoveredButtonIndex = -1;
 
@@ -455,16 +461,45 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 		if (nMessageID == WM_LBUTTONDOWN)
 		{
 			if (m_nHoveredButtonIndex == 0) {
-				m_nStage = 1;
+				m_nStage = -1;
 			}
 			else if (m_nHoveredButtonIndex == 1) {
-				m_nStage = 1;
+				//m_nStage = -1;
+				m_nStage = 1; // 임시, 인게임으로 바로 들어가는 경로
 			}
 			else if (m_nHoveredButtonIndex == 2) {
 				::PostQuitMessage(0);
 			}
 		}
 		return;
+	}
+	else if (-2 == m_nStage) {
+		if (m_pScene == nullptr) return;
+
+		m_nHoveredButtonIndex = -1;
+
+		for (int i = 0; i < 2; ++i) {
+			if (m_RoomButtons[i].IsMouseOver(m_ptMousePos)) {
+				m_nHoveredButtonIndex = i;
+				break;
+			}
+		}
+
+		if (nMessageID == WM_LBUTTONDOWN)
+		{
+			// 왼쪽 버튼 클릭 시
+			if (m_nHoveredButtonIndex == 0)
+			{
+				--(m_pScene->m_nSelectedCarIndex);
+				if ((m_pScene->m_nSelectedCarIndex) < 0) (m_pScene->m_nSelectedCarIndex) = 2; // 3대 기준
+			}
+			// 오른쪽 버튼 클릭 시
+			else if (m_nHoveredButtonIndex == 1)
+			{
+				++(m_pScene->m_nSelectedCarIndex);
+				if ((m_pScene->m_nSelectedCarIndex) > 2) (m_pScene->m_nSelectedCarIndex) = 0;
+			}
+		}
 	}
 
 	switch (nMessageID)
@@ -600,11 +635,10 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 
 			break;
 		case VK_F5:
-			StartListenServer();
+			StartServer();
 			break;
 		case VK_F6:
-			ConnectToListenServer("127.0.0.1");
-			//ConnectToListenServer("10.30.2.23");
+			ConnectToServer("127.0.0.1");
 			break;
 		case VK_F9:
 			ChangeSwapChainState();
@@ -744,12 +778,33 @@ void CGameFramework::BuildObjectGameStart()
 	if (m_pScene) m_pScene->ReleaseUploadBuffers();
 	if (m_pPlayer) m_pPlayer->ReleaseUploadBuffers();
 
+	m_GameTimer.Reset();
+} // 게임 메인 로비
 
+void CGameFramework::BuildObjectGameRoom()
+{
+	m_pd3dCommandList->Reset(m_d3dCommandAllocators[0].Get(), NULL);
+
+	m_pScene = new CScene();
+
+	if (m_pScene) m_pScene->BuildObjectsGameRoom(m_pd3dDevice, m_pd3dCommandList);
+
+	CCarPlayer* pCarPlayer = new CCarPlayer(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature());
+	pCarPlayer->SetPosition(XMFLOAT3(.0f, .0f, .0f));
+	m_pScene->m_pPlayer = m_pPlayer = pCarPlayer;
+	m_pCamera = m_pPlayer->GetCamera();
+
+	m_pd3dCommandList->Close();
+	ID3D12CommandList* ppd3dCommandLists[] = { m_pd3dCommandList };
+	m_pd3dCommandQueue->ExecuteCommandLists(1, ppd3dCommandLists);
+
+	WaitForGpuComplete();
+
+	if (m_pScene) m_pScene->ReleaseUploadBuffers();
+	if (m_pPlayer) m_pPlayer->ReleaseUploadBuffers();
 
 	m_GameTimer.Reset();
-	
-	LoadLobbyUIResource();
-}
+} // 게임 대기 방
 
 void CGameFramework::ReleaseObjects()
 {
@@ -1217,21 +1272,7 @@ void CGameFramework::BuildGameObjects()
 	m_fRaceStartDelayTime = 0.0f;
 	m_bCountdownSoundPlayed = false;
 
-
 	m_bRaceStarted = !m_bMultiplayerEnabled;
-
-}
-
-CGameFramework::ITEM_TYPE CGameFramework::GetItemType(CGameObject* pObject) const
-{
-	if (!m_pScene || !pObject) return ITEM_NONE;
-
-	if (pObject == m_pScene->m_ppGameObjects[109]) return ITEM_DASH_POTION;
-	if (pObject == m_pScene->m_ppGameObjects[110]) return ITEM_MAX_SPEED_UP;
-	if (pObject == m_pScene->m_ppGameObjects[111]) return ITEM_MAX_DASH_GAUGE_UP;
-	if (pObject == m_pScene->m_ppGameObjects[112]) return ITEM_LOCK; 
-
-	return ITEM_NONE;
 }
 
 float CGameFramework::GetPlayerEffectiveMaxSpeed() const
@@ -1552,9 +1593,6 @@ void CGameFramework::CollisionProcess()
 
 			return;
 		}
-
-		// 아이템 + 대시
-		//ITEM_TYPE eItemType = GetItemType(pCollidedObject);
 
 		if (pCollidedObject->m_bIsItemBox)
 		{
@@ -1907,7 +1945,10 @@ void CGameFramework::CreateTextResources()
 		m_pBtnHoverBrush.GetAddressOf()
 	);
 
-
+	m_d2dDeviceContext->CreateSolidColorBrush(
+		D2D1::ColorF(0.0f, 1.0f, 0.0f, 0.3f),
+		m_pTriBtnHoverBrush.GetAddressOf()
+	);
 
 	m_d2dDeviceContext->CreateSolidColorBrush(
 		D2D1::ColorF(1, 1, 1, 0.9f),
@@ -1924,6 +1965,10 @@ void CGameFramework::CreateTextResources()
 		m_minimapPlayerBrush.GetAddressOf()
 	);
 
+	m_d2dDeviceContext->CreateSolidColorBrush(
+		D2D1::ColorF(D2D1::ColorF::Yellow),
+		m_minimapOtherBrush.GetAddressOf()
+	);
 }
 
 void CGameFramework::RenderUI()
@@ -1959,8 +2004,65 @@ void CGameFramework::RenderUI()
 				}
 			}
 		}
+	}
+	else if (-2 == m_nStage) {
+		if (m_pRoomD2DBitmap)
+		{
+			D2D1_RECT_F destRect = D2D1::RectF(
+				0.0f,
+				0.0f,
+				(float)m_nWndClientWidth,
+				(float)m_nWndClientHeight
+			);
 
+			m_d2dDeviceContext->DrawBitmap(
+				m_pRoomD2DBitmap.Get(),
+				destRect,
+				1.0f,
+				D2D1_BITMAP_INTERPOLATION_MODE_LINEAR
+			);
 
+			if (m_pScene && m_pCarImages[m_pScene->m_nSelectedCarIndex])
+			{
+				float boxLeft = m_nWndClientWidth * 0.62f;   // 우측 60% 지점
+				float boxTop = m_nWndClientHeight * 0.2f;   // 상단 4% 지점
+				float boxRight = m_nWndClientWidth * 0.88f;  // 우측 89% 지점
+				float boxBottom = m_nWndClientHeight * 0.45f;// 하단 58% 지점
+
+				D2D1_RECT_F carRect = D2D1::RectF(boxLeft, boxTop, boxRight, boxBottom);
+
+				m_d2dDeviceContext->DrawBitmap(
+					m_pCarImages[m_pScene->m_nSelectedCarIndex].Get(),
+					carRect,
+					1.0f,
+					D2D1_BITMAP_INTERPOLATION_MODE_LINEAR
+				);
+			}
+
+			for (int i = 0; i < 2; ++i)
+			{
+				m_RoomButtons[i].Update(m_nWndClientWidth, m_nWndClientHeight);
+
+				if (m_nHoveredButtonIndex == i) {
+					if (m_RoomButtons[i].shape == UIButton::ButtonShape::RECT)
+					{
+						m_d2dDeviceContext->FillRectangle(m_RoomButtons[i].rect, m_pBtnHoverBrush.Get());
+					}
+					else
+					{
+						m_d2dFactory->CreatePathGeometry(&m_pPathGeometry);
+						m_pPathGeometry->Open(&m_pSink);
+						m_pSink->BeginFigure(m_RoomButtons[i].tri.point1, D2D1_FIGURE_BEGIN_FILLED);
+						m_pSink->AddLine(m_RoomButtons[i].tri.point2);
+						m_pSink->AddLine(m_RoomButtons[i].tri.point3);
+						m_pSink->EndFigure(D2D1_FIGURE_END_CLOSED);
+						m_pSink->Close();
+
+						m_d2dDeviceContext->FillGeometry(m_pPathGeometry.Get(), m_pTriBtnHoverBrush.Get());		
+					}
+				}
+			}
+		}
 	}
 	else if(2 == m_nStage)
 	{
@@ -2147,6 +2249,22 @@ void CGameFramework::RenderUI()
 					m_minimapPlayerBrush.Get()
 				);
 			}
+
+			if (m_bMultiplayerEnabled) {
+				for (auto& info : m_vRemotePlayers) {
+					if (info.playerID != -1 && info.pPlayer && info.pPlayer->m_bIsActive) {
+						D2D1_POINT_2F remotePt = WorldToMinimap(
+							info.pPlayer->GetPosition(),
+							minimapRect
+						);
+
+						m_d2dDeviceContext->FillEllipse(
+							D2D1::Ellipse(remotePt, 5, 5),
+							m_minimapOtherBrush.Get()
+						);
+					}
+				}
+			}
 		
 			// 카운트다운
 			if (m_nStage == 2 &&
@@ -2234,33 +2352,33 @@ void CGameFramework::RenderUI()
 			D2D1::RectF(0.0f, 0.0f, (float)m_nWndClientWidth, (float)m_nWndClientHeight),
 			m_textEndTimeBrush.Get()
 		);
-		}
+	}
 
 		
 		
-		if (m_nStage == 2 && m_pDashVignetteBitmap && m_fDashVignetteAlpha > 0.01f)
-		{
-			D2D1_RECT_F fullScreenRect = D2D1::RectF(
-				0.0f,
-				0.0f,
-				(float)m_nWndClientWidth,
-				(float)m_nWndClientHeight
-			);
+	if (m_nStage == 2 && m_pDashVignetteBitmap && m_fDashVignetteAlpha > 0.01f)
+	{
+		D2D1_RECT_F fullScreenRect = D2D1::RectF(
+			0.0f,
+			0.0f,
+			(float)m_nWndClientWidth,
+			(float)m_nWndClientHeight
+		);
 
-			m_d2dDeviceContext->DrawBitmap(
-				m_pDashVignetteBitmap.Get(),
-				fullScreenRect,
-				m_fDashVignetteAlpha,
-				D2D1_BITMAP_INTERPOLATION_MODE_LINEAR
-			);
-		}
+		m_d2dDeviceContext->DrawBitmap(
+			m_pDashVignetteBitmap.Get(),
+			fullScreenRect,
+			m_fDashVignetteAlpha,
+			D2D1_BITMAP_INTERPOLATION_MODE_LINEAR
+		);
+	}
 
 
 
-		if (m_nStage == 2 && m_bShowHelpUI)
-		{
-			DrawHelpUI();
-		}
+	if (m_nStage == 2 && m_bShowHelpUI)
+	{
+		DrawHelpUI();
+	}
 
 
 	m_d2dDeviceContext->EndDraw();
@@ -2302,8 +2420,6 @@ void CGameFramework::BuildObjectEnd()
 
 	if (m_pScene) m_pScene->ReleaseUploadBuffers();
 	if (m_pPlayer) m_pPlayer->ReleaseUploadBuffers();
-
-	LoadResultUIResource();
 }
 
 void CGameFramework::CreateShadowMap()
@@ -2453,7 +2569,7 @@ void CGameFramework::ApplyMultiplayerSpawn()
 	}
 }
 
-bool CGameFramework::StartListenServer(unsigned short port)
+bool CGameFramework::StartServer(unsigned short port)
 {
 	if (!m_pNetwork) m_pNetwork = new CNetworkManager();
 	else m_pNetwork->Shutdown();
@@ -2469,7 +2585,7 @@ bool CGameFramework::StartListenServer(unsigned short port)
 	return(m_bMultiplayerEnabled);
 }
 
-bool CGameFramework::ConnectToListenServer(const char* pszAddress, unsigned short port)
+bool CGameFramework::ConnectToServer(const char* pszAddress, unsigned short port)
 {
 	if (!m_pNetwork) m_pNetwork = new CNetworkManager();
 	else m_pNetwork->Shutdown();
@@ -2663,12 +2779,6 @@ void CGameFramework::ConsumeNetworkEffectEvents()
 
 void CGameFramework::LoadLobbyUIResource()
 {
-	if (!m_pWICFactory) {
-		return;
-	}
-	if (!m_d2dDeviceContext) {
-		return;
-	}
 	HRESULT hr;
 
 	ComPtr<IWICBitmapDecoder> pDecoder;
@@ -2679,21 +2789,12 @@ void CGameFramework::LoadLobbyUIResource()
 		WICDecodeMetadataCacheOnLoad,
 		&pDecoder
 	);
-	if (FAILED(hr)) {
-		return;
-	}
 
 	ComPtr<IWICBitmapFrameDecode> pFrame;
 	hr = pDecoder->GetFrame(0, &pFrame);
-	if (FAILED(hr)) {
-		return;
-	}
 
 	ComPtr<IWICFormatConverter> pConverter;
 	hr = m_pWICFactory->CreateFormatConverter(&pConverter);
-	if (FAILED(hr)) {
-		return;
-	}
 
 	hr = pConverter->Initialize(
 		pFrame.Get(),
@@ -2703,31 +2804,21 @@ void CGameFramework::LoadLobbyUIResource()
 		0.0f,
 		WICBitmapPaletteTypeMedianCut
 	);
-	if (FAILED(hr)) {
-		return;
-	}
 
 	hr = m_d2dDeviceContext->CreateBitmapFromWicBitmap(
 		pConverter.Get(),
 		NULL,
 		&m_pLobbyD2DBitmap 
 	);
-	if (FAILED(hr)) {
-		return;
-	}
 }
 
 void CGameFramework::LoadResultUIResource()
 {
-	if (!m_pWICFactory || !m_d2dDeviceContext) return;
-
 	ComPtr<IWICBitmapDecoder> pDecoder;
 	HRESULT hr = m_pWICFactory->CreateDecoderFromFilename(
 		L"Asset/image/GameResult.png",
 		NULL, GENERIC_READ, WICDecodeMetadataCacheOnLoad, &pDecoder
 	);
-	if (FAILED(hr)) return;
-
 	ComPtr<IWICBitmapFrameDecode> pFrame;
 	pDecoder->GetFrame(0, &pFrame);
 
@@ -2741,8 +2832,6 @@ void CGameFramework::LoadResultUIResource()
 
 void CGameFramework::LoadMinimapUIResource()
 {
-	if (!m_pWICFactory || !m_d2dDeviceContext) return;
-
 	m_pMinimapBitmap.Reset();
 
 	ComPtr<IWICBitmapDecoder> decoder;
@@ -2756,13 +2845,10 @@ void CGameFramework::LoadMinimapUIResource()
 		WICDecodeMetadataCacheOnLoad,
 		decoder.GetAddressOf()
 	);
-	if (FAILED(hr)) return;
 
 	hr = decoder->GetFrame(0, frame.GetAddressOf());
-	if (FAILED(hr)) return;
 
 	hr = m_pWICFactory->CreateFormatConverter(converter.GetAddressOf());
-	if (FAILED(hr)) return;
 
 	hr = converter->Initialize(
 		frame.Get(),
@@ -2772,7 +2858,6 @@ void CGameFramework::LoadMinimapUIResource()
 		0.0f,
 		WICBitmapPaletteTypeMedianCut
 	);
-	if (FAILED(hr)) return;
 
 	m_d2dDeviceContext->CreateBitmapFromWicBitmap(
 		converter.Get(),
@@ -3091,6 +3176,11 @@ void CGameFramework::FrameAdvance()
 		BuildGameObjects();
 	} // 
 
+	if (-1 == m_nStage) {
+		m_pScene->m_nGFStage = m_nStage = -2;
+		BuildObjectGameRoom();
+	}
+
 	if (0 == m_nStage)
 	{
 		ProcessInput();
@@ -3135,7 +3225,6 @@ void CGameFramework::FrameAdvance()
 
 		if (!m_bRaceStarted)
 		{
-			
 		}
 		else if (!m_bIsStun)
 		{
@@ -3263,6 +3352,7 @@ void CGameFramework::FrameAdvance()
 
 		if (m_pScene) m_pScene->Render(m_pd3dCommandList, m_pCamera);
 		if (m_pPlayer) m_pPlayer->Render(m_pd3dCommandList, NULL, m_pCamera);
+		
 	}
 
 	CGameObject* pDebugBoxToRender = NULL;
@@ -3457,8 +3547,6 @@ void CGameFramework::ConsumeNetworkItemEvents()
 
 void CGameFramework::LoadHelpUIResource()
 {
-	if (!m_pWICFactory || !m_d2dDeviceContext) return;
-
 	m_pHelpUID2DBitmap.Reset();
 
 	ComPtr<IWICBitmapDecoder> decoder;
@@ -3472,13 +3560,10 @@ void CGameFramework::LoadHelpUIResource()
 		WICDecodeMetadataCacheOnLoad,
 		decoder.GetAddressOf()
 	);
-	if (FAILED(hr)) return;
 
 	hr = decoder->GetFrame(0, frame.GetAddressOf());
-	if (FAILED(hr)) return;
 
 	hr = m_pWICFactory->CreateFormatConverter(converter.GetAddressOf());
-	if (FAILED(hr)) return;
 
 	hr = converter->Initialize(
 		frame.Get(),
@@ -3488,7 +3573,6 @@ void CGameFramework::LoadHelpUIResource()
 		0.0f,
 		WICBitmapPaletteTypeMedianCut
 	);
-	if (FAILED(hr)) return;
 
 	m_d2dDeviceContext->CreateBitmapFromWicBitmap(
 		converter.Get(),
@@ -3497,8 +3581,75 @@ void CGameFramework::LoadHelpUIResource()
 	);
 }
 
-// 도움말 ui 
+void CGameFramework::LoadRoomUIResource()
+{
+	m_pRoomD2DBitmap.Reset();
 
+	ComPtr<IWICBitmapDecoder> decoder;
+	ComPtr<IWICBitmapFrameDecode> frame;
+	ComPtr<IWICFormatConverter> converter;
+
+	HRESULT hr = m_pWICFactory->CreateDecoderFromFilename(
+		L"Asset/image/gameRoomEmpty.png",
+		nullptr,
+		GENERIC_READ,
+		WICDecodeMetadataCacheOnLoad,
+		decoder.GetAddressOf()
+	);
+
+	hr = decoder->GetFrame(0, frame.GetAddressOf());
+
+	hr = m_pWICFactory->CreateFormatConverter(converter.GetAddressOf());
+
+	hr = converter->Initialize(
+		frame.Get(),
+		GUID_WICPixelFormat32bppPBGRA,
+		WICBitmapDitherTypeNone,
+		nullptr,
+		0.0f,
+		WICBitmapPaletteTypeMedianCut
+	);
+
+	m_d2dDeviceContext->CreateBitmapFromWicBitmap(
+		converter.Get(),
+		nullptr,
+		m_pRoomD2DBitmap.GetAddressOf()
+	);
+}
+
+void CGameFramework::LoadCarImages()
+{
+	const wchar_t* fileNames[3] = {
+		L"Asset/image/Car_01.png",
+		L"Asset/image/Car_01.png",// 추가해야함
+		L"Asset/image/Car_01.png" // 추가해야함
+	};
+
+	for (int i = 0; i < 3; ++i)
+	{
+		m_pCarImages[i].Reset();
+		ComPtr<IWICBitmapDecoder> decoder;
+		ComPtr<IWICBitmapFrameDecode> frame;
+		ComPtr<IWICFormatConverter> converter;
+
+		HRESULT hr = m_pWICFactory->CreateDecoderFromFilename(
+			fileNames[i], nullptr, GENERIC_READ, WICDecodeMetadataCacheOnLoad, &decoder);
+
+		if (FAILED(hr)) continue;
+
+		decoder->GetFrame(0, &frame);
+		m_pWICFactory->CreateFormatConverter(&converter);
+		converter->Initialize(
+			frame.Get(), GUID_WICPixelFormat32bppPBGRA, WICBitmapDitherTypeNone,
+			nullptr, 0.0f, WICBitmapPaletteTypeMedianCut);
+
+		m_d2dDeviceContext->CreateBitmapFromWicBitmap(
+			converter.Get(), nullptr, &m_pCarImages[i]);
+	}
+}
+
+
+// 도움말 ui 
 void CGameFramework::DrawHelpUI()
 {
 	if (!m_pHelpUID2DBitmap) return;

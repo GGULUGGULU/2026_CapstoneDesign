@@ -16,8 +16,9 @@
 
 #include "ClientNetworkManager.h"
 
-struct CNetworkManagerImpl
+class CNetworkManagerImpl
 {
+public:
     SOCKET listenSocket = INVALID_SOCKET;
     SOCKET peerSocket = INVALID_SOCKET;
     bool wsaStarted = false;
