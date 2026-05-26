@@ -327,6 +327,8 @@ private:
 	float m_fDashGaugeIncreaseAmount;
 
 	bool  m_bIsDashing;
+	bool  m_bDashOverheated = false;
+	float m_fDashOverheatTime = 0.0f;
 	bool m_bPrevBoosterSyncActive = false;
 
 

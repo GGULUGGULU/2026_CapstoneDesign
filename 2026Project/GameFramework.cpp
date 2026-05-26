@@ -1249,6 +1249,9 @@ void CGameFramework::BuildGameObjects()
 	m_fDashGaugeIncreaseAmount = 50.0f;
 
 	m_bIsDashing = false;
+	m_bDashOverheated = false;
+	m_fDashOverheatTime = 0.0f;
+
 	m_nPlayerCurrentSpeed = 0;
 	m_bPrevBoosterSyncActive = false;
 
@@ -1283,9 +1286,21 @@ void CGameFramework::BuildGameObjects()
 float CGameFramework::GetPlayerEffectiveMaxSpeed() const
 {
 	float fMaxSpeed = m_fBasePlayerMaxSpeed + m_fSpeedItemBonus;
-	if (m_bIsDashing) fMaxSpeed += m_fDashSpeedBonus;
+
+	if (m_bDashOverheated)
+	{
+		fMaxSpeed *= 0.2f; // 탈진
+	}
+
+	if (m_bIsDashing && !m_bDashOverheated)
+	{
+		fMaxSpeed += m_fDashSpeedBonus;
+	}
+
 	return fMaxSpeed;
 }
+
+
 
 void CGameFramework::ApplyItemReward(ITEM_TYPE eItemType)
 {
@@ -1351,6 +1366,17 @@ void CGameFramework::UpdateDashSystem(float fTimeElapsed, bool bDashKeyDown, boo
 		return;
 	}
 	
+	if (m_bDashOverheated)
+	{
+		m_fDashOverheatTime -= fTimeElapsed;
+
+		if (m_fDashOverheatTime <= 0.0f)
+		{
+			m_fDashOverheatTime = 0.0f;
+			m_bDashOverheated = false;
+		}
+	}
+
 
 	if (m_fSpeedItemBonusTime > 0.0f)
 	{
@@ -1398,6 +1424,7 @@ void CGameFramework::UpdateDashSystem(float fTimeElapsed, bool bDashKeyDown, boo
 
 	const bool bCanDash =
 		(bDashKeyDown && bHasDriveInput &&
+			!m_bDashOverheated &&
 			(m_bNoDashGaugeConsume || m_fCurrentDashGauge > 0.0f));
 
 	m_bIsDashing = bCanDash;
@@ -1412,14 +1439,21 @@ void CGameFramework::UpdateDashSystem(float fTimeElapsed, bool bDashKeyDown, boo
 			{
 				m_fCurrentDashGauge = 0.0f;
 				m_bIsDashing = false;
+
+				m_bDashOverheated = true;
+				m_fDashOverheatTime = 0.8f;
 			}
 		}
 	}
 	else
 	{
-		m_fCurrentDashGauge += (m_fDashGaugeRecoverPerSecond * fTimeElapsed);
-		if (m_fCurrentDashGauge > m_fMaxDashGauge)
-			m_fCurrentDashGauge = m_fMaxDashGauge;
+		if (!m_bDashOverheated)
+		{
+			m_fCurrentDashGauge += (m_fDashGaugeRecoverPerSecond * fTimeElapsed);
+
+			if (m_fCurrentDashGauge > m_fMaxDashGauge)
+				m_fCurrentDashGauge = m_fMaxDashGauge;
+		}
 	}
 
 
