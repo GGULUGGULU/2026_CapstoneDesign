@@ -314,6 +314,11 @@ private:
 	float m_fBasePlayerMaxSpeed;
 	float m_fSpeedItemBonus;
 
+	float m_fSpeedItemBonusTime = 0.0f;
+
+	bool  m_bNoDashGaugeConsume = false;
+	float m_fNoDashGaugeConsumeTime = 0.0f;
+
 	float m_fDashSpeedBonus;
 	float m_fCurrentDashGauge;
 	float m_fMaxDashGauge;

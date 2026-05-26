@@ -64,6 +64,11 @@ CGameFramework::CGameFramework()
 	// 아이템 + 대시
 	m_fBasePlayerMaxSpeed = 0.0f;
 	m_fSpeedItemBonus = 0.0f;
+	m_fSpeedItemBonusTime = 0.0f;
+
+	m_bNoDashGaugeConsume = false;
+	m_fNoDashGaugeConsumeTime = 0.0f;
+
 
 	m_fDashSpeedBonus = 150.0f;
 	m_fCurrentDashGauge = 100.0f;
@@ -1289,21 +1294,26 @@ void CGameFramework::ApplyItemReward(ITEM_TYPE eItemType)
 	switch (eItemType)
 	{
 	case ITEM_DASH_POTION:
-		// 대시포션: 게이지 풀충전
-		m_fCurrentDashGauge = m_fMaxDashGauge;
+		// 풀충전-> 30만충전
+	{
+		m_fCurrentDashGauge += 30.0f;
+
+		if (m_fCurrentDashGauge > m_fMaxDashGauge)
+			m_fCurrentDashGauge = m_fMaxDashGauge;
+
 		break;
+	}
 
 	case ITEM_MAX_SPEED_UP:
-		// 최대 스피드 증가
-		m_fSpeedItemBonus += 50.0f;
+		// 3초 동안 최대 속도 증가
+		m_fSpeedItemBonus = 50.0f;
+		m_fSpeedItemBonusTime = 3.0f;
 		break;
 
 	case ITEM_MAX_DASH_GAUGE_UP:
-		// 최대 대시 게이지 증가
-		m_fMaxDashGauge += m_fDashGaugeIncreaseAmount;
-		m_fCurrentDashGauge += m_fDashGaugeIncreaseAmount;
-		if (m_fCurrentDashGauge > m_fMaxDashGauge)
-			m_fCurrentDashGauge = m_fMaxDashGauge;
+		// 3초 동안 대시 게이지 소모 없이 대시 가능
+		m_bNoDashGaugeConsume = true;
+		m_fNoDashGaugeConsumeTime = 3.0f;
 		break;
 
 	case ITEM_LOCK:
@@ -1340,7 +1350,30 @@ void CGameFramework::UpdateDashSystem(float fTimeElapsed, bool bDashKeyDown, boo
 		CEffectLibrary::Instance()->ToggleLocalBooster(false);
 		return;
 	}
+	
 
+	if (m_fSpeedItemBonusTime > 0.0f)
+	{
+		m_fSpeedItemBonusTime -= fTimeElapsed;
+
+		if (m_fSpeedItemBonusTime <= 0.0f)
+		{
+			m_fSpeedItemBonusTime = 0.0f;
+			m_fSpeedItemBonus = 0.0f;
+		}
+	}
+
+	
+	if (m_fNoDashGaugeConsumeTime > 0.0f)
+	{
+		m_fNoDashGaugeConsumeTime -= fTimeElapsed;
+
+		if (m_fNoDashGaugeConsumeTime <= 0.0f)
+		{
+			m_fNoDashGaugeConsumeTime = 0.0f;
+			m_bNoDashGaugeConsume = false;
+		}
+	}
 
 	if (m_bDashLocked)
 	{
@@ -1363,16 +1396,23 @@ void CGameFramework::UpdateDashSystem(float fTimeElapsed, bool bDashKeyDown, boo
 
 
 
-	const bool bCanDash = (bDashKeyDown && bHasDriveInput && (m_fCurrentDashGauge > 0.0f));
+	const bool bCanDash =
+		(bDashKeyDown && bHasDriveInput &&
+			(m_bNoDashGaugeConsume || m_fCurrentDashGauge > 0.0f));
+
 	m_bIsDashing = bCanDash;
 
 	if (m_bIsDashing)
 	{
-		m_fCurrentDashGauge -= (m_fDashGaugeConsumePerSecond * fTimeElapsed);
-		if (m_fCurrentDashGauge <= 0.0f)
+		if (!m_bNoDashGaugeConsume)
 		{
-			m_fCurrentDashGauge = 0.0f;
-			m_bIsDashing = false;
+			m_fCurrentDashGauge -= (m_fDashGaugeConsumePerSecond * fTimeElapsed);
+
+			if (m_fCurrentDashGauge <= 0.0f)
+			{
+				m_fCurrentDashGauge = 0.0f;
+				m_bIsDashing = false;
+			}
 		}
 	}
 	else
@@ -1438,6 +1478,8 @@ void CGameFramework::UpdateDashSystem(float fTimeElapsed, bool bDashKeyDown, boo
 		m_fDashVignetteAlpha = 0.0f;
 	}
 	CEffectLibrary::Instance()->ToggleLocalBooster(m_bIsDashing);
+
+	m_pPlayer->m_fMaxVelocityXZ = GetPlayerEffectiveMaxSpeed();
 }
 
 void CGameFramework::CollisionProcess()
