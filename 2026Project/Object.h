@@ -360,3 +360,35 @@ public:
 
 	virtual void OnInitialize();
 };
+
+////////////////////////////////
+class CSequenceObject : public CGameObject
+{
+
+public:
+	CSequenceObject();
+	virtual ~CSequenceObject();
+
+	virtual void Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent = NULL) override;
+	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CGameObject* pDebugBox, CCamera* pCamera = NULL) override;
+
+	void InitializeFrames(const char* pstrPrefix, int nFrameCount);
+	void SetFPS(float fFPS) { m_fFramesPerSecond = fFPS; }
+
+protected:
+	std::vector<CGameObject*> m_vpFrameObjects;
+	float m_fAnimationTime = 0.0f;
+	float m_fFramesPerSecond = 30.0f;
+	int m_nCurrentFrame = 0;
+};
+
+class CAirPlaneObject : public CSequenceObject
+{
+public:
+	CAirPlaneObject() {}
+	virtual ~CAirPlaneObject() {}
+
+	virtual void OnInitialize() override {
+		InitializeFrames("AirPlane", 60);
+	}
+};

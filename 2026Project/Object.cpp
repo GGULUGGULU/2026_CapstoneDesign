@@ -1153,3 +1153,55 @@ void CM26Object::OnInitialize()
 	m_pCannonFrame = FindFrame("cannon");
 	m_pGunFrame = FindFrame("gun");
 }
+
+/////////////////////////////////////
+
+CSequenceObject::CSequenceObject() 
+{
+}
+CSequenceObject::~CSequenceObject() 
+{
+}
+
+void CSequenceObject::InitializeFrames(const char* pstrPrefix, int nFrameCount)
+{
+	m_vpFrameObjects.clear();
+	m_vpFrameObjects.reserve(nFrameCount);
+
+	for (int i = 1; i <= nFrameCount; ++i)
+	{
+		char szName[64];
+		sprintf_s(szName, "%s_%03d", pstrPrefix, i); 
+
+		CGameObject* pFrame = FindFrame(szName);
+		if (pFrame)
+		{
+			m_vpFrameObjects.push_back(pFrame);
+		}
+	}
+}
+
+void CSequenceObject::Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent)
+{
+	CGameObject::Animate(fTimeElapsed, pxmf4x4Parent);
+
+	if (!m_vpFrameObjects.empty())
+	{
+		m_fAnimationTime += fTimeElapsed;
+		m_nCurrentFrame = (int)(m_fAnimationTime * m_fFramesPerSecond) % m_vpFrameObjects.size();
+	}
+}
+
+void CSequenceObject::Render(ID3D12GraphicsCommandList* pd3dCommandList, CGameObject* pDebugBox, CCamera* pCamera)
+{
+	if (m_vpFrameObjects.empty() || !m_vpFrameObjects[m_nCurrentFrame]) return;
+
+	CGameObject* pCurrentFrame = m_vpFrameObjects[m_nCurrentFrame];
+
+	CGameObject* pTempSibling = pCurrentFrame->m_pSibling;
+	pCurrentFrame->m_pSibling = NULL;
+
+	pCurrentFrame->Render(pd3dCommandList, pDebugBox, pCamera);
+
+	pCurrentFrame->m_pSibling = pTempSibling;
+}

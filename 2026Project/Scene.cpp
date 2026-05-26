@@ -382,7 +382,7 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 	BuildUIResources(pd3dDevice, pd3dCommandList);
 
 	// 
-	m_nGameObjects = 35;
+	m_nGameObjects = 35 + 1;
 	m_ppGameObjects = new CGameObject * [m_nGameObjects];
 
 	// 맵 모델링
@@ -735,6 +735,15 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		pItemObject21->m_fRespawnDelay = 3.0f;
 		m_ppGameObjects[34] = pItemObject21;
 	}
+
+	CAirPlaneObject* pPlayerPlane = new CAirPlaneObject();
+	pPlayerPlane->SetFPS(24.0f);
+	CGameObject* pPlaneRoot = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/AirPlane.bin");
+	pPlayerPlane->SetChild(pPlaneRoot);
+	pPlayerPlane->OnInitialize(); 
+	pPlayerPlane->SetScale(10, 10, 10);
+	pPlayerPlane->SetPosition(-1938.0f, -150.0f, 288.0f);
+	m_ppGameObjects[35] = pPlayerPlane;
 	
 	CreateWireFrameBox(pd3dDevice, pd3dCommandList);
 	CreateAABBWireFrameBox(pd3dDevice, pd3dCommandList);
