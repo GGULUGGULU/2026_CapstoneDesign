@@ -736,13 +736,15 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		m_ppGameObjects[34] = pItemObject21;
 	}
 
-	CAirPlaneObject* pPlayerPlane = new CAirPlaneObject();
-	pPlayerPlane->SetFPS(24.0f);
-	CGameObject* pPlaneRoot = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/AirPlane.bin");
+	CFlagObject* pPlayerPlane = new CFlagObject();
+	pPlayerPlane->SetFPS(9.0f);
+	CGameObject* pPlaneRoot = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Flag_Sequence.bin");
 	pPlayerPlane->SetChild(pPlaneRoot);
 	pPlayerPlane->OnInitialize(); 
-	pPlayerPlane->SetScale(10, 10, 10);
-	pPlayerPlane->SetPosition(-1938.0f, -150.0f, 288.0f);
+	ApplyMeshTextures(pd3dDevice, pd3dCommandList, pPlaneRoot);
+	pPlayerPlane->SetScale(1, 1, 1);
+	pPlayerPlane->Rotate(0, -90, 0);
+	pPlayerPlane->SetPosition(-1700.0f, -200.0f, 360.0f);
 	m_ppGameObjects[35] = pPlayerPlane;
 	
 	CreateWireFrameBox(pd3dDevice, pd3dCommandList);

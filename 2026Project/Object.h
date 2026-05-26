@@ -374,7 +374,6 @@ public:
 
 	void InitializeFrames(const char* pstrPrefix, int nFrameCount);
 	void SetFPS(float fFPS) { m_fFramesPerSecond = fFPS; }
-
 protected:
 	std::vector<CGameObject*> m_vpFrameObjects;
 	float m_fAnimationTime = 0.0f;
@@ -390,5 +389,16 @@ public:
 
 	virtual void OnInitialize() override {
 		InitializeFrames("AirPlane", 60);
+	}
+};
+
+class CFlagObject : public CSequenceObject
+{
+public:
+	CFlagObject() {}
+	virtual ~CFlagObject() {}
+
+	virtual void OnInitialize() override {
+		InitializeFrames("Flag", 60);
 	}
 };

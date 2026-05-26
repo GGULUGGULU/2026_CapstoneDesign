@@ -1179,6 +1179,30 @@ void CSequenceObject::InitializeFrames(const char* pstrPrefix, int nFrameCount)
 			m_vpFrameObjects.push_back(pFrame);
 		}
 	}
+
+	CMaterial* pMasterMaterial = nullptr;
+	if (m_vpFrameObjects[0]->m_nMaterials > 0)
+	{
+		pMasterMaterial = m_vpFrameObjects[0]->m_ppMaterials[0];
+	}
+
+	if (pMasterMaterial)
+	{
+		for (size_t i = 1; i < m_vpFrameObjects.size(); ++i)
+		{
+			CGameObject* pFrame = m_vpFrameObjects[i];
+
+			if (pFrame->m_nMaterials > 0 && pFrame->m_ppMaterials)
+			{
+				if (pFrame->m_ppMaterials[0] && pFrame->m_ppMaterials[0] != pMasterMaterial)
+				{
+					delete pFrame->m_ppMaterials[0];
+				}
+
+				pFrame->m_ppMaterials[0] = pMasterMaterial;
+			}
+		}
+	}
 }
 
 void CSequenceObject::Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent)
