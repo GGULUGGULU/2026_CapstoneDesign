@@ -117,6 +117,7 @@ bool CGameFramework::OnCreate(HINSTANCE hInstance, HWND hMainWnd)
 	LoadResultUIResource();
 	LoadRoomUIResource();
 	LoadCarImages();
+	LoadMapImages();
 
 	CreateDepthStencilView();
 
@@ -136,8 +137,10 @@ bool CGameFramework::OnCreate(HINSTANCE hInstance, HWND hMainWnd)
 
 	CEffectLibrary::Instance()->InitializePostProcess(m_pd3dDevice, m_nWndClientWidth, m_nWndClientHeight);
 	
-	m_RoomButtons[0].shape = UIButton::ButtonShape::TRI_LEFT;
-	m_RoomButtons[1].shape = UIButton::ButtonShape::TRI_RIGHT;
+	for (int i = 0; i < 2; ++i) {
+		m_RoomButtons[i].shape = static_cast<UIButton::ButtonShape>(UIButton::ButtonShape::TRI_LEFT + i);
+		m_MapButtons[i].shape = static_cast<UIButton::ButtonShape>(UIButton::ButtonShape::TRI_LEFT + i);
+	}
 
 	m_SoundManager.Init();
 	m_SoundManager.SetMasterVolume(0.5f);
@@ -490,19 +493,42 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 			}
 		}
 
+		for (int i = 0; i < 2; ++i) {
+			if (m_MapButtons[i].IsMouseOver(m_ptMousePos)) {
+				m_nHoveredButtonIndex = 10 + i; 
+				break;
+			}
+		}
+
+		for (int i = 0; i < 2; ++i) {
+			if (m_REButtons[i].IsMouseOver(m_ptMousePos)) {
+				m_nHoveredButtonIndex = 20 + i;
+				break;
+			}
+		}
+
 		if (nMessageID == WM_LBUTTONDOWN)
 		{
-			// 왼쪽 버튼 클릭 시
+			// 모델링 왼쪽 버튼 클릭 시
 			if (m_nHoveredButtonIndex == 0)
 			{
-				--(m_pScene->m_nSelectedCarIndex);
-				if ((m_pScene->m_nSelectedCarIndex) < 0) (m_pScene->m_nSelectedCarIndex) = 2; // 3대 기준
+				--m_nSelectedCarIndex;
+				if (m_nSelectedCarIndex < 0) m_nSelectedCarIndex = 2; // 3대 기준
 			}
-			// 오른쪽 버튼 클릭 시
-			else if (m_nHoveredButtonIndex == 1)
-			{
-				++(m_pScene->m_nSelectedCarIndex);
-				if ((m_pScene->m_nSelectedCarIndex) > 2) (m_pScene->m_nSelectedCarIndex) = 0;
+			// 모델링 오른쪽 버튼 클릭 시
+			else if (m_nHoveredButtonIndex == 1){
+				++m_nSelectedCarIndex;
+				if (m_nSelectedCarIndex > 2) m_nSelectedCarIndex = 0;
+			}
+			// 맵 왼쪽 버튼 클릭 시
+			else if (m_nHoveredButtonIndex == 10) {
+				--m_nSelectedMapIndex;
+				if (m_nSelectedMapIndex < 0) m_nSelectedMapIndex = 1;
+			}
+			// 맵 오른쪽 버튼 클릭 시
+			else if (m_nHoveredButtonIndex == 11) {
+				++m_nSelectedMapIndex;
+				if (m_nSelectedMapIndex > 1) m_nSelectedMapIndex = 0;
 			}
 		}
 	}
@@ -2082,7 +2108,7 @@ void CGameFramework::RenderUI()
 		}
 	}
 	else if (-2 == m_nStage) {
-		if (m_pRoomD2DBitmap)
+		if (m_pRoomD2DBitmap && m_pCarImages && m_pMapImages)
 		{
 			D2D1_RECT_F destRect = D2D1::RectF(
 				0.0f,
@@ -2098,18 +2124,33 @@ void CGameFramework::RenderUI()
 				D2D1_BITMAP_INTERPOLATION_MODE_LINEAR
 			);
 
-			if (m_pScene && m_pCarImages[m_pScene->m_nSelectedCarIndex])
-			{
-				float boxLeft = m_nWndClientWidth * 0.62f;   // 우측 60% 지점
-				float boxTop = m_nWndClientHeight * 0.2f;   // 상단 4% 지점
-				float boxRight = m_nWndClientWidth * 0.88f;  // 우측 89% 지점
-				float boxBottom = m_nWndClientHeight * 0.45f;// 하단 58% 지점
+			if (m_pScene && m_pCarImages[m_nSelectedCarIndex]){
+				float boxLeft = m_nWndClientWidth * 0.62f;   // 우측 62% 지점
+				float boxTop = m_nWndClientHeight * 0.2f;   // 상단 2% 지점
+				float boxRight = m_nWndClientWidth * 0.88f;  // 우측 88% 지점
+				float boxBottom = m_nWndClientHeight * 0.45f;// 하단 45% 지점
 
 				D2D1_RECT_F carRect = D2D1::RectF(boxLeft, boxTop, boxRight, boxBottom);
 
 				m_d2dDeviceContext->DrawBitmap(
-					m_pCarImages[m_pScene->m_nSelectedCarIndex].Get(),
+					m_pCarImages[m_nSelectedCarIndex].Get(),
 					carRect,
+					1.0f,
+					D2D1_BITMAP_INTERPOLATION_MODE_LINEAR
+				);
+			}
+
+			if (m_pScene && m_pMapImages[m_nSelectedMapIndex]) {
+				float boxLeft = m_nWndClientWidth * 0.11f;   
+				float boxTop = m_nWndClientHeight * 0.61f;  
+				float boxRight = m_nWndClientWidth * 0.50f;  
+				float boxBottom = m_nWndClientHeight * 0.96f;
+
+				D2D1_RECT_F mapRect = D2D1::RectF(boxLeft, boxTop, boxRight, boxBottom);
+
+				m_d2dDeviceContext->DrawBitmap(
+					m_pMapImages[m_nSelectedMapIndex].Get(),
+					mapRect,
 					1.0f,
 					D2D1_BITMAP_INTERPOLATION_MODE_LINEAR
 				);
@@ -2136,6 +2177,40 @@ void CGameFramework::RenderUI()
 
 						m_d2dDeviceContext->FillGeometry(m_pPathGeometry.Get(), m_pTriBtnHoverBrush.Get());		
 					}
+				}
+			}
+
+			for (int i = 0; i < 2; ++i)
+			{
+				m_MapButtons[i].Update(m_nWndClientWidth, m_nWndClientHeight);
+
+				if (m_nHoveredButtonIndex == i + 10) {
+					if (m_MapButtons[i].shape == UIButton::ButtonShape::RECT)
+					{
+						m_d2dDeviceContext->FillRectangle(m_MapButtons[i].rect, m_pBtnHoverBrush.Get());
+					}
+					else
+					{
+						m_d2dFactory->CreatePathGeometry(&m_pPathGeometry);
+						m_pPathGeometry->Open(&m_pSink);
+						m_pSink->BeginFigure(m_MapButtons[i].tri.point1, D2D1_FIGURE_BEGIN_FILLED);
+						m_pSink->AddLine(m_MapButtons[i].tri.point2);
+						m_pSink->AddLine(m_MapButtons[i].tri.point3);
+						m_pSink->EndFigure(D2D1_FIGURE_END_CLOSED);
+						m_pSink->Close();
+
+						m_d2dDeviceContext->FillGeometry(m_pPathGeometry.Get(), m_pTriBtnHoverBrush.Get());
+					}
+				}
+			}
+
+			for (int i = 0; i < 2; ++i)
+			{
+				m_REButtons[i].Update(m_nWndClientWidth, m_nWndClientHeight);
+
+				if (m_nHoveredButtonIndex == i + 20)
+				{
+					m_d2dDeviceContext->FillRectangle(m_REButtons[i].rect, m_pBtnHoverBrush.Get());
 				}
 			}
 		}
@@ -3724,6 +3799,35 @@ void CGameFramework::LoadCarImages()
 	}
 }
 
+void CGameFramework::LoadMapImages()
+{
+	const wchar_t* fileNames[2] = {
+		L"Asset/image/Map1.png",
+		L"Asset/image/MAp2.png",
+	};
+
+	for (int i = 0; i < 2; ++i)
+	{
+		m_pMapImages[i].Reset();
+		ComPtr<IWICBitmapDecoder> decoder;
+		ComPtr<IWICBitmapFrameDecode> frame;
+		ComPtr<IWICFormatConverter> converter;
+
+		HRESULT hr = m_pWICFactory->CreateDecoderFromFilename(
+			fileNames[i], nullptr, GENERIC_READ, WICDecodeMetadataCacheOnLoad, &decoder);
+
+		if (FAILED(hr)) continue;
+
+		decoder->GetFrame(0, &frame);
+		m_pWICFactory->CreateFormatConverter(&converter);
+		converter->Initialize(
+			frame.Get(), GUID_WICPixelFormat32bppPBGRA, WICBitmapDitherTypeNone,
+			nullptr, 0.0f, WICBitmapPaletteTypeMedianCut);
+
+		m_d2dDeviceContext->CreateBitmapFromWicBitmap(
+			converter.Get(), nullptr, &m_pMapImages[i]);
+	}
+}
 
 // 도움말 ui 
 void CGameFramework::DrawHelpUI()

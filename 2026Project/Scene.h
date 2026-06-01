@@ -136,7 +136,6 @@ public:
 
 	D3D12_GPU_DESCRIPTOR_HANDLE m_pd3dUIItemSrvHandles[4];
 
-	int m_nSelectedCarIndex{ 0 };
 	//CGameObject* m_pRoomCars[1]; // 모델링 파일 추가하면 더 늘려야 함
 
 	//

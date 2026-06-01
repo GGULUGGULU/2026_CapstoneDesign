@@ -157,6 +157,7 @@ public:
 	void LoadDashVignetteResource();
 	void LoadRoomUIResource();
 	void LoadCarImages();
+	void LoadMapImages();
 
 	void CreateRemotePlayers();
 	void ReleaseRemotePlayers();
@@ -252,6 +253,8 @@ private:
 	ComPtr<ID2D1Bitmap> m_pDashVignetteBitmap;
 	ComPtr<ID2D1Bitmap> m_pRoomD2DBitmap;
 	ComPtr<ID2D1Bitmap> m_pCarImages[3];
+	ComPtr<ID2D1Bitmap> m_pMapImages[2];
+
 	float m_fDashVignetteAlpha = 0.0f;
 
 	ID3D12Resource* m_pd3dShadowMap;
@@ -278,7 +281,6 @@ private:
 	Microsoft::WRL::ComPtr<ID2D1Bitmap1> m_pHelpUID2DBitmap;
 	void LoadHelpUIResource();
 	void DrawHelpUI();
-
 
 	// 영상
 
@@ -375,11 +377,25 @@ public:
 
 	UIButton m_RoomButtons[2]{
 		{0.5137+0.04, 0.2494+0.07, 0.0778, 0.1412}, //0 왼쪽 화살표
-		{0.9113+0.04, 0.2494+0.07, 0.0778, 0.1412} //1 오른쪽 화살표
+		{0.9113+0.036, 0.2494+0.07, 0.071, 0.1412} //1 오른쪽 화살표
+	};
+
+	UIButton m_MapButtons[2]{
+		{0.055, 0.8, 0.071, 0.1412}, //0 맵 왼쪽 화살표
+		{0.563, 0.8, 0.071, 0.1412}  //1 맵 오른쪽 화살표
+	};
+
+	UIButton m_REButtons[2]{
+		{0.8035, 0.6923, 0.3, 0.1634}, //Ready!
+		{0.8035, 0.8966, 0.3, 0.1634} //EXIT
 	};
 
 	ComPtr<ID2D1PathGeometry> m_pPathGeometry;
 	ComPtr<ID2D1GeometrySink> m_pSink;
+	
+	int m_nSelectedCarIndex{ 0 };
+	int m_nSelectedMapIndex{ 0 };
+
 	// lap
 	int m_nCurrentLap = 1;
 	int m_nPassedCheckPoints = 0;
