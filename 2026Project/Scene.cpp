@@ -5,78 +5,6 @@
 #include "stdafx.h"
 #include "Scene.h"
 #include "WireframeBoxMesh.h"
-#include <random>
-
-#include <vector>
-#include <unordered_map>
-
-D3D12_GPU_DESCRIPTOR_HANDLE g_d3dDefaultSrvTableHandle = {};
-
-namespace
-{
-	constexpr UINT kSrvTableSize = 8;
-	constexpr UINT kReservedSrvCount = 8;          // 0~7 ()  
-	constexpr UINT kDefaultWhiteSrvIndex = 2;      // t2
-	constexpr UINT kShadowMapSrvIndex = 4;         // t4
-	constexpr UINT kSkyboxSrvIndex = 5;            // t5
-
-	bool g_bShadowSrvReady = false;
-	UINT g_nNextSrvTableIndex = kReservedSrvCount;
-
-	std::unordered_map<CMaterial*, UINT> g_materialSrvTableStarts;
-	std::vector<UINT> g_srvTableStartsNeedingShadowUpdate;
-
-	std::vector<ID3D12Resource*> g_vLoadedTextures;
-	std::vector<ID3D12Resource*> g_vLoadedTextureUploadBuffers;
-
-	ID3D12Resource* g_pDefaultWhiteTexture = NULL;
-	ID3D12Resource* g_pDefaultWhiteUploadBuffer = NULL;
-
-	inline bool IsNullTextureName(const char* pstr)
-	{
-		if (!pstr) return true;
-		if (pstr[0] == '\0') return true;
-		return (_stricmp(pstr, "null") == 0);
-	}
-
-	static void RaycastDownRecursive(CGameObject* pObject, FXMVECTOR vWorldRayOrigin, FXMVECTOR vWorldRayTarget, FXMVECTOR vWorldRayDir, float maxDistance, float& bestT, float& bestY)
-	{
-		if (!pObject) return;
-
-		if (pObject->m_pMesh)
-		{
-			XMMATRIX matWorld = XMLoadFloat4x4(&pObject->GetWorldMatrix());
-			XMMATRIX matInvWorld = XMMatrixInverse(NULL, matWorld);
-
-			XMVECTOR vLocalRayOrigin = XMVector3TransformCoord(vWorldRayOrigin, matInvWorld);
-			XMVECTOR vLocalRayTarget = XMVector3TransformCoord(vWorldRayTarget, matInvWorld);
-			XMVECTOR vLocalRayDirection = XMVector3Normalize(vLocalRayTarget - vLocalRayOrigin);
-
-			XMFLOAT3 fLocalOrigin, fLocalDir;
-			XMStoreFloat3(&fLocalOrigin, vLocalRayOrigin);
-			XMStoreFloat3(&fLocalDir, vLocalRayDirection);
-
-			float fHitDistance = 0.0f;
-			if (pObject->m_pMesh->CheckRayIntersection(fLocalOrigin, fLocalDir, &fHitDistance))
-			{
-				XMVECTOR vLocalHit = vLocalRayOrigin + vLocalRayDirection * fHitDistance;
-				XMVECTOR vWorldHit = XMVector3TransformCoord(vLocalHit, matWorld);
-
-				float t = XMVectorGetX(XMVector3Dot(vWorldHit - vWorldRayOrigin, vWorldRayDir));
-				if (t >= 0.0f && t <= maxDistance && t < bestT)
-				{
-					bestT = t;
-					bestY = XMVectorGetY(vWorldHit);
-				}
-			}
-		}
-
-		if (pObject->m_pChild) RaycastDownRecursive(pObject->m_pChild, vWorldRayOrigin, vWorldRayTarget, vWorldRayDir, maxDistance, bestT, bestY);
-		if (pObject->m_pSibling) RaycastDownRecursive(pObject->m_pSibling, vWorldRayOrigin, vWorldRayTarget, vWorldRayDir, maxDistance, bestT, bestY);
-	}
-
-}
-
 
 std::random_device rd;
 std::default_random_engine dre{ rd()};
@@ -96,10 +24,10 @@ CScene::CScene()
 CScene::~CScene()
 {
 	if (m_pd3dCbvSrvHeap) m_pd3dCbvSrvHeap->Release();
-	g_d3dDefaultSrvTableHandle.ptr = 0;
 	if (m_pTreeTexture) m_pTreeTexture->Release();
 	if (m_pFlowerTexture) m_pFlowerTexture->Release();
 	if (m_pRockTexture) m_pRockTexture->Release();
+	m_d3dDefaultSrvTableHandle.ptr = 0;
 }
 
 void CScene::BuildDefaultLightsAndMaterials()
@@ -251,21 +179,21 @@ void CScene::ApplyMeshTextures(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLi
 			//  ( "null")    
 			if (IsNullTextureName(pMaterial->m_pstrAlbedoTexture))
 			{
-				pMaterial->SetTexture(g_d3dDefaultSrvTableHandle);
+				pMaterial->SetTexture(m_d3dDefaultSrvTableHandle);
 				continue;
 			}
 
 			//     
 			UINT tableStartIndex = 0;
-			auto it = g_materialSrvTableStarts.find(pMaterial);
-			if (it != g_materialSrvTableStarts.end())
+			auto it = m_materialSrvTableStarts.find(pMaterial);
+			if (it != m_materialSrvTableStarts.end())
 			{
 				tableStartIndex = it->second;
 			}
 			else
 			{
-				tableStartIndex = g_nNextSrvTableIndex;
-				g_nNextSrvTableIndex += kSrvTableSize;
+				tableStartIndex = m_nNextSrvTableIndex;
+				m_nNextSrvTableIndex += kSrvTableSize;
 
 				//  (8 SRV)  default white 
 				D3D12_CPU_DESCRIPTOR_HANDLE cpuHeapStart = m_pd3dCbvSrvHeap->GetCPUDescriptorHandleForHeapStart();
@@ -281,7 +209,7 @@ void CScene::ApplyMeshTextures(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLi
 
 				// ShadowMap SRV(t4)    ,
 				//   t4   .
-				if (g_bShadowSrvReady)
+				if (m_bShadowSrvReady)
 				{
 					D3D12_CPU_DESCRIPTOR_HANDLE cpuShadow = cpuHeapStart;
 					cpuShadow.ptr += (SIZE_T)m_nDescriptorIncrementSize * kShadowMapSrvIndex;
@@ -293,10 +221,10 @@ void CScene::ApplyMeshTextures(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLi
 				}
 				else
 				{
-					g_srvTableStartsNeedingShadowUpdate.push_back(tableStartIndex);
+					m_srvTableStartsNeedingShadowUpdate.push_back(tableStartIndex);
 				}
 
-				g_materialSrvTableStarts.insert(std::make_pair(pMaterial, tableStartIndex));
+				m_materialSrvTableStarts.insert(std::make_pair(pMaterial, tableStartIndex));
 			}
 
 			//  " " GPU   (t0~t7 )
@@ -319,7 +247,7 @@ void CScene::ApplyMeshTextures(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLi
 			{
 				//     => (white) 
 				if (pTex) pTex->Release();
-				pMaterial->SetTexture(g_d3dDefaultSrvTableHandle);
+				pMaterial->SetTexture(m_d3dDefaultSrvTableHandle);
 				continue;
 			}
 
@@ -335,7 +263,7 @@ void CScene::ApplyMeshTextures(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLi
 			if (FAILED(hr) || !pUpload)
 			{
 				if (pTex) pTex->Release();
-				pMaterial->SetTexture(g_d3dDefaultSrvTableHandle);
+				pMaterial->SetTexture(m_d3dDefaultSrvTableHandle);
 				continue;
 			}
 
@@ -359,8 +287,8 @@ void CScene::ApplyMeshTextures(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLi
 			pd3dDevice->CreateShaderResourceView(pTex, &srvDesc, cpuSrvHandle);
 
 			//   
-			g_vLoadedTextures.push_back(pTex);
-			g_vLoadedTextureUploadBuffers.push_back(pUpload);
+			m_vLoadedTextures.push_back(pTex);
+			m_vLoadedTextureUploadBuffers.push_back(pUpload);
 		}
 	}
 
@@ -824,20 +752,20 @@ void CScene::CreateShadowMapSRV(ID3D12Device* pd3dDevice, ID3D12Resource* pShado
 	pd3dDevice->CreateShaderResourceView(pShadowMapResource, &srvDesc, d3dSrvCpuHandle);
 
 	//  Shadow SRV :    t4   ShadowMap 
-	g_bShadowSrvReady = true;
+	m_bShadowSrvReady = true;
 
 	D3D12_CPU_DESCRIPTOR_HANDLE cpuHeapStart = m_pd3dCbvSrvHeap->GetCPUDescriptorHandleForHeapStart();
 	D3D12_CPU_DESCRIPTOR_HANDLE cpuShadowSrc = cpuHeapStart;
 	cpuShadowSrc.ptr += (SIZE_T)m_nDescriptorIncrementSize * kShadowMapSrvIndex;
 
-	for (UINT tableStartIndex : g_srvTableStartsNeedingShadowUpdate)
+	for (UINT tableStartIndex : m_srvTableStartsNeedingShadowUpdate)
 	{
 		D3D12_CPU_DESCRIPTOR_HANDLE cpuShadowDst = cpuHeapStart;
 		cpuShadowDst.ptr += (SIZE_T)m_nDescriptorIncrementSize * (tableStartIndex + kShadowMapSrvIndex);
 
 		pd3dDevice->CopyDescriptorsSimple(1, cpuShadowDst, cpuShadowSrc, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	}
-	g_srvTableStartsNeedingShadowUpdate.clear();
+	m_srvTableStartsNeedingShadowUpdate.clear();
 }
 
 void CScene::CreateWireFrameBox(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
@@ -910,21 +838,21 @@ void CScene::ReleaseObjects()
 	if (m_pRockTextureUploadBuffer) m_pRockTextureUploadBuffer->Release();
 
 	// ApplyMeshTextures  /  
-	for (auto* pUp : g_vLoadedTextureUploadBuffers) if (pUp) pUp->Release();
-	g_vLoadedTextureUploadBuffers.clear();
-	for (auto* pTex : g_vLoadedTextures) if (pTex) pTex->Release();
-	g_vLoadedTextures.clear();
+	for (auto* pUp : m_vLoadedTextureUploadBuffers) if (pUp) pUp->Release();
+	m_vLoadedTextureUploadBuffers.clear();
+	for (auto* pTex : m_vLoadedTextures) if (pTex) pTex->Release();
+	m_vLoadedTextures.clear();
 
-	if (g_pDefaultWhiteTexture) g_pDefaultWhiteTexture->Release();
-	g_pDefaultWhiteTexture = NULL;
-	if (g_pDefaultWhiteUploadBuffer) g_pDefaultWhiteUploadBuffer->Release();
-	g_pDefaultWhiteUploadBuffer = NULL;
+	if (m_pDefaultWhiteTexture) m_pDefaultWhiteTexture->Release();
+	m_pDefaultWhiteTexture = NULL;
+	if (m_pDefaultWhiteUploadBuffer) m_pDefaultWhiteUploadBuffer->Release();
+	m_pDefaultWhiteUploadBuffer = NULL;
 
-	g_materialSrvTableStarts.clear();
-	g_srvTableStartsNeedingShadowUpdate.clear();
-	g_bShadowSrvReady = false;
-	g_nNextSrvTableIndex = kReservedSrvCount;
-	g_d3dDefaultSrvTableHandle.ptr = 0;
+	m_materialSrvTableStarts.clear();
+	m_srvTableStartsNeedingShadowUpdate.clear();
+	m_bShadowSrvReady = false;
+	m_nNextSrvTableIndex = kReservedSrvCount;
+	m_d3dDefaultSrvTableHandle.ptr = 0;
 
 	if (m_pd3dCbvSrvHeap) m_pd3dCbvSrvHeap->Release();
 
@@ -1087,14 +1015,14 @@ void CScene::ReleaseUploadBuffers()
 	if (m_pRockTextureUploadBuffer) m_pRockTextureUploadBuffer->Release();
 	m_pRockTextureUploadBuffer = NULL;
 
-	if (g_pDefaultWhiteUploadBuffer) g_pDefaultWhiteUploadBuffer->Release();
-	g_pDefaultWhiteUploadBuffer = NULL;
+	if (m_pDefaultWhiteUploadBuffer) m_pDefaultWhiteUploadBuffer->Release();
+	m_pDefaultWhiteUploadBuffer = NULL;
 
-	for (auto* pUpload : g_vLoadedTextureUploadBuffers)
+	for (auto* pUpload : m_vLoadedTextureUploadBuffers)
 	{
 		if (pUpload) pUpload->Release();
 	}
-	g_vLoadedTextureUploadBuffers.clear();
+	m_vLoadedTextureUploadBuffers.clear();
 }
 
 void CScene::PickObject(XMFLOAT3& fWorldRayOrigin, XMFLOAT3& fWorldRayDirection)
@@ -1306,6 +1234,54 @@ bool CScene::CheckGroundCollision()
 	return false;
 }
 
+void CScene::RaycastDownRecursive(CGameObject* pObject, const XMVECTOR& vWorldRayOrigin, const XMVECTOR& vWorldRayTarget, const XMVECTOR& vWorldRayDir, float maxDistance, float& bestT, float& bestY)
+{
+	if (!pObject) return;
+
+	if (pObject->m_pMesh)
+	{
+		XMMATRIX matWorld = XMLoadFloat4x4(&pObject->GetWorldMatrix());
+		XMMATRIX matInvWorld = XMMatrixInverse(NULL, matWorld);
+
+		XMVECTOR vLocalRayOrigin = XMVector3TransformCoord(vWorldRayOrigin, matInvWorld);
+		XMVECTOR vLocalRayTarget = XMVector3TransformCoord(vWorldRayTarget, matInvWorld);
+		XMVECTOR vLocalRayDirection = XMVector3Normalize(vLocalRayTarget - vLocalRayOrigin);
+
+		XMFLOAT3 fLocalOrigin, fLocalDir;
+		XMStoreFloat3(&fLocalOrigin, vLocalRayOrigin);
+		XMStoreFloat3(&fLocalDir, vLocalRayDirection);
+
+		float fHitDistance = 0.0f;
+		if (pObject->m_pMesh->CheckRayIntersection(fLocalOrigin, fLocalDir, &fHitDistance))
+		{
+			XMVECTOR vLocalHit = vLocalRayOrigin + vLocalRayDirection * fHitDistance;
+			XMVECTOR vWorldHit = XMVector3TransformCoord(vLocalHit, matWorld);
+
+			float t = XMVectorGetX(XMVector3Dot(vWorldHit - vWorldRayOrigin, vWorldRayDir));
+			if (t >= 0.0f && t <= maxDistance && t < bestT)
+			{
+				bestT = t;
+				bestY = XMVectorGetY(vWorldHit);
+			}
+		}
+	}
+
+	if (pObject->m_pChild) RaycastDownRecursive(pObject->m_pChild, vWorldRayOrigin, vWorldRayTarget, vWorldRayDir, maxDistance, bestT, bestY);
+	if (pObject->m_pSibling) RaycastDownRecursive(pObject->m_pSibling, vWorldRayOrigin, vWorldRayTarget, vWorldRayDir, maxDistance, bestT, bestY);
+}
+
+bool CScene::IsNullTextureName(const char* pstr) 
+{
+	if (!pstr) {
+		return true;
+	}
+
+	if (pstr[0] == '\0') {
+		return true;
+	}
+
+	return (_stricmp(pstr, "null") == 0);
+}
 
 void CScene::LoadTexture(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
@@ -1322,22 +1298,24 @@ void CScene::LoadTexture(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd
 	m_nDescriptorIncrementSize = pd3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 	//   (Heap Start) CMaterial fallback    
-	g_d3dDefaultSrvTableHandle = d3dGpuSrvHandleStart;
+	m_d3dDefaultSrvTableHandle = d3dGpuSrvHandleStart;
+
+	CMaterial::m_d3dDefaultSrvTableHandle = d3dGpuSrvHandleStart;
 
 	//    
-	g_bShadowSrvReady = false;
-	g_nNextSrvTableIndex = kReservedSrvCount;
-	g_materialSrvTableStarts.clear();
-	g_srvTableStartsNeedingShadowUpdate.clear();
+	m_bShadowSrvReady = false;
+	m_nNextSrvTableIndex = kReservedSrvCount;
+	m_materialSrvTableStarts.clear();
+	m_srvTableStartsNeedingShadowUpdate.clear();
 
 	//   (ApplyMeshTextures) (   )
-	for (auto* pUp : g_vLoadedTextureUploadBuffers) if (pUp) pUp->Release();
-	g_vLoadedTextureUploadBuffers.clear();
-	for (auto* pTex : g_vLoadedTextures) if (pTex) pTex->Release();
-	g_vLoadedTextures.clear();
+	for (auto* pUp : m_vLoadedTextureUploadBuffers) if (pUp) pUp->Release();
+	m_vLoadedTextureUploadBuffers.clear();
+	for (auto* pTex : m_vLoadedTextures) if (pTex) pTex->Release();
+	m_vLoadedTextures.clear();
 
-	if (g_pDefaultWhiteTexture) { g_pDefaultWhiteTexture->Release(); g_pDefaultWhiteTexture = NULL; }
-	if (g_pDefaultWhiteUploadBuffer) { g_pDefaultWhiteUploadBuffer->Release(); g_pDefaultWhiteUploadBuffer = NULL; }
+	if (m_pDefaultWhiteTexture) { m_pDefaultWhiteTexture->Release(); m_pDefaultWhiteTexture = NULL; }
+	if (m_pDefaultWhiteUploadBuffer) { m_pDefaultWhiteUploadBuffer->Release(); m_pDefaultWhiteUploadBuffer = NULL; }
 
 	// ------------------------------------------------------------
 	// [slot2 = t2] 1x1 White   (   fallback)
@@ -1350,16 +1328,16 @@ void CScene::LoadTexture(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd
 			&texDesc,
 			D3D12_RESOURCE_STATE_COPY_DEST,
 			nullptr,
-			IID_PPV_ARGS(&g_pDefaultWhiteTexture));
+			IID_PPV_ARGS(&m_pDefaultWhiteTexture));
 
-		UINT64 uploadSize = GetRequiredIntermediateSize(g_pDefaultWhiteTexture, 0, 1);
+		UINT64 uploadSize = GetRequiredIntermediateSize(m_pDefaultWhiteTexture, 0, 1);
 		pd3dDevice->CreateCommittedResource(
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
 			D3D12_HEAP_FLAG_NONE,
 			&CD3DX12_RESOURCE_DESC::Buffer(uploadSize),
 			D3D12_RESOURCE_STATE_GENERIC_READ,
 			nullptr,
-			IID_PPV_ARGS(&g_pDefaultWhiteUploadBuffer));
+			IID_PPV_ARGS(&m_pDefaultWhiteUploadBuffer));
 
 		const UINT32 whitePixel = 0xFFFFFFFF;
 		D3D12_SUBRESOURCE_DATA subData = {};
@@ -1367,9 +1345,9 @@ void CScene::LoadTexture(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd
 		subData.RowPitch = sizeof(UINT32);
 		subData.SlicePitch = sizeof(UINT32);
 
-		UpdateSubresources(pd3dCommandList, g_pDefaultWhiteTexture, g_pDefaultWhiteUploadBuffer, 0, 0, 1, &subData);
+		UpdateSubresources(pd3dCommandList, m_pDefaultWhiteTexture, m_pDefaultWhiteUploadBuffer, 0, 0, 1, &subData);
 		pd3dCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(
-			g_pDefaultWhiteTexture,
+			m_pDefaultWhiteTexture,
 			D3D12_RESOURCE_STATE_COPY_DEST,
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
 
@@ -1382,7 +1360,7 @@ void CScene::LoadTexture(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd
 		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 		srvDesc.Texture2D.MipLevels = 1;
 
-		pd3dDevice->CreateShaderResourceView(g_pDefaultWhiteTexture, &srvDesc, cpuSlot2);
+		pd3dDevice->CreateShaderResourceView(m_pDefaultWhiteTexture, &srvDesc, cpuSlot2);
 
 		// 0~7( )   SRV ( /)
 		for (UINT i = 0; i < kReservedSrvCount; ++i)
@@ -1680,7 +1658,7 @@ void CScene::CreateSkybox(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	pSkyboxShader->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature);
 
 	pSkyboxMaterial->SetShader(pSkyboxShader);
-	pSkyboxMaterial->SetTexture(g_d3dDefaultSrvTableHandle);
+	pSkyboxMaterial->SetTexture(m_d3dDefaultSrvTableHandle);
 
 	if (pSkyboxModel->m_pMesh)
 	{
@@ -1744,8 +1722,8 @@ void CScene::BuildUIResources(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		L"Asset/DDS_File/Item_Lock.dds" 
 	};
 
-	UINT uiSrvStartIndex = g_nNextSrvTableIndex;
-	g_nNextSrvTableIndex += 4;
+	UINT uiSrvStartIndex = m_nNextSrvTableIndex;
+	m_nNextSrvTableIndex += 4;
 
 	D3D12_CPU_DESCRIPTOR_HANDLE d3dCpuSrvHandleStart = m_pd3dCbvSrvHeap->GetCPUDescriptorHandleForHeapStart();
 	D3D12_GPU_DESCRIPTOR_HANDLE d3dGpuSrvHandleStart = m_pd3dCbvSrvHeap->GetGPUDescriptorHandleForHeapStart();
@@ -1790,8 +1768,8 @@ void CScene::BuildUIResources(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 			gpuHandle.ptr += (UINT64)m_nDescriptorIncrementSize * currentSrvIndex;
 			m_pd3dUIItemSrvHandles[i] = gpuHandle;
 
-			g_vLoadedTextures.push_back(pTex);
-			g_vLoadedTextureUploadBuffers.push_back(pUpload);
+			m_vLoadedTextures.push_back(pTex);
+			m_vLoadedTextureUploadBuffers.push_back(pUpload);
 		}
 	}
 }

@@ -4,6 +4,10 @@
 
 #pragma once
 
+#include <random>
+#include <vector>
+#include <unordered_map>
+
 #include "Shader.h"
 #include "Player.h"
 
@@ -101,6 +105,10 @@ public:
 
 	bool CheckGroundCollision();
 
+	void RaycastDownRecursive(CGameObject* pObject, const XMVECTOR& vWorldRayOrigin, const XMVECTOR& vWorldRayTarget, const XMVECTOR& vWorldRayDir, float maxDistance, float& bestT, float& bestY);
+
+	bool IsNullTextureName(const char* pstr);
+
 	void LoadTexture(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 
 	ID3D12Resource* m_pTreeTexture = NULL;
@@ -119,6 +127,26 @@ public:
 	D3D12_GPU_DESCRIPTOR_HANDLE	m_d3dGpuRockSrvHandle;
 
 	CShadowShader* m_pShadowShader = NULL; // ½¦µµ¿ì ¸Ê »ý¼º¿ë ¼ÎÀÌ´õ
+
+	D3D12_GPU_DESCRIPTOR_HANDLE m_d3dDefaultSrvTableHandle = {};
+
+	UINT kSrvTableSize = 8;
+	UINT kReservedSrvCount = 8;          // 0~7 ()  
+	UINT kDefaultWhiteSrvIndex = 2;      // t2
+	UINT kShadowMapSrvIndex = 4;         // t4
+	UINT kSkyboxSrvIndex = 5;            // t5
+
+	bool m_bShadowSrvReady = false;
+	UINT m_nNextSrvTableIndex = kReservedSrvCount;
+
+	std::unordered_map<CMaterial*, UINT> m_materialSrvTableStarts;
+	std::vector<UINT> m_srvTableStartsNeedingShadowUpdate;
+
+	std::vector<ID3D12Resource*> m_vLoadedTextures;
+	std::vector<ID3D12Resource*> m_vLoadedTextureUploadBuffers;
+
+	ID3D12Resource* m_pDefaultWhiteTexture = NULL;
+	ID3D12Resource* m_pDefaultWhiteUploadBuffer = NULL;
 
 	UINT m_nDescriptorIncrementSize;
 

@@ -116,7 +116,7 @@ int main()
     std::cout << "===========================================\n" << std::endl;
 
     std::vector<SOCKET> clientSockets;
-    int nextPlayerId = 1; 
+    std::map<SOCKET, int> clientIds;
 	std::vector<RaceRecordNet> raceRecords;
 
     auto lastTime = std::chrono::system_clock::now();
@@ -148,20 +148,42 @@ int main()
             SOCKET clientSocket = accept(listenSocket, nullptr, nullptr);
             if (clientSocket != INVALID_SOCKET)
             {
-                clientSockets.push_back(clientSocket);
+                int assignedId = 1;
+                while (assignedId <= 4) {
+                    bool used = false;
+                    for (SOCKET& s : clientSockets) {
+                        if (clientIds[s] == assignedId) {
+                            used = true;
+                            break;
+                        }
+                    }
 
-                std::cout << "Player " << nextPlayerId
+                    if (!used) {
+                        break;
+                    }
+
+                    ++assignedId;
+                }
+
+                if (assignedId > 4) {
+                    std::cout << "방이 가득참" << std::endl;
+                    closesocket(clientSocket);
+                    continue;
+                }
+
+                clientSockets.push_back(clientSocket);
+                clientIds[clientSocket] = assignedId;
+
+                std::cout << "Player " << assignedId
                     << " 들어옴 (현재 대기실 인원: "
                     << clientSockets.size() << "명)" << std::endl;
 
                 WelcomePacket welcomePkt{};
                 welcomePkt.header.type = static_cast<unsigned int>(NET_MESSAGE_TYPE::WELCOME_ASSIGN_ID);
                 welcomePkt.header.size = sizeof(WelcomePacket);
-                welcomePkt.assignedPlayerId = nextPlayerId;
+                welcomePkt.assignedPlayerId = assignedId;
 
                 send(clientSocket, reinterpret_cast<const char*>(&welcomePkt), sizeof(welcomePkt), 0);
-
-                ++nextPlayerId;
 
                 BroadcastPlayerCount(clientSockets);
             }
@@ -261,15 +283,29 @@ int main()
                 }
                 else
                 {
-                    std::cout << "퇴장. (현재 남은 인원: "
+                    int leftPlayerId = clientIds[currentSocket];
+
+                    std::cout << clientIds[currentSocket] <<"퇴장. (현재 남은 인원: "
                         << clientSockets.size() - 1 << "명)" << std::endl;
 
+                    clientIds.erase(currentSocket);
                     closesocket(currentSocket);
                     it = clientSockets.erase(it);
 
+                    RoomSyncEventPacket leavePkt{};
+                    leavePkt.header.type = static_cast<unsigned int>(NET_MESSAGE_TYPE::ROOM_SYNC_EVENT);
+                    leavePkt.header.size = sizeof(RoomSyncEventPacket);
+                    leavePkt.eventData.playerId = leftPlayerId;
+                    leavePkt.eventData.selectedCarIndex = -1; // -1을 보내서 빈자리로 만듦!
+                    leavePkt.eventData.selectedMapIndex = 0;
+                    leavePkt.eventData.isReady = false; // 레디 상태도 강제로 풂
+
+                    for (SOCKET s : clientSockets) {
+                        send(s, reinterpret_cast<const char*>(&leavePkt), sizeof(leavePkt), 0);
+                    }
+
                     if (clientSockets.empty())
                     {
-                        nextPlayerId = 1;
                         raceRecords.clear();
                         ResetServerItems();
                     }

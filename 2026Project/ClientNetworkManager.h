@@ -1,6 +1,16 @@
 #pragma once
 
+#define WIN32_LEAN_AND_MEAN
+#include <WinSock2.h>
+#include <WS2tcpip.h>
+#include <Windows.h>
+
+#pragma comment(lib, "ws2_32.lib")
+
+#include <algorithm>
+#include <cstring>
 #include <vector>
+
 #include "ClientNetworkTypes.h"
 
 class CNetworkManagerImpl;
@@ -22,6 +32,8 @@ public:
     CNetworkManager(const CNetworkManager&) = delete;
     CNetworkManager& operator=(const CNetworkManager&) = delete;
 
+
+
     bool StartHost(unsigned short port = NET_DEFAULT_PORT);
     bool ConnectToHost(const char* pszAddress, unsigned short port = NET_DEFAULT_PORT);
 
@@ -34,12 +46,14 @@ public:
     bool ConsumeRaceFinish(RaceRecordNet& outEvent);
     bool ConsumeRaceResult(RaceResultNet& outEvent);
     bool ConsumeMapItemEvent(MapItemEventNet& outEvent);
+    bool ConsumeRoomSyncEvent(RoomSyncEventNet& outEvent);
 
     void SendCollisionEvent(const CollisionEventNet& ev);
     void SendEffectEvent(const EffectEventNet& ev);
     void SendRaceFinish(const RaceRecordNet& ev);
     void SendRaceResult(const RaceResultNet& ev);
     void SendMapItemEvent(const MapItemEventNet& ev);
+    void SendRoomSyncEvent(const RoomSyncEventNet& ev);
 
     bool IsConnected() const;
     bool IsHosting() const;
@@ -81,9 +95,9 @@ private:
     std::vector<EffectEventNet> m_effectEvents;
     std::vector<RaceRecordNet> m_raceFinishEvents;
     std::vector<RaceResultNet> m_raceResultEvents;
-
     std::vector<RaceRecordNet> m_serverRaceRecords;
 	std::uint32_t m_nTotalPlayerCount = 0;
+    std::vector<RoomSyncEventNet> m_roomSyncEvents;
 
 	bool m_bHasWelcomeId = false;
 	int m_nWelcomePlayerId = 0;

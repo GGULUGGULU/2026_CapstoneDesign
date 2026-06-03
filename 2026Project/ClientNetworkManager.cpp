@@ -1,20 +1,9 @@
 #include "stdafx.h"
 
-#define WIN32_LEAN_AND_MEAN
-#include <WinSock2.h>
-#include <WS2tcpip.h>
-#include <Windows.h>
-
-#pragma comment(lib, "ws2_32.lib")
-
-#include <algorithm>
-#include <cstring>
-#include <vector>
+#include "ClientNetworkManager.h"
 
 #undef min
 #undef max
-
-#include "ClientNetworkManager.h"
 
 class CNetworkManagerImpl
 {
@@ -123,6 +112,7 @@ bool CNetworkManager::StartHost(unsigned short port)
     m_effectEvents.clear();
     m_raceFinishEvents.clear();
     m_raceResultEvents.clear();
+    m_roomSyncEvents.clear();
     m_pImpl->pendingSendBuffer.clear();
 
     OutputDebugStringA("[Network] Host started. Waiting for client...\n");
@@ -173,6 +163,7 @@ bool CNetworkManager::ConnectToHost(const char* pszAddress, unsigned short port)
     m_effectEvents.clear();
     m_raceFinishEvents.clear();
     m_raceResultEvents.clear();
+    m_roomSyncEvents.clear();
     m_pImpl->pendingSendBuffer.clear();
 
     OutputDebugStringA("[Network] Connected to host.\n");
@@ -192,7 +183,7 @@ void CNetworkManager::Shutdown()
     m_raceResultEvents.clear();
     m_serverRaceRecords.clear();
     m_itemEvents.clear();
-
+    m_roomSyncEvents.clear();
 
     m_eMode = MODE::NONE;
     if (m_pImpl && m_pImpl->wsaStarted)
@@ -218,6 +209,7 @@ void CNetworkManager::DisconnectPeer()
     m_raceFinishEvents.clear();
     m_raceResultEvents.clear();
     m_serverRaceRecords.clear();
+    m_roomSyncEvents.clear();
 }
 
 void CNetworkManager::TryAcceptClient()
@@ -376,6 +368,13 @@ void CNetworkManager::TryReceivePackets()
                 m_mapItemEvents.push_back(packet.eventData);
             }
             break;
+        case NET_MESSAGE_TYPE::ROOM_SYNC_EVENT:
+            if (header.size == sizeof(RoomSyncEventPacket)) {
+                RoomSyncEventPacket packet{};
+                std::memcpy(&packet, m_recvBuffer.data(), sizeof(packet));
+                m_roomSyncEvents.push_back(packet.eventData);
+            }
+            break;
         default:
             OutputDebugStringA("[Network] Unknown packet type.\n");
             break;
@@ -474,6 +473,21 @@ void CNetworkManager::SendMapItemEvent(const MapItemEventNet& ev)
 
     const char* bytes = reinterpret_cast<const char*>(&packet);
     m_pImpl->pendingSendBuffer.insert(m_pImpl->pendingSendBuffer.end(), bytes, bytes + sizeof(packet));
+    FlushPendingSends();
+}
+
+void CNetworkManager::SendRoomSyncEvent(const RoomSyncEventNet& ev)
+{
+    if (!m_pImpl || !m_bConnected || m_pImpl->peerSocket == INVALID_SOCKET) return;
+
+    RoomSyncEventPacket packet{};
+    packet.header.type = static_cast<unsigned int>(NET_MESSAGE_TYPE::ROOM_SYNC_EVENT);
+    packet.header.size = sizeof(RoomSyncEventPacket);
+    packet.eventData = ev;
+
+    const char* bytes = reinterpret_cast<const char*>(&packet);
+    m_pImpl->pendingSendBuffer.insert(m_pImpl->pendingSendBuffer.end(), bytes, bytes + sizeof(packet));
+
     FlushPendingSends();
 }
 
@@ -589,6 +603,15 @@ bool CNetworkManager::ConsumeMapItemEvent(MapItemEventNet& outEvent)
     return true;
 }
 
+bool CNetworkManager::ConsumeRoomSyncEvent(RoomSyncEventNet& outEvent)
+{
+    if (m_roomSyncEvents.empty()) return false;
+
+    outEvent = m_roomSyncEvents.front();
+    m_roomSyncEvents.erase(m_roomSyncEvents.begin());
+    return true;
+}
+
 bool CNetworkManager::IsConnected() const
 {
     return m_bConnected;
@@ -680,4 +703,3 @@ void CNetworkManager::SendItemEvent(const ItemEventNet& ev)
 
     FlushPendingSends();
 }
-

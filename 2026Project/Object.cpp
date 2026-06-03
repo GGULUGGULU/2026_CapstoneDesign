@@ -6,8 +6,6 @@
 #include "Object.h"
 #include "Shader.h"
 
-extern D3D12_GPU_DESCRIPTOR_HANDLE g_d3dDefaultSrvTableHandle;
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 CMaterialColors::CMaterialColors(MATERIALLOADINFO* pMaterialInfo)
@@ -24,6 +22,8 @@ CShader* CMaterial::m_pIlluminatedShader = NULL;
 CShader* CMaterial::m_pDiffusedShader = NULL; // 
 CShader* CMaterial::m_pBillboardShader = NULL; // 
 CShader* CMaterial::m_pParticleShader = NULL;//
+
+D3D12_GPU_DESCRIPTOR_HANDLE CMaterial::m_d3dDefaultSrvTableHandle = {};
 
 CMaterial::CMaterial()
 {
@@ -64,7 +64,7 @@ void CMaterial::UpdateShaderVariable(ID3D12GraphicsCommandList* pd3dCommandList)
 	}
 
 	D3D12_GPU_DESCRIPTOR_HANDLE d3dSrvTableHandle = m_d3dGpuSrvHandle;
-	if (d3dSrvTableHandle.ptr == 0) d3dSrvTableHandle = g_d3dDefaultSrvTableHandle;
+	if (d3dSrvTableHandle.ptr == 0) d3dSrvTableHandle = m_d3dDefaultSrvTableHandle;
 
 	if (d3dSrvTableHandle.ptr != 0)
 	{

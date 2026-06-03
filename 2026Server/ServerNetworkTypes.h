@@ -6,7 +6,7 @@
 constexpr unsigned short NET_DEFAULT_PORT = 7777;
 constexpr std::uint32_t NET_MAGIC = 0x52414345; // "RACE"
 
-enum class NET_MESSAGE_TYPE : unsigned int
+enum class NET_MESSAGE_TYPE
 {
     WELCOME_ASSIGN_ID = 0,
     PLAYER_STATE = 1,
@@ -16,7 +16,8 @@ enum class NET_MESSAGE_TYPE : unsigned int
     RACE_RESULT = 5,
     ITEM_EVENT = 6,
     PLAYER_COUNT = 7,
-    MAP_ITEM_EVENT
+    MAP_ITEM_EVENT = 8,
+    ROOM_SYNC_EVENT = 9
 };
 
 #pragma pack(push, 1)
@@ -80,6 +81,14 @@ struct MapItemEventNet
     bool IsActive;
 };
 
+struct RoomSyncEventNet
+{
+    std::uint32_t playerId;
+    int selectedCarIndex;
+    int selectedMapIndex;
+    bool isReady;
+};
+
 /////
 struct NetMessageHeader
 {
@@ -141,6 +150,12 @@ struct MapItemEventPacket
 {
     NetMessageHeader header{};
     MapItemEventNet eventData{};
+};
+
+struct RoomSyncEventPacket 
+{
+    NetMessageHeader header{};
+    RoomSyncEventNet eventData{};
 };
 
 #pragma pack(pop)

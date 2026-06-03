@@ -36,14 +36,14 @@ struct UIButton {
 		rect = D2D1::RectF(centerX - halfW, centerY - halfH, centerX + halfW, centerY + halfH);
 		
 		if (shape == ButtonShape::TRI_LEFT) {
-			tri.point1 = D2D1::Point2F(rect.left, centerY);           // ¿ŞÂÊ ³¡Á¡
-			tri.point2 = D2D1::Point2F(rect.right, rect.top);         // ¿ìÃø »ó´Ü
-			tri.point3 = D2D1::Point2F(rect.right, rect.bottom);      // ¿ìÃø ÇÏ´Ü
+			tri.point1 = D2D1::Point2F(rect.left, centerY);           // ì™¼ìª½ ëì 
+			tri.point2 = D2D1::Point2F(rect.right, rect.top);         // ìš°ì¸¡ ìƒë‹¨
+			tri.point3 = D2D1::Point2F(rect.right, rect.bottom);      // ìš°ì¸¡ í•˜ë‹¨
 		}
 		else if (shape == ButtonShape::TRI_RIGHT) {
-			tri.point1 = D2D1::Point2F(rect.right, centerY);          // ¿À¸¥ÂÊ ³¡Á¡
-			tri.point2 = D2D1::Point2F(rect.left, rect.top);          // ÁÂÃø »ó´Ü
-			tri.point3 = D2D1::Point2F(rect.left, rect.bottom);       // ÁÂÃø ÇÏ´Ü
+			tri.point1 = D2D1::Point2F(rect.right, centerY);          // ì˜¤ë¥¸ìª½ ëì 
+			tri.point2 = D2D1::Point2F(rect.left, rect.top);          // ì¢Œì¸¡ ìƒë‹¨
+			tri.point3 = D2D1::Point2F(rect.left, rect.bottom);       // ì¢Œì¸¡ í•˜ë‹¨
 		}
 	}
 
@@ -137,6 +137,9 @@ public:
 	bool StartServer(unsigned short port = NET_DEFAULT_PORT);
 	bool ConnectToServer(const char* pszAddress, unsigned short port = NET_DEFAULT_PORT);
 	void SyncMultiplayer();
+	void SyncRoom();
+	void SyncInGame();
+	void SyncResult();
 	PlayerNetState BuildLocalPlayerState() const;
 	void ApplyRemotePlayerState(const PlayerNetState& state);
 	
@@ -158,6 +161,7 @@ public:
 	void LoadRoomUIResource();
 	void LoadCarImages();
 	void LoadMapImages();
+	void LoadReadyImage();
 
 	void CreateRemotePlayers();
 	void ReleaseRemotePlayers();
@@ -231,18 +235,18 @@ private:
 	ComPtr<ID3D12Resource> m_d3dSwapChainBackBuffers[m_nSwapChainBuffers];
 	ComPtr<ID3D12CommandAllocator> m_d3dCommandAllocators[m_nSwapChainBuffers];
 
-	ComPtr<IDWriteTextFormat> m_textTimeFormat;  // ±Û²Ã, Å©±â, Á¤·Ä
-	ComPtr<ID2D1SolidColorBrush> m_textTimeBrush; // ±ÛÀÚ »ö»ó
+	ComPtr<IDWriteTextFormat> m_textTimeFormat;  // ê¸€ê¼´, í¬ê¸°, ì •ë ¬
+	ComPtr<ID2D1SolidColorBrush> m_textTimeBrush; // ê¸€ì ìƒ‰ìƒ
 
-	ComPtr<IDWriteTextFormat> m_textSpeedFormat;  // ±Û²Ã, Å©±â, Á¤·Ä
-	ComPtr<ID2D1SolidColorBrush> m_textSpeedBrush; // ±ÛÀÚ »ö»ó
+	ComPtr<IDWriteTextFormat> m_textSpeedFormat;  // ê¸€ê¼´, í¬ê¸°, ì •ë ¬
+	ComPtr<ID2D1SolidColorBrush> m_textSpeedBrush; // ê¸€ì ìƒ‰ìƒ
 
-	ComPtr<IDWriteTextFormat> m_textEndTimeFormat;  // ±Û²Ã, Å©±â, Á¤·Ä
-	ComPtr<ID2D1SolidColorBrush> m_textEndTimeBrush; // ±ÛÀÚ »ö»ó
+	ComPtr<IDWriteTextFormat> m_textEndTimeFormat;  // ê¸€ê¼´, í¬ê¸°, ì •ë ¬
+	ComPtr<ID2D1SolidColorBrush> m_textEndTimeBrush; // ê¸€ì ìƒ‰ìƒ
 
-	ComPtr<ID2D1SolidColorBrush> m_dashGaugeFillBrush; // ´ë½Ã°ÔÀÌÁö »ö»ó
-	ComPtr<ID2D1SolidColorBrush> m_dashGaugeBGBrush; // ´ë½Ã°ÔÀÌÁö ¹è°æ »ö»ó
-	ComPtr<ID2D1SolidColorBrush> m_dashGaugeBorderBrush; // ´ë½Ã°ÔÀÌÁö °æ°è¼± »ö»ó
+	ComPtr<ID2D1SolidColorBrush> m_dashGaugeFillBrush; // ëŒ€ì‹œê²Œì´ì§€ ìƒ‰ìƒ
+	ComPtr<ID2D1SolidColorBrush> m_dashGaugeBGBrush; // ëŒ€ì‹œê²Œì´ì§€ ë°°ê²½ ìƒ‰ìƒ
+	ComPtr<ID2D1SolidColorBrush> m_dashGaugeBorderBrush; // ëŒ€ì‹œê²Œì´ì§€ ê²½ê³„ì„  ìƒ‰ìƒ
 
 	ComPtr<ID2D1SolidColorBrush> m_pBtnHoverBrush;
 	ComPtr<ID2D1SolidColorBrush> m_pTriBtnHoverBrush;
@@ -254,6 +258,8 @@ private:
 	ComPtr<ID2D1Bitmap> m_pRoomD2DBitmap;
 	ComPtr<ID2D1Bitmap> m_pCarImages[3];
 	ComPtr<ID2D1Bitmap> m_pMapImages[2];
+	ComPtr<ID2D1Bitmap> m_pReadyImage;
+	
 
 	float m_fDashVignetteAlpha = 0.0f;
 
@@ -261,10 +267,10 @@ private:
 	ID3D12DescriptorHeap* m_pd3dShadowDSVHeap;
 	D3D12_CPU_DESCRIPTOR_HANDLE m_d3dCPUShadowDSVHandle;
 
-	// ¾ÆÀÌÅÛ + ´ë½Ã
+	// ì•„ì´í…œ + ëŒ€ì‹œ
 
 
-	// // ===== ¹Ì´Ï¸Ê
+	// // ===== ë¯¸ë‹ˆë§µ
 	ComPtr<ID2D1Bitmap> m_pMinimapBitmap;
 
 	ComPtr<ID2D1SolidColorBrush> m_minimapBorderBrush;
@@ -276,13 +282,13 @@ private:
 	D2D1_POINT_2F WorldToMinimap(const XMFLOAT3& worldPos, const D2D1_RECT_F& minimapRect);
 
 
-	// µµ¿ò¸»ui
+	// ë„ì›€ë§ui
 	bool m_bShowHelpUI = false;
 	Microsoft::WRL::ComPtr<ID2D1Bitmap1> m_pHelpUID2DBitmap;
 	void LoadHelpUIResource();
 	void DrawHelpUI();
 
-	// ¿µ»ó
+	// ì˜ìƒ
 
 	std::unique_ptr<CVideoPlayer> m_pVideoPlayer;
 	void FinishIntroVideo();
@@ -348,6 +354,16 @@ public:
 	ITEM_TYPE m_eHoldItem = ITEM_NONE;
 
 	// stage
+	XMFLOAT3 Map1PlayerSpawnPos[4]{
+		{-1980.0f, -200.0f, 188.0f}, // 1
+		{-1920.0f, -200.0f, 188.0f}, // 2
+		{-1860.0f, -200.0f, 188.0f}, // 3
+		{-1800.0f, -200.0f, 188.0f}, // 4
+	};
+
+	XMFLOAT3 Map1SinglePlayerSpawn{ -1938.0f, -200.0f, 188.0f };
+	float PLAYER_SPAWN_YAW = 0.0f;
+
 	int m_nStage{ 0 };
 	bool m_bFlag{ false };
 	bool m_bIsStun{ false };
@@ -359,7 +375,7 @@ public:
 
 	// jump
 	int   m_nJumpCount = 0;
-	float m_fSecondJumpWindow = 0.35f;   // 2´Ü ¹üÀ§
+	float m_fSecondJumpWindow = 0.35f;   // 2ë‹¨ ë²”ìœ„
 	float m_fFirstJumpTime = 0.0f;
 	unsigned m_cnt{ 0 };
 
@@ -367,22 +383,22 @@ public:
 	int m_nHoveredButtonIndex{ -1 };
 
 	UIButton m_LobbyButtons[3] = {
-		// ¹æ ¸¸µé±â
+		// ë°© ë§Œë“¤ê¸°
 		{ 0.7908f+0.01, 0.5962f, 0.2523f, 0.0986f },
-		// ¹æ µé¾î°¡±â
+		// ë°© ë“¤ì–´ê°€ê¸°
 		{ 0.7908f+0.01, 0.7692f, 0.2523f, 0.0962f },
-		// °ÔÀÓ Á¾·á
+		// ê²Œì„ ì¢…ë£Œ
 		{ 0.7908f+0.01, 0.9282f, 0.2523f, 0.0968f }
 	};
 
 	UIButton m_RoomButtons[2]{
-		{0.5137+0.04, 0.2494+0.07, 0.0778, 0.1412}, //0 ¿ŞÂÊ È­»ìÇ¥
-		{0.9113+0.036, 0.2494+0.07, 0.071, 0.1412} //1 ¿À¸¥ÂÊ È­»ìÇ¥
+		{0.5137+0.04, 0.2494+0.07, 0.0778, 0.1412}, //0 ì™¼ìª½ í™”ì‚´í‘œ
+		{0.9113+0.036, 0.2494+0.07, 0.071, 0.1412} //1 ì˜¤ë¥¸ìª½ í™”ì‚´í‘œ
 	};
 
 	UIButton m_MapButtons[2]{
-		{0.055, 0.8, 0.071, 0.1412}, //0 ¸Ê ¿ŞÂÊ È­»ìÇ¥
-		{0.563, 0.8, 0.071, 0.1412}  //1 ¸Ê ¿À¸¥ÂÊ È­»ìÇ¥
+		{0.055, 0.8, 0.071, 0.1412}, //0 ë§µ ì™¼ìª½ í™”ì‚´í‘œ
+		{0.563, 0.8, 0.071, 0.1412}  //1 ë§µ ì˜¤ë¥¸ìª½ í™”ì‚´í‘œ
 	};
 
 	UIButton m_REButtons[2]{
@@ -395,6 +411,9 @@ public:
 	
 	int m_nSelectedCarIndex{ 0 };
 	int m_nSelectedMapIndex{ 0 };
+	int m_nPlayerIndices[4]{ -1, -1, -1, -1 };
+	bool m_bPlayerReady[4]{ false, false, false, false };
+	int m_nLastPlayerCount{ 0 };
 
 	// lap
 	int m_nCurrentLap = 1;
@@ -404,7 +423,7 @@ public:
 	WCHAR lapBuffer[64];
 
 
-	//Ä«¿îÆ®´Ù¿î
+	//ì¹´ìš´íŠ¸ë‹¤ìš´
 	bool  m_bRaceStartDelayStarted = false;
 	bool  m_bRaceStarted = true;
 	float m_fRaceStartDelayTime = 0.0f;

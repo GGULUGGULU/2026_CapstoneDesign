@@ -109,6 +109,7 @@ public:
 
 	D3D12_GPU_DESCRIPTOR_HANDLE		m_d3dGpuSrvHandle;
 
+	static D3D12_GPU_DESCRIPTOR_HANDLE m_d3dDefaultSrvTableHandle;
 public:
 	static void CMaterial::PrepareShaders(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature);
 

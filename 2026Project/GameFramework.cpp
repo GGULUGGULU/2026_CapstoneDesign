@@ -1,25 +1,10 @@
-﻿﻿//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 // File: CGameFramework.cpp
 //-----------------------------------------------------------------------------
-
 #include "stdafx.h"
 #include "GameFramework.h"
 #include "EffectLibrary.h"
 #include "ClientNetworkManager.h"
-
-namespace {
-	//const XMFLOAT3 SINGLE_PLAYER_SPAWN = XMFLOAT3(0.0f, 10.0f, 0.0f);
-	//const XMFLOAT3 HOST_PLAYER_SPAWN = XMFLOAT3(-35.0f, 10.0f, 0.0f);
-	//const XMFLOAT3 CLIENT_PLAYER_SPAWN = XMFLOAT3(35.0f, 10.0f, 0.0f);
-	//constexpr float PLAYER_SPAWN_YAW = 180.0f;
-
-	const XMFLOAT3 SINGLE_PLAYER_SPAWN = XMFLOAT3(-1938.0f, -200.0f, 188.0f);
-	
-	const XMFLOAT3 PLAYER1_SPAWN = XMFLOAT3(-1980.0f, -200.0f, 188.0f);
-	const XMFLOAT3 PLAYER2_SPAWN = XMFLOAT3(-1920.0f, -200.0f, 188.0f);
-	const XMFLOAT3 PLAYER3_SPAWN = XMFLOAT3(-1860.0f, -200.0f, 188.0f);
-	constexpr float PLAYER_SPAWN_YAW = 0.0f;
-};
 
 CGameFramework::CGameFramework()
 {
@@ -85,11 +70,7 @@ CGameFramework::CGameFramework()
 	m_bRemoteLockEffectActive = false;
 	m_fRemoteLockEffectTime = 0.0f;
 
-
-
 	_tcscpy_s(m_pszFrameRate, _T("2026Project ("));
-
-
 }
 
 CGameFramework::~CGameFramework()
@@ -118,6 +99,7 @@ bool CGameFramework::OnCreate(HINSTANCE hInstance, HWND hMainWnd)
 	LoadRoomUIResource();
 	LoadCarImages();
 	LoadMapImages();
+	LoadReadyImage();
 
 	CreateDepthStencilView();
 
@@ -470,10 +452,12 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 		{
 			if (m_nHoveredButtonIndex == 0) {
 				m_nStage = -1;
+				ConnectToServer("127.0.0.1");
 			}
 			else if (m_nHoveredButtonIndex == 1) {
-				//m_nStage = -1;
-				m_nStage = 1; // 임시, 인게임으로 바로 들어가는 경로
+				m_nStage = -1;
+				ConnectToServer("127.0.0.1");
+				//m_nStage = 1; // 임시, 인게임으로 바로 들어가는 경로
 			}
 			else if (m_nHoveredButtonIndex == 2) {
 				::PostQuitMessage(0);
@@ -509,27 +493,78 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 
 		if (nMessageID == WM_LBUTTONDOWN)
 		{
-			// 모델링 왼쪽 버튼 클릭 시
-			if (m_nHoveredButtonIndex == 0)
-			{
-				--m_nSelectedCarIndex;
-				if (m_nSelectedCarIndex < 0) m_nSelectedCarIndex = 2; // 3대 기준
+			bool changed{ false };
+
+			bool isReady{ m_bPlayerReady[m_nMyPlayerId - 1] };
+
+			if (!isReady) {
+				// 모델링 왼쪽 버튼 클릭 시
+				if (m_nHoveredButtonIndex == 0)
+				{
+					--m_nSelectedCarIndex;
+					if (m_nSelectedCarIndex < 0) m_nSelectedCarIndex = 2; // 3대 기준
+					changed = true;
+				}
+				// 모델링 오른쪽 버튼 클릭 시
+				else if (m_nHoveredButtonIndex == 1) {
+					++m_nSelectedCarIndex;
+					if (m_nSelectedCarIndex > 2) m_nSelectedCarIndex = 0;
+					changed = true;
+				}
+
+				if (m_bIsHostPlayer) {
+					// 맵 왼쪽 버튼 클릭 시
+					if (m_nHoveredButtonIndex == 10) {
+						--m_nSelectedMapIndex;
+						if (m_nSelectedMapIndex < 0) m_nSelectedMapIndex = 1;
+						changed = true;
+					}
+					// 맵 오른쪽 버튼 클릭 시
+					else if (m_nHoveredButtonIndex == 11) {
+						++m_nSelectedMapIndex;
+						if (m_nSelectedMapIndex > 1) m_nSelectedMapIndex = 0;
+						changed = true;
+					}
+				}
 			}
-			// 모델링 오른쪽 버튼 클릭 시
-			else if (m_nHoveredButtonIndex == 1){
-				++m_nSelectedCarIndex;
-				if (m_nSelectedCarIndex > 2) m_nSelectedCarIndex = 0;
+
+			if (m_nHoveredButtonIndex == 20) {
+				m_bPlayerReady[m_nMyPlayerId - 1] = !m_bPlayerReady[m_nMyPlayerId - 1];
+
+				if (m_pNetwork && m_pNetwork->IsConnected()) {
+					RoomSyncEventNet syncEvent{};
+					syncEvent.playerId = m_nMyPlayerId;
+					syncEvent.selectedCarIndex = m_nSelectedCarIndex;
+					syncEvent.selectedMapIndex = m_nSelectedMapIndex;
+					syncEvent.isReady = m_bPlayerReady[m_nMyPlayerId - 1]; // 내 레디 상태 담기
+					m_pNetwork->SendRoomSyncEvent(syncEvent);
+				}
 			}
-			// 맵 왼쪽 버튼 클릭 시
-			else if (m_nHoveredButtonIndex == 10) {
-				--m_nSelectedMapIndex;
-				if (m_nSelectedMapIndex < 0) m_nSelectedMapIndex = 1;
+			else if (m_nHoveredButtonIndex == 21) {
+				if (m_pNetwork) m_pNetwork->Shutdown();
+
+				m_nStage = 0;
+				m_bIsHostPlayer = false;
+
+				for (int i = 0; i < 4; ++i) {
+					m_nPlayerIndices[i] = -1;
+					m_bPlayerReady[i] = false;
+				}
 			}
-			// 맵 오른쪽 버튼 클릭 시
-			else if (m_nHoveredButtonIndex == 11) {
-				++m_nSelectedMapIndex;
-				if (m_nSelectedMapIndex > 1) m_nSelectedMapIndex = 0;
+
+			if (changed && m_pNetwork && m_pNetwork->IsConnected()) {
+				RoomSyncEventNet syncEvent{};
+				syncEvent.playerId = m_nMyPlayerId;
+				syncEvent.selectedCarIndex = m_nSelectedCarIndex;
+				syncEvent.selectedMapIndex = m_nSelectedMapIndex;
+				syncEvent.isReady = m_bPlayerReady[m_nMyPlayerId - 1];
+				m_pNetwork->SendRoomSyncEvent(syncEvent);
+
+				if (m_nMyPlayerId >= 1 && m_nMyPlayerId <= 4) {
+					m_nPlayerIndices[m_nMyPlayerId - 1] = m_nSelectedCarIndex;
+				}
 			}
+			
 		}
 	}
 
@@ -749,8 +784,7 @@ void CGameFramework::OnDestroy()
 
 	ReleaseObjects();
 
-	if (m_pNetwork)
-	{
+	if (m_pNetwork){
 		m_pNetwork->Shutdown();
 		delete m_pNetwork;
 		m_pNetwork = NULL;
@@ -2156,6 +2190,44 @@ void CGameFramework::RenderUI()
 				);
 			}
 
+			// 1,2,3,4 플레이어의 모델 띄우기
+			for (int i = 0; i < 4; ++i) {
+
+				if (-1 == m_nPlayerIndices[i]) {
+					continue;
+				}
+
+				float carBoxRatio[16]{
+					0.03, 0.04, 0.24, 0.28,
+					0.27, 0.04, 0.49, 0.28,
+					0.03, 0.32, 0.24, 0.57,
+					0.27, 0.32, 0.49, 0.57
+				}; //0123 ->p1, 4567 -> p2, 891011 ->p3, 12131415 ->p4
+
+				float boxLeft = m_nWndClientWidth * carBoxRatio[i*4 + 0];
+				float boxTop = m_nWndClientHeight * carBoxRatio[i*4 + 1]; 
+				float boxRight = m_nWndClientWidth * carBoxRatio[i*4 + 2];
+				float boxBottom = m_nWndClientHeight * carBoxRatio[i*4 + 3];
+
+				D2D1_RECT_F carRect = D2D1::RectF(boxLeft, boxTop, boxRight, boxBottom);
+
+				m_d2dDeviceContext->DrawBitmap(
+					m_pCarImages[m_nPlayerIndices[i]].Get(),
+					carRect,
+					1.0f,
+					D2D1_BITMAP_INTERPOLATION_MODE_LINEAR
+				);
+
+				if (m_bPlayerReady[i]) {
+					m_d2dDeviceContext->DrawBitmap(
+						m_pReadyImage.Get(),
+						carRect,
+						0.5f,
+						D2D1_BITMAP_INTERPOLATION_MODE_LINEAR
+					);
+				}
+			}
+
 			for (int i = 0; i < 2; ++i)
 			{
 				m_RoomButtons[i].Update(m_nWndClientWidth, m_nWndClientHeight);
@@ -2244,8 +2316,6 @@ void CGameFramework::RenderUI()
 			m_nWndClientWidth,
 			m_nWndClientHeight
 		);
-
-
 
 		if (2 == m_nStage)
 		{
@@ -2459,11 +2529,7 @@ void CGameFramework::RenderUI()
 		{
 			D2D1_RECT_F destRect = D2D1::RectF(0.0f, 0.0f, (float)m_nWndClientWidth, (float)m_nWndClientHeight);
 			m_d2dDeviceContext->DrawBitmap(m_pResultD2DBitmap.Get(), destRect, 1.0f, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
-			OutputDebugStringA("나옴");
-		}
-		else
-		{
-			OutputDebugStringA("안나옴");
+			OutputDebugStringW(L"나옴");
 		}
 		wchar_t resultBuffer[512] = L"===== RACE RESULTS =====\n\n";
 		wchar_t tempBuffer[128];
@@ -2699,12 +2765,13 @@ void CGameFramework::ApplyMultiplayerSpawn()
 {
 	if (m_pPlayer)
 	{
-		XMFLOAT3 xmf3LocalSpawn = SINGLE_PLAYER_SPAWN;
+		XMFLOAT3 xmf3LocalSpawn = Map1SinglePlayerSpawn;
 		if (m_bMultiplayerEnabled)
 		{
-			if (m_nMyPlayerId == 1) xmf3LocalSpawn = PLAYER1_SPAWN;
-			else if (m_nMyPlayerId == 2) xmf3LocalSpawn = PLAYER2_SPAWN;
-			else if (m_nMyPlayerId == 3)xmf3LocalSpawn = PLAYER3_SPAWN;
+			if (m_nMyPlayerId == 1) xmf3LocalSpawn = Map1PlayerSpawnPos[0];
+			else if (m_nMyPlayerId == 2) xmf3LocalSpawn = Map1PlayerSpawnPos[1];
+			else if (m_nMyPlayerId == 3)xmf3LocalSpawn = Map1PlayerSpawnPos[2];
+			else if (m_nMyPlayerId == 4) xmf3LocalSpawn = Map1PlayerSpawnPos[3];
 			// 3, 4 번 플레이어 위치 추가해야함
 		}
 		SetupPlayerTransform(m_pPlayer, xmf3LocalSpawn, PLAYER_SPAWN_YAW);
@@ -2713,7 +2780,7 @@ void CGameFramework::ApplyMultiplayerSpawn()
 
 	for (auto& info : m_vRemotePlayers) {
 		if (info.pPlayer) {
-			SetupPlayerTransform(info.pPlayer, SINGLE_PLAYER_SPAWN, PLAYER_SPAWN_YAW);
+			SetupPlayerTransform(info.pPlayer, Map1SinglePlayerSpawn, PLAYER_SPAWN_YAW);
 			info.pPlayer->m_bIsActive = false;
 			info.yaw = PLAYER_SPAWN_YAW;
 		}
@@ -2745,8 +2812,7 @@ bool CGameFramework::ConnectToServer(const char* pszAddress, unsigned short port
 
 	if (!bConnectSuccess)
 	{
-		
-		::MessageBoxA(m_hWnd, "서버연결 실패", "연결 실패", MB_OK | MB_ICONERROR);
+		::MessageBoxW(m_hWnd, L"서버연결 실패", L"연결 실패", MB_OK | MB_ICONERROR);
 
 		m_bMultiplayerEnabled = false;
 		return false;
@@ -2815,27 +2881,95 @@ void CGameFramework::ApplyRemotePlayerState(const PlayerNetState& state)
 
 void CGameFramework::SyncMultiplayer()
 {
-	if (!m_pNetwork || !m_pPlayer) return;
+	if (!m_pNetwork || !m_pNetwork->IsConnected()) return;
 
-	if (m_nMyPlayerId == 0)
+	if (m_nStage <= 0)
 	{
-		m_pNetwork->Update(m_GameTimer.GetTimeElapsed(), nullptr);
+		SyncRoom();   
 	}
-	else
+	else if(m_nStage<100)
 	{
-		PlayerNetState localState = BuildLocalPlayerState();
-		m_pNetwork->Update(m_GameTimer.GetTimeElapsed(), &localState);
+		SyncInGame();  
 	}
+}
+
+void CGameFramework::SyncRoom()
+{
+	m_pNetwork->Update(0.0f, nullptr);
 
 	int assignedId = 0;
 	if (m_pNetwork->ConsumeWelomeEvent(assignedId))
 	{
 		m_nMyPlayerId = assignedId;
 		m_bIsHostPlayer = (m_nMyPlayerId == 1);
-		ApplyMultiplayerSpawn();
+
+		if (m_nMyPlayerId >= 1 && m_nMyPlayerId <= 4) {
+			m_nPlayerIndices[m_nMyPlayerId - 1] = m_nSelectedCarIndex;
+		}
+
+		RoomSyncEventNet syncEvent{};
+		syncEvent.playerId = m_nMyPlayerId;
+		syncEvent.selectedCarIndex = m_nSelectedCarIndex;
+		syncEvent.selectedMapIndex = m_nSelectedMapIndex;
+		syncEvent.isReady = m_bPlayerReady[m_nMyPlayerId - 1];
+		m_pNetwork->SendRoomSyncEvent(syncEvent);
 	}
 
-	if (m_nMyPlayerId == 0) return;
+	RoomSyncEventNet roomSyncEv{};
+	while (m_pNetwork->ConsumeRoomSyncEvent(roomSyncEv))
+	{
+		if (roomSyncEv.playerId == 1) {
+			m_nSelectedMapIndex = roomSyncEv.selectedMapIndex;
+		}
+
+		if (roomSyncEv.playerId >= 1 && roomSyncEv.playerId <= 4) {
+			if (roomSyncEv.selectedCarIndex == -1) {
+				m_nPlayerIndices[roomSyncEv.playerId - 1] = -1; 
+				m_bPlayerReady[roomSyncEv.playerId - 1] = false;   
+			}
+			else {
+				m_nPlayerIndices[roomSyncEv.playerId - 1] = roomSyncEv.selectedCarIndex;
+				m_bPlayerReady[roomSyncEv.playerId - 1] = roomSyncEv.isReady;
+			}
+		}
+	}
+
+	int currentTotalPlayers = m_pNetwork->GetCurrentPlayerCount();
+
+	if (m_nLastPlayerCount != currentTotalPlayers)
+	{
+		m_nLastPlayerCount = currentTotalPlayers;
+
+		if (m_pNetwork->IsConnected() && m_nMyPlayerId >= 1 && m_nMyPlayerId <= 4) {
+			RoomSyncEventNet syncEvent{};
+			syncEvent.playerId = m_nMyPlayerId;
+			syncEvent.selectedCarIndex = m_nSelectedCarIndex;
+			syncEvent.selectedMapIndex = m_nSelectedMapIndex;
+			syncEvent.isReady = m_bPlayerReady[m_nMyPlayerId - 1];
+			m_pNetwork->SendRoomSyncEvent(syncEvent);
+		}
+	}
+
+	if (currentTotalPlayers > 0)
+	{
+		int readyCount = 0;
+		for (int i = 0; i < 4; ++i) {
+			if (m_nPlayerIndices[i] != -1 && m_bPlayerReady[i]) {
+				readyCount++;
+			}
+		}
+
+		if (readyCount == currentTotalPlayers)
+		{
+			m_nStage = 1; 
+		}
+	}
+}
+
+void CGameFramework::SyncInGame()
+{
+	PlayerNetState localState = BuildLocalPlayerState();
+	m_pNetwork->Update(0.0f, &localState);
 
 	PlayerNetState remoteState{};
 	while (m_pNetwork->ConsumeRemoteState(remoteState))
@@ -2858,8 +2992,7 @@ void CGameFramework::PlayAndSyncEffect(EFFECT_TYPE eType, const XMFLOAT3& xmf3Po
 void CGameFramework::SendEffectEvent(EFFECT_TYPE eType, const XMFLOAT3& xmf3Position, const XMFLOAT2& xmf2Size, const XMFLOAT3& xmf3Color)
 {
 	if (!m_pNetwork || !m_pNetwork->IsConnected()) return;
-	if (!m_pNetwork->IsHosting()) return;
-
+	
 	EffectEventNet ev{};
 	ev.effectType = static_cast<int>(eType);
 	ev.x = xmf3Position.x;
@@ -2874,11 +3007,9 @@ void CGameFramework::SendEffectEvent(EFFECT_TYPE eType, const XMFLOAT3& xmf3Posi
 	m_pNetwork->SendEffectEvent(ev);
 }
 
-
-
 void CGameFramework::ConsumeNetworkEffectEvents()
 {
-	if (!m_pNetwork) return;
+	if (!m_pNetwork || !m_pScene) return;
 
 	EffectEventNet ev{};
 
@@ -3136,7 +3267,7 @@ D2D1_POINT_2F CGameFramework::WorldToMinimap(
 
 void CGameFramework::ConsumeNetworkCollisionEvents()
 {
-	if (!m_pNetwork || !m_pPlayer) return;
+	if (!m_pNetwork || !m_pPlayer || !m_pScene) return;
 
 	CollisionEventNet ev{};
 
@@ -3172,49 +3303,36 @@ void CGameFramework::CheckMulti(const float& fTimeElapsed)
 {
 	if (m_bMultiplayerEnabled && m_pNetwork && m_pNetwork->IsConnected() && !m_bRaceStarted)
 	{
-		// 숫자 2 바꾸면 여러명 가능
-		// 대기방이 생기면 대기방의 인원수 만큼 하드코딩된 숫자를 바꿔줘야함
-		if (m_pNetwork->GetCurrentPlayerCount() < 3)
+		if (!m_bRaceStartDelayStarted)
 		{
-			if (m_pPlayer) m_pPlayer->SetVelocity(XMFLOAT3(0.0f, 0.0f, 0.0f));
-			UpdateDashSystem(fTimeElapsed, false, false);
-			if (m_pPlayer) m_pPlayer->Update(fTimeElapsed);
+			m_bRaceStartDelayStarted = true;
+			m_bRaceStarted = false;
+			m_fRaceStartDelayTime = 0.0f;
 
-		}
-		// 게임 스타트
-		else
-		{
-			if (!m_bRaceStartDelayStarted)
+			if (!m_bCountdownSoundPlayed)
 			{
-				m_bRaceStartDelayStarted = true;
-				m_bRaceStarted = false;
-				m_fRaceStartDelayTime = 0.0f;
-
-				if (!m_bCountdownSoundPlayed)
-				{
-					m_SoundManager.PlaySFX("Asset/Audio/Count.mp3");
-					m_bCountdownSoundPlayed = true;
-				}
-
-				if (m_pPlayer) m_pPlayer->SetVelocity(XMFLOAT3(0.0f, 0.0f, 0.0f));
+				m_SoundManager.PlaySFX("Asset/Audio/Count.mp3");
+				m_bCountdownSoundPlayed = true;
 			}
 
-			if (!m_bRaceStarted)
+			if (m_pPlayer) m_pPlayer->SetVelocity(XMFLOAT3(0.0f, 0.0f, 0.0f));
+		}
+
+		if (!m_bRaceStarted)
+		{
+			m_fRaceStartDelayTime += fTimeElapsed;
+
+			UpdateDashSystem(fTimeElapsed, false, false);
+
+			if (m_pPlayer)
 			{
-				m_fRaceStartDelayTime += fTimeElapsed;
+				m_pPlayer->SetVelocity(XMFLOAT3(0.0f, 0.0f, 0.0f));
+				m_pPlayer->Update(fTimeElapsed);
+			}
 
-				UpdateDashSystem(fTimeElapsed, false, false);
-
-				if (m_pPlayer)
-				{
-					m_pPlayer->SetVelocity(XMFLOAT3(0.0f, 0.0f, 0.0f));
-					m_pPlayer->Update(fTimeElapsed);
-				}
-
-				if (m_fRaceStartDelayTime >= m_fRaceStartDelayDuration)
-				{
-					m_bRaceStarted = true;
-				}
+			if (m_fRaceStartDelayTime >= m_fRaceStartDelayDuration)
+			{
+				m_bRaceStarted = true;
 			}
 		}
 	}
@@ -3319,7 +3437,7 @@ void CGameFramework::FrameAdvance()
 	// 
 
 	SetUIInfo();
-
+	SyncMultiplayer();
 	if (1 == m_nStage)
 	{
 		m_pScene->m_nGFStage = m_nStage = 2;
@@ -3412,11 +3530,10 @@ void CGameFramework::FrameAdvance()
 		m_pPlayer->Update(fTimeElapsed);
 	}
 
-	if ((2 == m_nStage) && m_pNetwork && m_pPlayer)
-	{
-		SyncMultiplayer();
-	}
-	else if (m_pNetwork)
+	
+	
+	
+	if (m_pNetwork)
 	{
 		m_pNetwork->Update(m_GameTimer.GetTimeElapsed(), NULL);
 	}
@@ -3633,7 +3750,7 @@ void CGameFramework::PlayLockEffectOnPlayer(CPlayer* pTargetPlayer, float fDurat
 
 void CGameFramework::ConsumeNetworkMapItemEvents()
 {
-	if (!m_pNetwork) return;
+	if (!m_pNetwork || !m_pScene || m_pScene->m_ppGameObjects == nullptr) return;
 
 	MapItemEventNet mapItemEv{};
 	while (m_pNetwork->ConsumeMapItemEvent(mapItemEv))
@@ -3683,7 +3800,7 @@ void CGameFramework::ConsumeNetworkMapItemEvents()
 
 void CGameFramework::ConsumeNetworkItemEvents()
 {
-	if (!m_pNetwork) return;
+	if (!m_pNetwork || !m_pScene) return;
 
 	ItemEventNet ev{};
 	while (m_pNetwork->ConsumeItemEvent(ev))
@@ -3772,7 +3889,7 @@ void CGameFramework::LoadCarImages()
 {
 	const wchar_t* fileNames[3] = {
 		L"Asset/image/Car_01.png",
-		L"Asset/image/Car_01.png",// 추가해야함
+		L"Asset/image/Car_02.png",// 추가해야함
 		L"Asset/image/Car_01.png" // 추가해야함
 	};
 
@@ -3827,6 +3944,28 @@ void CGameFramework::LoadMapImages()
 		m_d2dDeviceContext->CreateBitmapFromWicBitmap(
 			converter.Get(), nullptr, &m_pMapImages[i]);
 	}
+}
+
+void CGameFramework::LoadReadyImage()
+{
+	m_pReadyImage.Reset();
+	ComPtr<IWICBitmapDecoder> decoder;
+	ComPtr<IWICBitmapFrameDecode> frame;
+	ComPtr<IWICFormatConverter> converter;
+
+	HRESULT hr = m_pWICFactory->CreateDecoderFromFilename(
+		L"Asset/image/Ready!.png", nullptr, GENERIC_READ, WICDecodeMetadataCacheOnLoad, &decoder);
+
+
+	decoder->GetFrame(0, &frame);
+	m_pWICFactory->CreateFormatConverter(&converter);
+	converter->Initialize(
+		frame.Get(), GUID_WICPixelFormat32bppPBGRA, WICBitmapDitherTypeNone,
+		nullptr, 0.0f, WICBitmapPaletteTypeMedianCut);
+
+	m_d2dDeviceContext->CreateBitmapFromWicBitmap(
+		converter.Get(), nullptr, &m_pReadyImage);
+
 }
 
 // 도움말 ui 
