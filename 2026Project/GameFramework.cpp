@@ -567,6 +567,44 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 			
 		}
 	}
+	else if (100 == m_nStage) {
+		if (m_pScene == nullptr) return;
+
+		m_nHoveredButtonIndex = -1;
+
+		if (m_MenuButton.IsMouseOver(m_ptMousePos)) {
+			m_nHoveredButtonIndex = 30;
+		}
+
+		if (nMessageID == WM_LBUTTONDOWN)
+		{
+			if (m_pNetwork) {
+				m_pNetwork->Shutdown();
+			}
+
+			ReleaseObjects();
+
+			m_SoundManager.StopCarEngine();
+
+			BuildObjectGameStart();
+
+			m_nStage = 0;
+			m_bIsHostPlayer = false;
+			m_bMultiplayerEnabled = false;
+
+			for (int i = 0; i < 4; ++i) {
+				m_nPlayerIndices[i] = -1;
+				m_bPlayerReady[i] = false;
+			}
+
+			m_nScore = 0;
+			m_nCurrentLap = 1;
+			m_nPassedCheckPoints = 0;
+			m_fMyFinalTime = 0.0f;
+			m_fTotalTime = 0.0f;
+			m_GameTimer.Reset();
+		}
+	}
 
 	switch (nMessageID)
 	{
@@ -701,7 +739,6 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 
 			break;
 		case VK_F5:
-			StartServer();
 			break;
 		case VK_F6:
 			ConnectToServer("127.0.0.1");
@@ -729,6 +766,16 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 		}
 		case 'R':
 			m_pPlayer->Rotate(0, 90, 0);
+			break;
+		case 'U':
+			XMFLOAT3 t = m_pPlayer->GetPosition();
+			
+			m_pPlayer->SetPosition(XMFLOAT3(t.x, t.y + 10, t.z));
+			break;
+		case 'J':
+			XMFLOAT3 t1 = m_pPlayer->GetPosition();
+
+			m_pPlayer->SetPosition(XMFLOAT3(t1.x, t1.y - 10, t1.z));
 			break;
 		default:
 			break;
@@ -873,11 +920,30 @@ void CGameFramework::BuildObjectGameRoom()
 
 void CGameFramework::ReleaseObjects()
 {
-	if (m_pPlayer) m_pPlayer->Release();
+	if (m_pPlayer) {
+		m_pPlayer->Release();
+		m_pPlayer = nullptr;
+	}
+
 	ReleaseRemotePlayers();
 
-	if (m_pScene) m_pScene->ReleaseObjects();
-	if (m_pScene) delete m_pScene;
+	if (m_pScene) {
+		m_pScene->ReleaseObjects();
+		delete m_pScene;
+		m_pScene = nullptr;
+	}
+
+	if (m_pd3dShadowMap) {
+		m_pd3dShadowMap->Release();
+		m_pd3dShadowMap = nullptr;
+	}
+
+	//if (m_pd3dShadowDSVHeap) {
+	//	m_pd3dShadowDSVHeap->Release();
+	//	m_pd3dShadowDSVHeap = nullptr;
+	//}
+
+	//m_pCamera = nullptr;
 }
 
 void CGameFramework::ProcessInput()
@@ -1278,9 +1344,14 @@ void CGameFramework::BuildGameObjects()
 
 	// 맵
 	m_pScene = new CScene();
-	if (m_pScene) m_pScene->BuildGameObjects(m_pd3dDevice, m_pd3dCommandList);
-    //if (m_pScene) m_pScene->BuildGameStage2(m_pd3dDevice, m_pd3dCommandList);
-
+	if (m_pScene) {
+		if (0 == m_nSelectedMapIndex) {
+			m_pScene->BuildGameObjects(m_pd3dDevice, m_pd3dCommandList);
+		}
+		else if (1 == m_nSelectedMapIndex) {
+			m_pScene->BuildGameStage2(m_pd3dDevice, m_pd3dCommandList);
+		}
+	}
 	CreateShadowMap();
 
 	CCarPlayer* pCarPlayer = new CCarPlayer(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature());
@@ -2387,22 +2458,6 @@ void CGameFramework::RenderUI()
 			//
 			//D2D1_RECT_F ItemBgRect = D2D1::RectF(Itemleft, Itemtop, Itemright, Itembottom);
 			//m_d2dDeviceContext->FillRectangle(&ItemBgRect, m_dashGaugeBGBrush.Get());
-		
-		
-
-		
-			/*float minimapW = 200.0f;
-			float minimapH = 200.0f;
-			const float margin = 20.0f;
-
-			if (m_pMinimapBitmap)
-			{
-				D2D1_SIZE_F bmpSize = m_pMinimapBitmap->GetSize();
-				float aspect = bmpSize.width / bmpSize.height;
-
-				minimapH = 300.0f;          
-				minimapW = minimapH * aspect;
-			}*/
 
 			float screenW = (float)m_nWndClientWidth;
 			float screenH = (float)m_nWndClientHeight;
@@ -2413,9 +2468,9 @@ void CGameFramework::RenderUI()
 
 			minimapH = max(150.0f, min(350.0f, minimapH));
 
-			if (m_pMinimapBitmap)
+			if (m_pMinimapBitmaps)
 			{
-				auto size = m_pMinimapBitmap->GetSize();
+				auto size = m_pMinimapBitmaps[0]->GetSize();
 				minimapW = minimapH * (size.width / size.height);
 			}
 
@@ -2443,10 +2498,10 @@ void CGameFramework::RenderUI()
 			);
 
 			
-			if (m_pMinimapBitmap)
+			if (m_pMinimapBitmaps[m_nSelectedMapIndex])
 			{
 				m_d2dDeviceContext->DrawBitmap(
-					m_pMinimapBitmap.Get(),
+					m_pMinimapBitmaps[m_nSelectedMapIndex].Get(),
 					minimapRect
 				);
 			}
@@ -2561,7 +2616,6 @@ void CGameFramework::RenderUI()
 			wcscat_s(resultBuffer, tempBuffer);
 		}
 
-
 		m_d2dDeviceContext->DrawTextW(
 			resultBuffer,
 			wcslen(resultBuffer),
@@ -2569,6 +2623,21 @@ void CGameFramework::RenderUI()
 			D2D1::RectF(0.0f, 0.0f, (float)m_nWndClientWidth, (float)m_nWndClientHeight),
 			m_textEndTimeBrush.Get()
 		);
+
+		D2D1_RECT_F destRect = D2D1::RectF(
+			0.0f,
+			0.0f,
+			(float)m_nWndClientWidth,
+			(float)m_nWndClientHeight
+		);
+
+
+		m_MenuButton.Update(m_nWndClientWidth, m_nWndClientHeight);
+
+		if (m_nHoveredButtonIndex == 30)
+		{
+			m_d2dDeviceContext->FillRectangle(m_MenuButton.rect, m_pBtnHoverBrush.Get());
+		}
 	}
 
 		
@@ -2765,22 +2834,36 @@ void CGameFramework::ApplyMultiplayerSpawn()
 {
 	if (m_pPlayer)
 	{
-		XMFLOAT3 xmf3LocalSpawn = Map1SinglePlayerSpawn;
-		if (m_bMultiplayerEnabled)
-		{
-			if (m_nMyPlayerId == 1) xmf3LocalSpawn = Map1PlayerSpawnPos[0];
-			else if (m_nMyPlayerId == 2) xmf3LocalSpawn = Map1PlayerSpawnPos[1];
-			else if (m_nMyPlayerId == 3)xmf3LocalSpawn = Map1PlayerSpawnPos[2];
-			else if (m_nMyPlayerId == 4) xmf3LocalSpawn = Map1PlayerSpawnPos[3];
-			// 3, 4 번 플레이어 위치 추가해야함
+		XMFLOAT3 xmf3LocalSpawn = XMFLOAT3(0, 0, 0);
+		if (0 == m_nSelectedMapIndex) {
+			if (m_bMultiplayerEnabled)
+			{
+				if (m_nMyPlayerId == 1) xmf3LocalSpawn = Map1PlayerSpawnPos[0];
+				else if (m_nMyPlayerId == 2) xmf3LocalSpawn = Map1PlayerSpawnPos[1];
+				else if (m_nMyPlayerId == 3)xmf3LocalSpawn = Map1PlayerSpawnPos[2];
+				else if (m_nMyPlayerId == 4) xmf3LocalSpawn = Map1PlayerSpawnPos[3];
+				// 3, 4 번 플레이어 위치 추가해야함
+			}
 		}
+		else if (1 == m_nSelectedMapIndex) {
+			if (m_bMultiplayerEnabled)
+			{
+				if (m_nMyPlayerId == 1) xmf3LocalSpawn = Map2PlayerSpawnPos[0];
+				else if (m_nMyPlayerId == 2) xmf3LocalSpawn = Map2PlayerSpawnPos[1];
+				else if (m_nMyPlayerId == 3)xmf3LocalSpawn = Map2PlayerSpawnPos[2];
+				else if (m_nMyPlayerId == 4) xmf3LocalSpawn = Map2PlayerSpawnPos[3];
+				// 3, 4 번 플레이어 위치 추가해야함
+			}
+		}
+		
 		SetupPlayerTransform(m_pPlayer, xmf3LocalSpawn, PLAYER_SPAWN_YAW);
 		m_nPlayerCurrentSpeed = 0;
 	}
 
 	for (auto& info : m_vRemotePlayers) {
 		if (info.pPlayer) {
-			SetupPlayerTransform(info.pPlayer, Map1SinglePlayerSpawn, PLAYER_SPAWN_YAW);
+			XMFLOAT3 baseSpawn = (m_nSelectedMapIndex == 0) ? Map1SinglePlayerSpawn : Map2SinglePlayerSpawn;
+			SetupPlayerTransform(info.pPlayer, baseSpawn, PLAYER_SPAWN_YAW);
 			info.pPlayer->m_bIsActive = false;
 			info.yaw = PLAYER_SPAWN_YAW;
 		}
@@ -2805,8 +2888,12 @@ bool CGameFramework::StartServer(unsigned short port)
 
 bool CGameFramework::ConnectToServer(const char* pszAddress, unsigned short port)
 {
-	if (!m_pNetwork) m_pNetwork = new CNetworkManager();
-	else m_pNetwork->Shutdown();
+	if (m_pNetwork) {
+		m_pNetwork->Shutdown();
+		delete m_pNetwork;
+	}
+
+	m_pNetwork = new CNetworkManager(); 
 
 	bool bConnectSuccess = m_pNetwork->ConnectToHost(pszAddress, port);
 
@@ -3114,38 +3201,32 @@ void CGameFramework::LoadResultUIResource()
 
 void CGameFramework::LoadMinimapUIResource()
 {
-	m_pMinimapBitmap.Reset();
-
-	ComPtr<IWICBitmapDecoder> decoder;
-	ComPtr<IWICBitmapFrameDecode> frame;
-	ComPtr<IWICFormatConverter> converter;
-
-	HRESULT hr = m_pWICFactory->CreateDecoderFromFilename(
+	const wchar_t* fileNames[2] = {
 		L"Asset/image/Minimap1.png",
-		nullptr,
-		GENERIC_READ,
-		WICDecodeMetadataCacheOnLoad,
-		decoder.GetAddressOf()
-	);
+		L"Asset/image/Minimap2.png",// 추가해야함
+	};
 
-	hr = decoder->GetFrame(0, frame.GetAddressOf());
+	for (int i = 0; i < 2; ++i)
+	{
+		m_pMinimapBitmaps[i].Reset();
+		ComPtr<IWICBitmapDecoder> decoder;
+		ComPtr<IWICBitmapFrameDecode> frame;
+		ComPtr<IWICFormatConverter> converter;
 
-	hr = m_pWICFactory->CreateFormatConverter(converter.GetAddressOf());
+		HRESULT hr = m_pWICFactory->CreateDecoderFromFilename(
+			fileNames[i], nullptr, GENERIC_READ, WICDecodeMetadataCacheOnLoad, &decoder);
 
-	hr = converter->Initialize(
-		frame.Get(),
-		GUID_WICPixelFormat32bppPBGRA,
-		WICBitmapDitherTypeNone,
-		nullptr,
-		0.0f,
-		WICBitmapPaletteTypeMedianCut
-	);
+		if (FAILED(hr)) continue;
 
-	m_d2dDeviceContext->CreateBitmapFromWicBitmap(
-		converter.Get(),
-		nullptr,
-		m_pMinimapBitmap.GetAddressOf()
-	);
+		decoder->GetFrame(0, &frame);
+		m_pWICFactory->CreateFormatConverter(&converter);
+		converter->Initialize(
+			frame.Get(), GUID_WICPixelFormat32bppPBGRA, WICBitmapDitherTypeNone,
+			nullptr, 0.0f, WICBitmapPaletteTypeMedianCut);
+
+		m_d2dDeviceContext->CreateBitmapFromWicBitmap(
+			converter.Get(), nullptr, &m_pMinimapBitmaps[i]);
+	}
 }
 
 
@@ -3222,6 +3303,7 @@ void CGameFramework::ReleaseRemotePlayers()
 	for (auto& info : m_vRemotePlayers) {
 		if (info.pPlayer) {
 			info.pPlayer->Release();
+			info.pPlayer = nullptr;
 		}
 	}
 	m_vRemotePlayers.clear();
@@ -3247,12 +3329,24 @@ D2D1_POINT_2F CGameFramework::WorldToMinimap(
 	const XMFLOAT3& worldPos,
 	const D2D1_RECT_F& minimapRect)
 {
-	// 스테이지1 사이즈
-	const float worldMinX = -3000.0f; // 맵 사이즈 맞게 조정 
-	const float worldMaxX = 1450.0f;
-	const float worldMinZ = -3100.0f;
-	const float worldMaxZ = 3250.0f;
-
+	float worldMinX; 
+	float worldMaxX;
+	float worldMinZ;
+	float worldMaxZ;
+	if (0 == m_nSelectedMapIndex) {
+		// 스테이지1 사이즈
+		worldMinX = -3000.0f; // 맵 사이즈 맞게 조정 
+		worldMaxX = 1450.0f;
+		worldMinZ = -3100.0f;
+		worldMaxZ = 3250.0f;
+	}
+	else if (1 == m_nSelectedMapIndex) {
+		 worldMinX = -9350.0f; // 맵 사이즈 맞게 조정 
+		 worldMaxX = -4000.0f;
+		 worldMinZ = 2600.0f;
+		 worldMaxZ = 7820.0f;
+	}
+	
 	float u = (worldPos.x - worldMinX) / (worldMaxX - worldMinX);
 	float v = (worldPos.z - worldMinZ) / (worldMaxZ - worldMinZ);
 
@@ -3529,9 +3623,6 @@ void CGameFramework::FrameAdvance()
 		}
 		m_pPlayer->Update(fTimeElapsed);
 	}
-
-	
-	
 	
 	if (m_pNetwork)
 	{
@@ -3647,10 +3738,10 @@ void CGameFramework::FrameAdvance()
 
 	if (0 == m_nStage)
 	{
-		D3D12_RESOURCE_BARRIER presentBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
-			m_d3dSwapChainBackBuffers[m_nSwapChainBufferIndex].Get(),
-			D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
-		m_pd3dCommandList->ResourceBarrier(1, &presentBarrier);
+		//D3D12_RESOURCE_BARRIER presentBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
+		//	m_d3dSwapChainBackBuffers[m_nSwapChainBufferIndex].Get(),
+		//	D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+		//m_pd3dCommandList->ResourceBarrier(1, &presentBarrier);
 	}
 	else if (0 != m_nStage) {
 		D3D12_RESOURCE_BARRIER rtBarrier = CD3DX12_RESOURCE_BARRIER::Transition(

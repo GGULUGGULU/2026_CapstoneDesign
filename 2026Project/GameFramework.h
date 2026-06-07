@@ -271,7 +271,7 @@ private:
 
 
 	// // ===== 미니맵
-	ComPtr<ID2D1Bitmap> m_pMinimapBitmap;
+	ComPtr<ID2D1Bitmap> m_pMinimapBitmaps[2];
 
 	ComPtr<ID2D1SolidColorBrush> m_minimapBorderBrush;
 	ComPtr<ID2D1SolidColorBrush> m_minimapPlayerBrush;
@@ -361,7 +361,16 @@ public:
 		{-1800.0f, -200.0f, 188.0f}, // 4
 	};
 
+	XMFLOAT3 Map2PlayerSpawnPos[4]{
+		{-7600, -2260, 5530}, // 1
+		{-7520, -2260, 5530}, // 2
+		{-7440, -2260, 5530}, // 3
+		{-7360, -2260, 5530}, // 4
+	};
+
 	XMFLOAT3 Map1SinglePlayerSpawn{ -1938.0f, -200.0f, 188.0f };
+	XMFLOAT3 Map2SinglePlayerSpawn{ -7600, -2260, 5530 };
+	
 	float PLAYER_SPAWN_YAW = 0.0f;
 
 	int m_nStage{ 0 };
@@ -404,6 +413,10 @@ public:
 	UIButton m_REButtons[2]{
 		{0.8035, 0.6923, 0.3, 0.1634}, //Ready!
 		{0.8035, 0.8966, 0.3, 0.1634} //EXIT
+	};
+
+	UIButton m_MenuButton{
+		0.50, 0.9227, 0.3713, 0.1033
 	};
 
 	ComPtr<ID2D1PathGeometry> m_pPathGeometry;

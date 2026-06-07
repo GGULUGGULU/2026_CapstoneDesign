@@ -698,7 +698,7 @@ void CScene::BuildGameStage2(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 	BuildUIResources(pd3dDevice, pd3dCommandList);
 
 	// 
-	m_nGameObjects = 1 + 1;
+	m_nGameObjects = 1 + 1 + 10;
 	m_ppGameObjects = new CGameObject * [m_nGameObjects];
 
 	CGameObject* pMapModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/FORTR.bin");
@@ -719,6 +719,108 @@ void CScene::BuildGameStage2(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 	pSideWallObject->SetScale(8, 8, 8);
 	pSideWallObject->m_bIsInvisibleWall = true;
 	m_ppGameObjects[1] = pSideWallObject;
+
+	{
+		CGameObject* pCPModel0 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Map2CP1.bin");
+		ApplyMeshTextures(pd3dDevice, pd3dCommandList, pCPModel0);
+		CGameObject* pCPObject0 = new CGameObject();
+		pCPObject0->SetChild(pCPModel0);
+		pCPObject0->SetPosition(0.0f, -2500.0f, 0.0f);
+		pCPObject0->SetScale(8, 8, 8);
+		pCPObject0->m_bIsCheckPoint = true;
+		pCPObject0->m_nCheckPointIndex = 10;
+		m_ppGameObjects[2] = pCPObject0;
+
+		CGameObject* pCPModel1 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Map2CP2.bin");
+		ApplyMeshTextures(pd3dDevice, pd3dCommandList, pCPModel1);
+		CGameObject* pCPObject1 = new CGameObject();
+		pCPObject1->SetChild(pCPModel1);
+		pCPObject1->SetPosition(0.0f, -2500.0f, 0.0f);
+		pCPObject1->SetScale(8, 8, 8);
+		pCPObject1->m_bIsCheckPoint = true;
+		pCPObject1->m_nCheckPointIndex = 1;
+		m_ppGameObjects[3] = pCPObject1;
+
+		CGameObject* pCPModel2 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Map2CP3.bin");
+		ApplyMeshTextures(pd3dDevice, pd3dCommandList, pCPModel2);
+		CGameObject* pCPObject2 = new CGameObject();
+		pCPObject2->SetChild(pCPModel2);
+		pCPObject2->SetPosition(0.0f, -2500.0f, 0.0f);
+		pCPObject2->SetScale(8, 8, 8);
+		pCPObject2->m_bIsCheckPoint = true;
+		pCPObject2->m_nCheckPointIndex = 2;
+		m_ppGameObjects[4] = pCPObject2;
+
+		CGameObject* pCPModel3 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Map2CP4.bin");
+		ApplyMeshTextures(pd3dDevice, pd3dCommandList, pCPModel3);
+		CGameObject* pCPObject3 = new CGameObject();
+		pCPObject3->SetChild(pCPModel3);
+		pCPObject3->SetPosition(0.0f, -2500.0f, 0.0f);
+		pCPObject3->SetScale(8, 8, 8);
+		pCPObject3->m_bIsCheckPoint = true;
+		pCPObject3->m_nCheckPointIndex = 3;
+		m_ppGameObjects[5] = pCPObject3;
+
+		CGameObject* pCPModel4 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Map2CP5.bin");
+		ApplyMeshTextures(pd3dDevice, pd3dCommandList, pCPModel4);
+		CGameObject* pCPObject4 = new CGameObject();
+		pCPObject4->SetChild(pCPModel4);
+		pCPObject4->SetPosition(0.0f, -2500.0f, 0.0f);
+		pCPObject4->SetScale(8, 8, 8);
+		pCPObject4->m_bIsCheckPoint = true;
+		pCPObject4->m_nCheckPointIndex = 4;
+		m_ppGameObjects[6] = pCPObject4;
+
+		CGameObject* pCPModel5 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Map2CP6.bin");
+		ApplyMeshTextures(pd3dDevice, pd3dCommandList, pCPModel5);
+		CGameObject* pCPObject5 = new CGameObject();
+		pCPObject5->SetChild(pCPModel5);
+		pCPObject5->SetPosition(0.0f, -2500.0f, 0.0f);
+		pCPObject5->SetScale(8, 8, 8);
+		pCPObject5->m_bIsCheckPoint = true;
+		pCPObject5->m_nCheckPointIndex = 5;
+		m_ppGameObjects[7] = pCPObject5;
+
+		CGameObject* pCPModel6 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Map2CP7.bin");
+		ApplyMeshTextures(pd3dDevice, pd3dCommandList, pCPModel6);
+		CGameObject* pCPObject6 = new CGameObject();
+		pCPObject6->SetChild(pCPModel6);
+		pCPObject6->SetPosition(0.0f, -2500.0f, 0.0f);
+		pCPObject6->SetScale(8, 8, 8);
+		pCPObject6->m_bIsCheckPoint = true;
+		pCPObject6->m_nCheckPointIndex = 6;
+		m_ppGameObjects[8] = pCPObject6;
+
+		CGameObject* pCPModel7 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Map2CP8.bin");
+		ApplyMeshTextures(pd3dDevice, pd3dCommandList, pCPModel7);
+		CGameObject* pCPObject7 = new CGameObject();
+		pCPObject7->SetChild(pCPModel7);
+		pCPObject7->SetPosition(0.0f, -2500.0f, 0.0f);
+		pCPObject7->SetScale(8, 8, 8);
+		pCPObject7->m_bIsCheckPoint = true;
+		pCPObject7->m_nCheckPointIndex = 7;
+		m_ppGameObjects[9] = pCPObject7;
+
+		CGameObject* pCPModel8 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Map2CP9.bin");
+		ApplyMeshTextures(pd3dDevice, pd3dCommandList, pCPModel8);
+		CGameObject* pCPObject8 = new CGameObject();
+		pCPObject8->SetChild(pCPModel8);
+		pCPObject8->SetPosition(0.0f, -2500.0f, 0.0f);
+		pCPObject8->SetScale(8, 8, 8);
+		pCPObject8->m_bIsCheckPoint = true;
+		pCPObject8->m_nCheckPointIndex = 8;
+		m_ppGameObjects[10] = pCPObject8;
+
+		CGameObject* pCPModel9 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Map2CP10.bin");
+		ApplyMeshTextures(pd3dDevice, pd3dCommandList, pCPModel9);
+		CGameObject* pCPObject9 = new CGameObject();
+		pCPObject9->SetChild(pCPModel9);
+		pCPObject9->SetPosition(0.0f, -2500.0f, 0.0f);
+		pCPObject9->SetScale(8, 8, 8);
+		pCPObject9->m_bIsCheckPoint = true;
+		pCPObject9->m_nCheckPointIndex = 9;
+		m_ppGameObjects[11] = pCPObject9;
+	}
 
 	CreateWireFrameBox(pd3dDevice, pd3dCommandList);
 	CreateAABBWireFrameBox(pd3dDevice, pd3dCommandList);
@@ -1493,10 +1595,10 @@ bool CScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 		switch (wParam)
 		{
 		case 'Q':
-			m_ppGameObjects[0]->MoveUp(10);
+			m_ppGameObjects[3]->MoveUp(10);
 			break;
 		case 'R':
-			m_ppGameObjects[0]->MoveUp(-10);
+			m_ppGameObjects[3]->MoveUp(-10);
 			break;
 		case 'W':
 			m_ppGameObjects[0]->MoveForward(10);
@@ -1820,6 +1922,7 @@ void CScene::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera
 		if (m_ppGameObjects[i])
 		{
 			if (i >= 1 && i <= 12) continue; // 스테이지 1 index 1~12번은 체크포인트&벽
+			//if (i == 1) continue; // 스테이지 1 index 1~12번은 체크포인트&벽
 			m_ppGameObjects[i]->Animate(m_fElapsedTime, NULL);
 			m_ppGameObjects[i]->UpdateTransform(NULL);
 			m_ppGameObjects[i]->Render(pd3dCommandList, pDebugBoxToRender, pCamera);

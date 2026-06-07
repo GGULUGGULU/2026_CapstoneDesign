@@ -10,6 +10,9 @@ private:
 	ma_sound BGMSound;
 	ma_sound carEngineSound;
 
+	bool m_bBGMInitialized{ false };
+	bool m_bCarEngineInitialized{ false };
+
 public:
 	void Init();
 	void PlayBGM(const std::string& filepath);
@@ -20,6 +23,9 @@ public:
 	void PlayCarEngine(const std::string& filepath);
 	void SetCarEnginePitch(float pitch);
 	void SetCarEngineVolume(float volume);
+
+	void StopBGM();
+	void StopCarEngine();
 
 	void Release();
 };

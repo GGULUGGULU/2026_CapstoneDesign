@@ -48,6 +48,18 @@ void CSoundManager::SetCarEngineVolume(float volume)
     ma_sound_set_volume(&carEngineSound, volume);
 }
 
+void CSoundManager::StopBGM()
+{
+    ma_sound_stop(&BGMSound);
+    ma_sound_uninit(&BGMSound);
+}
+
+void CSoundManager::StopCarEngine()
+{
+    ma_sound_stop(&carEngineSound);
+    ma_sound_uninit(&carEngineSound);
+}
+
 void CSoundManager::Release() {
     ma_sound_uninit(&BGMSound);
     ma_sound_uninit(&carEngineSound);
