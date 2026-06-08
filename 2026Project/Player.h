@@ -109,7 +109,8 @@ public:
 class CCarPlayer : public CPlayer
 {
 public:
-	CCarPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature);
+	CCarPlayer() = default;
+	CCarPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, char* pModelPath);
 	virtual ~CCarPlayer();
 
 	CGameObject* m_pWheelLeftFrontFrame = NULL;
@@ -124,11 +125,12 @@ public:
 
 	float m_fSteeringAngle = 0.0f;
 	float m_fTireRotationAngle = 0.0f;
+	float m_fEngineVibrationTime = 0;
 
 	CGameObject* m_pCarBodyFrame = NULL;
 	XMFLOAT4X4 m_xmf4x4OriginalBody;
 
-private:
+public:
 	virtual void OnInitialize();
 	virtual void Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent = NULL);
 
@@ -137,4 +139,22 @@ public:
 	virtual void OnPrepareRender();
 
 	void UpdateSteering(float fTargetSteering, float fTimeElapsed);
+};
+
+class CCar1Player : public CCarPlayer
+{
+public:
+	CCar1Player(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature);
+	virtual ~CCar1Player() {}
+
+	virtual void OnInitialize() override;
+};
+
+class CCar2Player : public CCarPlayer
+{
+public:
+	CCar2Player(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature);
+	virtual ~CCar2Player() {}
+
+	virtual void OnInitialize() override;
 };

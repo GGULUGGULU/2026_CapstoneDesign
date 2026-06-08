@@ -32,10 +32,7 @@ public:
     CNetworkManager(const CNetworkManager&) = delete;
     CNetworkManager& operator=(const CNetworkManager&) = delete;
 
-
-
-    bool StartHost(unsigned short port = NET_DEFAULT_PORT);
-    bool ConnectToHost(const char* pszAddress, unsigned short port = NET_DEFAULT_PORT);
+    bool ConnectToServer(const char* pszAddress, unsigned short port = NET_DEFAULT_PORT);
 
     void Shutdown();
     void Update(float fTimeElapsed, const PlayerNetState* pLocalState);
@@ -47,6 +44,8 @@ public:
     bool ConsumeRaceResult(RaceResultNet& outEvent);
     bool ConsumeMapItemEvent(MapItemEventNet& outEvent);
     bool ConsumeRoomSyncEvent(RoomSyncEventNet& outEvent);
+    bool ConsumeLoadCompleteEvent(LoadCompleteNet& outEvent);
+    bool ConsumeGameStartSignal(GameStartSignNet& outEvent);
 
     void SendCollisionEvent(const CollisionEventNet& ev);
     void SendEffectEvent(const EffectEventNet& ev);
@@ -54,6 +53,8 @@ public:
     void SendRaceResult(const RaceResultNet& ev);
     void SendMapItemEvent(const MapItemEventNet& ev);
     void SendRoomSyncEvent(const RoomSyncEventNet& ev);
+    void SendLoadCompleteEvent(const LoadCompleteNet& ev);
+    void SendGameStartSignal(const GameStartSignNet& ev);
 
     bool IsConnected() const;
     bool IsHosting() const;
@@ -82,6 +83,8 @@ private:
 
     std::vector<ItemEventNet> m_itemEvents;
     std::vector<MapItemEventNet> m_mapItemEvents;
+    std::vector<LoadCompleteNet> m_loadCompleteEvents;
+    std::vector<GameStartSignNet> m_gameStartEvents;
 private:
     CNetworkManagerImpl* m_pImpl = nullptr;
     MODE m_eMode = MODE::NONE;

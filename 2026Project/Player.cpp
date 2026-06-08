@@ -360,18 +360,16 @@ CCamera *CAirplanePlayer::ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed)
 // ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // CCarPlayer
 
-CCarPlayer::CCarPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature)
+CCarPlayer::CCarPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, char* pModelPath)
 {
 	m_pCamera = ChangeCamera(/*SPACESHIP_CAMERA*/THIRD_PERSON_CAMERA, 0.0f);
 
-	CGameObject* pGameObject = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/FINAL_MODEL_241.bin");
+	CGameObject* pGameObject = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, pModelPath);
 
 	pGameObject->SetPosition(0.0f, 0.0f, 0.0f);
 	pGameObject->SetScale(8.0f, 8.0f, 8.0f);
 
 	SetChild(pGameObject, true);
-
-	OnInitialize();
 
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
 }
@@ -426,17 +424,18 @@ void CCarPlayer::Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent)
 	if (m_pWheelRightRearFrame)
 		m_pWheelRightRearFrame->m_xmf4x4Transform = Matrix4x4::Multiply(xmmtxRearRight, m_xmf4x4OriginalBR);
 
-	static float fEngineVibrationTime = 0;
+	
 	float fSpeed = Vector3::Length(m_xmf3Velocity);
 
 	if (fSpeed < 1.0f)
 	{
-		fEngineVibrationTime += fTimeElapsed;
+		m_fEngineVibrationTime += fTimeElapsed;
 
 		float fVibrationFrequency = 50.0f; // Áøµ¿ ¼Óµµ
-		float fVibrationAmplitude = 0.00008f; // Áøµ¿ Æø
+		//float fVibrationAmplitude = 0.00008f; // Áøµ¿ Æø
+		float fVibrationAmplitude = 0.01f; // Áøµ¿ Æø
 
-		float fOffsetY = sin(fEngineVibrationTime * fVibrationFrequency) * fVibrationAmplitude;
+		float fOffsetY = sin(m_fEngineVibrationTime * fVibrationFrequency) * fVibrationAmplitude;
 
 		XMMATRIX xmmtxVibration = XMMatrixTranslation(0.0f, fOffsetY, 0.0f);
 
@@ -447,7 +446,7 @@ void CCarPlayer::Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent)
 	}
 	else
 	{
-		fEngineVibrationTime = 0.0f;
+		m_fEngineVibrationTime = 0.0f;
 		if (m_pCarBodyFrame) m_pCarBodyFrame->m_xmf4x4Transform = m_xmf4x4OriginalBody;
 	}
 
@@ -538,4 +537,46 @@ void CCarPlayer::UpdateSteering(float fTargetSteering, float fTimeElapsed)
 		m_fSteeringAngle -= fSteerSpeed * fTimeElapsed;
 		if (m_fSteeringAngle < fTargetSteering) m_fSteeringAngle = fTargetSteering;
 	}
+}
+
+CCar1Player::CCar1Player(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature)
+	: CCarPlayer(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/FINAL_MODEL_241.bin")
+{
+	OnInitialize();
+}
+
+void CCar1Player::OnInitialize()
+{
+	m_pWheelLeftFrontFrame = FindFrame("LF");
+	m_pWheelRightFrontFrame = FindFrame("RF");
+	m_pWheelLeftRearFrame = FindFrame("LB");
+	m_pWheelRightRearFrame = FindFrame("RB");
+	m_pCarBodyFrame = FindFrame("Body");
+
+	if (m_pWheelLeftFrontFrame) m_xmf4x4OriginalFL = m_pWheelLeftFrontFrame->m_xmf4x4Transform;
+	if (m_pWheelRightFrontFrame) m_xmf4x4OriginalFR = m_pWheelRightFrontFrame->m_xmf4x4Transform;
+	if (m_pWheelLeftRearFrame) m_xmf4x4OriginalBL = m_pWheelLeftRearFrame->m_xmf4x4Transform;
+	if (m_pWheelRightRearFrame) m_xmf4x4OriginalBR = m_pWheelRightRearFrame->m_xmf4x4Transform;
+	if (m_pCarBodyFrame) m_xmf4x4OriginalBody = m_pCarBodyFrame->m_xmf4x4Transform;
+}
+
+CCar2Player::CCar2Player(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature)
+	: CCarPlayer(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/DBR1_2.bin")
+{
+	OnInitialize();
+}
+
+void CCar2Player::OnInitialize()
+{
+	m_pWheelLeftFrontFrame = FindFrame("FL");
+	m_pWheelRightFrontFrame = FindFrame("FR");
+	m_pWheelLeftRearFrame = FindFrame("RL");
+	m_pWheelRightRearFrame = FindFrame("RR");
+	m_pCarBodyFrame = FindFrame("BODY");
+
+	if (m_pWheelLeftFrontFrame) m_xmf4x4OriginalFL = m_pWheelLeftFrontFrame->m_xmf4x4Transform;
+	if (m_pWheelRightFrontFrame) m_xmf4x4OriginalFR = m_pWheelRightFrontFrame->m_xmf4x4Transform;
+	if (m_pWheelLeftRearFrame) m_xmf4x4OriginalBL = m_pWheelLeftRearFrame->m_xmf4x4Transform;
+	if (m_pWheelRightRearFrame) m_xmf4x4OriginalBR = m_pWheelRightRearFrame->m_xmf4x4Transform;
+	if (m_pCarBodyFrame) m_xmf4x4OriginalBody = m_pCarBodyFrame->m_xmf4x4Transform;
 }

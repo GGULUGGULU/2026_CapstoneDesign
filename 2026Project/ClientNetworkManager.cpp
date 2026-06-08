@@ -67,59 +67,7 @@ CNetworkManager::~CNetworkManager()
     m_pImpl = nullptr;
 }
 
-bool CNetworkManager::StartHost(unsigned short port)
-{
-    Shutdown();
-
-    if (!EnsureWinsockStarted(m_pImpl)) return false;
-
-    m_pImpl->listenSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    if (m_pImpl->listenSocket == INVALID_SOCKET)
-    {
-        OutputDebugStringA("[Network] listen socket creation failed.\n");
-        return false;
-    }
-
-    sockaddr_in addr{};
-    addr.sin_family = AF_INET;
-    addr.sin_port = htons(port);
-    addr.sin_addr.s_addr = htonl(INADDR_ANY);
-
-    BOOL reuseAddr = TRUE;
-    setsockopt(m_pImpl->listenSocket, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char*>(&reuseAddr), sizeof(reuseAddr));
-
-    if (bind(m_pImpl->listenSocket, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) == SOCKET_ERROR)
-    {
-        OutputDebugStringA("[Network] bind failed.\n");
-        CloseSocketSafe(m_pImpl->listenSocket);
-        return false;
-    }
-
-    if (listen(m_pImpl->listenSocket, 1) == SOCKET_ERROR)
-    {
-        OutputDebugStringA("[Network] listen failed.\n");
-        CloseSocketSafe(m_pImpl->listenSocket);
-        return false;
-    }
-
-    SetNonBlocking(m_pImpl->listenSocket);
-
-    m_eMode = MODE::HOST;
-    m_bConnected = false;
-    m_bHasRemoteState = false;
-    m_recvBuffer.clear();
-    m_collisionEvents.clear();
-    m_effectEvents.clear();
-    m_raceFinishEvents.clear();
-    m_raceResultEvents.clear();
-    m_roomSyncEvents.clear();
-    m_pImpl->pendingSendBuffer.clear();
-
-    OutputDebugStringA("[Network] Host started. Waiting for client...\n");
-    return true;
-}
-
-bool CNetworkManager::ConnectToHost(const char* pszAddress, unsigned short port)
+bool CNetworkManager::ConnectToServer(const char* pszAddress, unsigned short port)
 {
     Shutdown();
 
@@ -165,6 +113,8 @@ bool CNetworkManager::ConnectToHost(const char* pszAddress, unsigned short port)
     m_raceResultEvents.clear();
     m_roomSyncEvents.clear();
     m_pImpl->pendingSendBuffer.clear();
+    m_loadCompleteEvents.clear();
+    m_gameStartEvents.clear();
 
     OutputDebugStringA("[Network] Connected to host.\n");
     return true;
@@ -184,6 +134,8 @@ void CNetworkManager::Shutdown()
     m_serverRaceRecords.clear();
     m_itemEvents.clear();
     m_roomSyncEvents.clear();
+    m_loadCompleteEvents.clear();
+    m_gameStartEvents.clear();
 
     m_eMode = MODE::NONE;
     if (m_pImpl && m_pImpl->wsaStarted)
@@ -210,6 +162,8 @@ void CNetworkManager::DisconnectPeer()
     m_raceResultEvents.clear();
     m_serverRaceRecords.clear();
     m_roomSyncEvents.clear();
+    m_loadCompleteEvents.clear();
+    m_gameStartEvents.clear();
 }
 
 void CNetworkManager::TryAcceptClient()
@@ -240,6 +194,8 @@ void CNetworkManager::TryAcceptClient()
     m_raceFinishEvents.clear();
     m_raceResultEvents.clear();
     m_pImpl->pendingSendBuffer.clear();
+    m_loadCompleteEvents.clear();
+    m_gameStartEvents.clear();
 
     OutputDebugStringA("[Network] Client connected.\n");
 }
@@ -375,6 +331,21 @@ void CNetworkManager::TryReceivePackets()
                 m_roomSyncEvents.push_back(packet.eventData);
             }
             break;
+        case NET_MESSAGE_TYPE::LOAD_COMPLETE:
+            if (header.size == sizeof(LoadCompletePacket)) {
+                LoadCompletePacket packet{};
+                std::memcpy(&packet, m_recvBuffer.data(), sizeof(packet));
+                m_loadCompleteEvents.push_back(packet.eventData);
+            }
+            break;
+
+        case NET_MESSAGE_TYPE::GAME_START_SIGN:
+            if (header.size == sizeof(GameStartSignPacket)) {
+                GameStartSignPacket packet{};
+                std::memcpy(&packet, m_recvBuffer.data(), sizeof(packet));
+                m_gameStartEvents.push_back(packet.eventData);
+            }
+            break;
         default:
             OutputDebugStringA("[Network] Unknown packet type.\n");
             break;
@@ -483,6 +454,36 @@ void CNetworkManager::SendRoomSyncEvent(const RoomSyncEventNet& ev)
     RoomSyncEventPacket packet{};
     packet.header.type = static_cast<unsigned int>(NET_MESSAGE_TYPE::ROOM_SYNC_EVENT);
     packet.header.size = sizeof(RoomSyncEventPacket);
+    packet.eventData = ev;
+
+    const char* bytes = reinterpret_cast<const char*>(&packet);
+    m_pImpl->pendingSendBuffer.insert(m_pImpl->pendingSendBuffer.end(), bytes, bytes + sizeof(packet));
+
+    FlushPendingSends();
+}
+
+void CNetworkManager::SendLoadCompleteEvent(const LoadCompleteNet& ev)
+{
+    if (!m_pImpl || !m_bConnected || m_pImpl->peerSocket == INVALID_SOCKET) return;
+
+    LoadCompletePacket packet{};
+    packet.header.type = static_cast<unsigned int>(NET_MESSAGE_TYPE::LOAD_COMPLETE);
+    packet.header.size = sizeof(LoadCompletePacket);
+    packet.eventData = ev;
+
+    const char* bytes = reinterpret_cast<const char*>(&packet);
+    m_pImpl->pendingSendBuffer.insert(m_pImpl->pendingSendBuffer.end(), bytes, bytes + sizeof(packet));
+
+    FlushPendingSends();
+}
+
+void CNetworkManager::SendGameStartSignal(const GameStartSignNet& ev)
+{
+    if (!m_pImpl || !m_bConnected || m_pImpl->peerSocket == INVALID_SOCKET) return;
+
+    GameStartSignPacket packet{};
+    packet.header.type = static_cast<unsigned int>(NET_MESSAGE_TYPE::GAME_START_SIGN);
+    packet.header.size = sizeof(GameStartSignPacket);
     packet.eventData = ev;
 
     const char* bytes = reinterpret_cast<const char*>(&packet);
@@ -609,6 +610,24 @@ bool CNetworkManager::ConsumeRoomSyncEvent(RoomSyncEventNet& outEvent)
 
     outEvent = m_roomSyncEvents.front();
     m_roomSyncEvents.erase(m_roomSyncEvents.begin());
+    return true;
+}
+
+bool CNetworkManager::ConsumeLoadCompleteEvent(LoadCompleteNet& outEvent)
+{
+    if (m_loadCompleteEvents.empty()) return false;
+
+    outEvent = m_loadCompleteEvents.front();
+    m_loadCompleteEvents.erase(m_loadCompleteEvents.begin());
+    return true;
+}
+
+bool CNetworkManager::ConsumeGameStartSignal(GameStartSignNet& outEvent)
+{
+    if (m_gameStartEvents.empty()) return false;
+
+    outEvent = m_gameStartEvents.front();
+    m_gameStartEvents.erase(m_gameStartEvents.begin());
     return true;
 }
 

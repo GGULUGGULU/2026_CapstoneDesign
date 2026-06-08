@@ -876,7 +876,15 @@ void CGameFramework::BuildObjectGameStart()
 	
 	if (m_pScene) m_pScene->BuildObjectsGameStart(m_pd3dDevice, m_pd3dCommandList);
 	
-	CCarPlayer* pCarPlayer = new CCarPlayer(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature());
+	//CCarPlayer* pCarPlayer = new CCarPlayer(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature());
+	CCarPlayer* pCarPlayer;
+	switch (m_nSelectedCarIndex)
+	{
+		case 0: pCarPlayer = new CCar1Player(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature()); break;
+		case 1: pCarPlayer = new CCar2Player(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature()); break;
+		//case 2: pCarPlayer = new CCar3Player(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature()); break;
+		default: pCarPlayer = new CCar1Player(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature()); break;
+	}
 	pCarPlayer->SetPosition(XMFLOAT3(.0f, .0f, .0f));
 	m_pScene->m_pPlayer = m_pPlayer = pCarPlayer;
 	m_pCamera = m_pPlayer->GetCamera();
@@ -901,7 +909,15 @@ void CGameFramework::BuildObjectGameRoom()
 
 	if (m_pScene) m_pScene->BuildObjectsGameRoom(m_pd3dDevice, m_pd3dCommandList);
 
-	CCarPlayer* pCarPlayer = new CCarPlayer(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature());
+	//CCarPlayer* pCarPlayer = new CCarPlayer(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature());
+	CCarPlayer* pCarPlayer;
+	switch (m_nSelectedCarIndex)
+	{
+	case 0: pCarPlayer = new CCar1Player(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature()); break;
+	case 1: pCarPlayer = new CCar2Player(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature()); break;
+		//case 2: pCarPlayer = new CCar3Player(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature()); break;
+	default: pCarPlayer = new CCar1Player(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature()); break;
+	}
 	pCarPlayer->SetPosition(XMFLOAT3(.0f, .0f, .0f));
 	m_pScene->m_pPlayer = m_pPlayer = pCarPlayer;
 	m_pCamera = m_pPlayer->GetCamera();
@@ -1354,8 +1370,16 @@ void CGameFramework::BuildGameObjects()
 	}
 	CreateShadowMap();
 
-	CCarPlayer* pCarPlayer = new CCarPlayer(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature());
+	//CCarPlayer* pCarPlayer = new CCarPlayer(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature());
 	//pCarPlayer->SetPosition(XMFLOAT3(-1938.0f, -180.0f, 188.0f));
+	CCarPlayer* pCarPlayer;
+	switch (m_nSelectedCarIndex)
+	{
+	case 0: pCarPlayer = new CCar1Player(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature()); break;
+	case 1: pCarPlayer = new CCar2Player(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature()); break;
+		//case 2: pCarPlayer = new CCar3Player(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature()); break;
+	default: pCarPlayer = new CCar1Player(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature()); break;
+	}
 	pCarPlayer->SetScale(10.2f, 10.2f, 10.2f);
 	m_pScene->ApplyMeshTextures(m_pd3dDevice, m_pd3dCommandList, pCarPlayer);
 	m_pScene->m_pPlayer = m_pPlayer = pCarPlayer;
@@ -1406,11 +1430,23 @@ void CGameFramework::BuildGameObjects()
 	if (m_pScene) m_pScene->ReleaseUploadBuffers();
 	if (m_pPlayer) m_pPlayer->ReleaseUploadBuffers();
 	
-	m_GameTimer.Reset();
-	m_bRaceStartDelayStarted = false;
-	m_fRaceStartDelayTime = 0.0f;
-	m_bCountdownSoundPlayed = false;
-
+	//m_GameTimer.Reset();
+	//m_bRaceStartDelayStarted = false;
+	//m_fRaceStartDelayTime = 0.0f;
+	//m_bCountdownSoundPlayed = false;
+	if (!m_bMultiplayerEnabled) {
+		m_GameTimer.Reset();
+		m_bRaceStartDelayStarted = false;
+		m_fRaceStartDelayTime = 0.f;
+		m_bRaceStarted = true;
+	}
+	else {
+		m_bStartSign = true;
+		m_bServerStartSign = false;
+		m_bRaceStarted = false;
+		m_bRaceStartDelayStarted = false;
+		m_nLoadedPlayersCnt = 0;
+	}
 	m_bRaceStarted = !m_bMultiplayerEnabled;
 }
 
@@ -1599,12 +1635,10 @@ void CGameFramework::UpdateDashSystem(float fTimeElapsed, bool bDashKeyDown, boo
 
 	if (fCurrentMaxSpeed < fTargetMaxSpeed)
 	{
-		
 		fCurrentMaxSpeed = fTargetMaxSpeed;
 	}
 	else if (fCurrentMaxSpeed > fTargetMaxSpeed)
 	{
-		
 		fCurrentMaxSpeed -= (fMaxSpeedFallRate * fTimeElapsed);
 		if (fCurrentMaxSpeed < fTargetMaxSpeed)
 			fCurrentMaxSpeed = fTargetMaxSpeed;
@@ -1644,7 +1678,7 @@ void CGameFramework::UpdateDashSystem(float fTimeElapsed, bool bDashKeyDown, boo
 	}
 	CEffectLibrary::Instance()->ToggleLocalBooster(m_bIsDashing);
 
-	m_pPlayer->m_fMaxVelocityXZ = GetPlayerEffectiveMaxSpeed();
+	//m_pPlayer->m_fMaxVelocityXZ = GetPlayerEffectiveMaxSpeed();
 }
 
 void CGameFramework::CollisionProcess()
@@ -2693,7 +2727,15 @@ void CGameFramework::BuildObjectEnd()
 
 	if (m_pScene) m_pScene->BuildObjectsGameEnd(m_pd3dDevice, m_pd3dCommandList);
 
-	CCarPlayer* pCarPlayer = new CCarPlayer(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature());
+	//CCarPlayer* pCarPlayer = new CCarPlayer(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature());
+	CCarPlayer* pCarPlayer;
+	switch (m_nSelectedCarIndex)
+	{
+	case 0: pCarPlayer = new CCar1Player(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature()); break;
+	case 1: pCarPlayer = new CCar2Player(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature()); break;
+		//case 2: pCarPlayer = new CCar3Player(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature()); break;
+	default: pCarPlayer = new CCar1Player(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature()); break;
+	}
 	pCarPlayer->SetPosition(XMFLOAT3(0.0f, 0.0f, 0.0f));
 	m_pScene->m_pPlayer = m_pPlayer = pCarPlayer;
 	m_pCamera = m_pPlayer->GetCamera();
@@ -2870,22 +2912,6 @@ void CGameFramework::ApplyMultiplayerSpawn()
 	}
 }
 
-bool CGameFramework::StartServer(unsigned short port)
-{
-	if (!m_pNetwork) m_pNetwork = new CNetworkManager();
-	else m_pNetwork->Shutdown();
-
-	m_bMultiplayerEnabled = m_pNetwork->StartHost(port);
-	m_bIsHostPlayer = m_bMultiplayerEnabled;
-
-	if (m_bMultiplayerEnabled && (m_nStage == 2))
-	{
-		m_bNeedRemotePlayerInit = true;
-	}
-
-	return(m_bMultiplayerEnabled);
-}
-
 bool CGameFramework::ConnectToServer(const char* pszAddress, unsigned short port)
 {
 	if (m_pNetwork) {
@@ -2895,7 +2921,7 @@ bool CGameFramework::ConnectToServer(const char* pszAddress, unsigned short port
 
 	m_pNetwork = new CNetworkManager(); 
 
-	bool bConnectSuccess = m_pNetwork->ConnectToHost(pszAddress, port);
+	bool bConnectSuccess = m_pNetwork->ConnectToServer(pszAddress, port);
 
 	if (!bConnectSuccess)
 	{
@@ -3055,6 +3081,46 @@ void CGameFramework::SyncRoom()
 
 void CGameFramework::SyncInGame()
 {
+	if (!m_pNetwork || !m_pNetwork->IsConnected()) return;
+
+	if (m_bStartSign) {
+		LoadCompleteNet loadEv{};
+		loadEv.playerId = m_nMyPlayerId;
+		m_pNetwork->SendLoadCompleteEvent(loadEv);
+
+		m_bStartSign = false; 
+
+		if (m_bIsHostPlayer) {
+			m_nLoadedPlayersCnt++;
+
+			if (m_nLoadedPlayersCnt >= m_pNetwork->GetCurrentPlayerCount()) {
+				GameStartSignNet startEv{};
+				startEv.startSign = true;
+				m_pNetwork->SendGameStartSignal(startEv);
+				m_bServerStartSign = true; 
+			}
+		}
+	}
+
+	LoadCompleteNet loadEv;
+	while (m_pNetwork->ConsumeLoadCompleteEvent(loadEv)) {
+		if (m_bIsHostPlayer) {
+			m_nLoadedPlayersCnt++;
+
+			if (m_nLoadedPlayersCnt >= m_pNetwork->GetCurrentPlayerCount()) {
+				GameStartSignNet startEv{};
+				startEv.startSign = true;
+				m_pNetwork->SendGameStartSignal(startEv);
+				m_bServerStartSign = true; 
+			}
+		}
+	}
+
+	GameStartSignNet startEv;
+	while (m_pNetwork->ConsumeGameStartSignal(startEv)) {
+		m_bServerStartSign = true;
+	}
+
 	PlayerNetState localState = BuildLocalPlayerState();
 	m_pNetwork->Update(0.0f, &localState);
 
@@ -3281,8 +3347,23 @@ void CGameFramework::CreateRemotePlayers()
 
 	m_vRemotePlayers.clear();
 
-	for (int i = 0; i < 3; ++i) {
-		CPlayer* pRemotePlayer = new CCarPlayer(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature());
+	for (int i = 0; i < 4; ++i) {
+		//CPlayer* pRemotePlayer = new CCarPlayer(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature());
+		int playerId = i + 1;
+
+		if (playerId == m_nMyPlayerId) continue;
+		if (m_bMultiplayerEnabled && -1 == m_nPlayerIndices[i]) continue;;
+
+		int carIdx = (m_nPlayerIndices[i] >= 0) ? m_nPlayerIndices[i] : 0;
+
+		CCarPlayer* pRemotePlayer;
+		switch (carIdx)
+		{
+		case 0: pRemotePlayer = new CCar1Player(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature()); break;
+		case 1: pRemotePlayer = new CCar2Player(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature()); break;
+			//case 2: pCarPlayer = new CCar3Player(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature()); break;
+		default: pRemotePlayer = new CCar1Player(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature()); break;
+		}
 		pRemotePlayer->SetScale(10.2f, 10.2f, 10.2f);
 		m_pScene->ApplyMeshTextures(m_pd3dDevice, m_pd3dCommandList, pRemotePlayer);
 		pRemotePlayer->ComputeNewLocalAABB();
@@ -3290,7 +3371,7 @@ void CGameFramework::CreateRemotePlayers()
 		pRemotePlayer->m_bIsActive = false ;
 	
 		RemotePlayerInfo info;
-		info.playerID = -1;
+		info.playerID = playerId;
 		info.pPlayer = pRemotePlayer;
 		info.yaw = 0.0f;
 
@@ -3397,8 +3478,16 @@ void CGameFramework::CheckMulti(const float& fTimeElapsed)
 {
 	if (m_bMultiplayerEnabled && m_pNetwork && m_pNetwork->IsConnected() && !m_bRaceStarted)
 	{
+		if (!m_bServerStartSign) {
+			if (m_pPlayer) m_pPlayer->SetVelocity(XMFLOAT3(0.0f, 0.0f, 0.0f));
+			m_pPlayer->Update(fTimeElapsed);
+			return;
+		}
+
 		if (!m_bRaceStartDelayStarted)
 		{
+			m_GameTimer.Reset();
+
 			m_bRaceStartDelayStarted = true;
 			m_bRaceStarted = false;
 			m_fRaceStartDelayTime = 0.0f;
@@ -3426,6 +3515,7 @@ void CGameFramework::CheckMulti(const float& fTimeElapsed)
 
 			if (m_fRaceStartDelayTime >= m_fRaceStartDelayDuration)
 			{
+				m_GameTimer.Reset();
 				m_bRaceStarted = true;
 			}
 		}
@@ -3980,7 +4070,7 @@ void CGameFramework::LoadCarImages()
 {
 	const wchar_t* fileNames[3] = {
 		L"Asset/image/Car_01.png",
-		L"Asset/image/Car_02.png",// 추가해야함
+		L"Asset/image/Car_02.png",
 		L"Asset/image/Car_01.png" // 추가해야함
 	};
 

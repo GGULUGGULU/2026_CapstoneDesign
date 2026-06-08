@@ -382,6 +382,9 @@ public:
 	float m_fMyFinalTime{};
 	RaceResultNet m_FinalRaceResult{};
 
+	bool m_bStartSign{ false };
+	bool m_bServerStartSign{ false };
+	int m_nLoadedPlayersCnt{0};
 	// jump
 	int   m_nJumpCount = 0;
 	float m_fSecondJumpWindow = 0.35f;   // 2단 범위

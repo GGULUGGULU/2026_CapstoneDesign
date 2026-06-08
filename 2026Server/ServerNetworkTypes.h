@@ -17,7 +17,9 @@ enum class NET_MESSAGE_TYPE
     ITEM_EVENT = 6,
     PLAYER_COUNT = 7,
     MAP_ITEM_EVENT = 8,
-    ROOM_SYNC_EVENT = 9
+    ROOM_SYNC_EVENT = 9,
+    LOAD_COMPLETE = 10,
+    GAME_START_SIGN = 11
 };
 
 #pragma pack(push, 1)
@@ -89,6 +91,16 @@ struct RoomSyncEventNet
     bool isReady;
 };
 
+struct LoadCompleteNet
+{
+    std::uint32_t playerId;
+};
+
+struct GameStartSignNet
+{
+    bool startSign;
+};
+
 /////
 struct NetMessageHeader
 {
@@ -156,6 +168,18 @@ struct RoomSyncEventPacket
 {
     NetMessageHeader header{};
     RoomSyncEventNet eventData{};
+};
+
+struct LoadCompletePacket
+{
+    NetMessageHeader header{};
+    LoadCompleteNet eventData{};
+};
+
+struct GameStartSignPacket
+{
+    NetMessageHeader header{};
+    GameStartSignNet eventData{};
 };
 
 #pragma pack(pop)
