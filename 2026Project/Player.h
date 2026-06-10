@@ -127,6 +127,8 @@ public:
 	float m_fTireRotationAngle = 0.0f;
 	float m_fEngineVibrationTime = 0;
 
+	float m_fVibrationAmplitude; // Áøµ¿ Æø
+
 	CGameObject* m_pCarBodyFrame = NULL;
 	XMFLOAT4X4 m_xmf4x4OriginalBody;
 

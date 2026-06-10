@@ -207,7 +207,8 @@ void CParticleSystem::ItemAnimate(float fTimeElapsed)
 
         // 크기 애니메이션 (생성되었다가 서서히 작아짐)
         float fLifeRatio = m_vCpuParticles[i].m_fAge / m_vCpuParticles[i].m_fLifeTime;
-        float fScale = 1.0f - fLifeRatio; // 1 -> 0
+        // float fScale = 1.0f - fLifeRatio; // 1 -> 0
+        float fScale = 1.0f - fLifeRatio;
 
         XMFLOAT2 currentSize;
         currentSize.x = m_vCpuParticles[i].m_xmf2MaxSize.x * fScale;

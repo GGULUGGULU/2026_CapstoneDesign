@@ -752,6 +752,8 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 
 		case 'P':
 		{
+			XMFLOAT3 effectColor(1.0f, 0.75f, 0.1f);
+
 			XMFLOAT3 effectPos = m_pPlayer->GetPosition();
 			PlayAndSyncEffect(EFFECT_TYPE::ITEM1, effectPos, XMFLOAT2(50, 50));
 			PlayAndSyncEffect(EFFECT_TYPE::ITEM2, effectPos, XMFLOAT2(50, 50));
@@ -762,6 +764,16 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 			PlayAndSyncEffect(EFFECT_TYPE::ITEM7, effectPos, XMFLOAT2(50, 50));
 			PlayAndSyncEffect(EFFECT_TYPE::ITEM8, effectPos, XMFLOAT2(25, 25));
 			PlayAndSyncEffect(EFFECT_TYPE::ITEM9, effectPos, XMFLOAT2(50, 50));
+
+			PlayAndSyncEffect(EFFECT_TYPE::ITEM10, effectPos, XMFLOAT2(65.f, 65.f), effectColor);
+			PlayAndSyncEffect(EFFECT_TYPE::ITEM11, effectPos, XMFLOAT2(120.f, 120.f), effectColor);
+
+			PlayAndSyncEffect(
+				EFFECT_TYPE::ITEM11,
+				effectPos,
+				XMFLOAT2(120.f, 120.f),
+				effectColor
+			);
 			break;
 		}
 		case 'R':
@@ -1472,6 +1484,30 @@ float CGameFramework::GetPlayerEffectiveMaxSpeed() const
 void CGameFramework::ApplyItemReward(ITEM_TYPE eItemType)
 {
 	if (!m_pPlayer) return;
+	XMFLOAT3 effectPos = m_pPlayer->GetPosition();
+	effectPos.y += 20.0f;
+
+	XMFLOAT3 effectColor(1.0f, 1.0f, 1.0f);
+
+	switch (eItemType)
+	{
+	case ITEM_DASH_POTION:
+		effectColor = XMFLOAT3(1.0f, 0.2f, 0.2f); // 빨
+		break;
+	case ITEM_MAX_SPEED_UP:
+		effectColor = XMFLOAT3(0.2f, 1.0f, 0.3f); // 초
+		break;
+	case ITEM_MAX_DASH_GAUGE_UP:
+		effectColor = XMFLOAT3(0.2f, 0.7f, 1.0f); // 파
+		break;
+	case ITEM_LOCK:
+		effectColor = XMFLOAT3(1.0, 0.75, 0.1); // 노
+		break;
+	}
+
+	PlayAndSyncEffect(EFFECT_TYPE::ITEM10, effectPos, XMFLOAT2(65.f, 65.f), effectColor);
+	PlayAndSyncEffect(EFFECT_TYPE::ITEM11, effectPos, XMFLOAT2(120.f, 120.f), effectColor);
+
 
 	switch (eItemType)
 	{

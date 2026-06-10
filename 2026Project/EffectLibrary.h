@@ -31,6 +31,11 @@ enum class EFFECT_TYPE
 	ITEM7, // æ∆¿Ã≈€ »πµÊ
 	ITEM8, // æ∆¿Ã≈€ »πµÊ
 	ITEM9, // æ∆¿Ã≈€ »πµÊ
+
+	ITEM10, // æ∆¿Ã≈€ ªÁøÎ
+	ITEM11, // æ∆¿Ã≈€ ªÁøÎ
+
+
 	BOOSTER, // ∫ŒΩ∫≈Õ
 	WIND_EFFECT,
 	SPEED_LINE,
@@ -225,6 +230,9 @@ private:
 		L"Asset/DDS_File/ShortYellowRibbon.dds",
 		L"Asset/DDS_File/YellowCircle.dds",
 		L"Asset/DDS_File/YellowTriangle.dds",
+		/////////////////////////////////////////////////
+		L"Asset/DDS_File/BurstCore.dds",
+		L"Asset/DDS_File/ShockRing.dds",
 		/////////////////////////////////////////////////
 		L"Asset/DDS_File/Booster.dds",
 		L"Asset/DDS_File/WindShield.dds",

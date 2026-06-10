@@ -433,9 +433,9 @@ void CCarPlayer::Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent)
 
 		float fVibrationFrequency = 50.0f; // Áøµ¿ ¼Óµµ
 		//float fVibrationAmplitude = 0.00008f; // Áøµ¿ Æø
-		float fVibrationAmplitude = 0.01f; // Áøµ¿ Æø
+		//float fVibrationAmplitude = 0.01f; // Áøµ¿ Æø
 
-		float fOffsetY = sin(m_fEngineVibrationTime * fVibrationFrequency) * fVibrationAmplitude;
+		float fOffsetY = sin(m_fEngineVibrationTime * fVibrationFrequency) * m_fVibrationAmplitude;
 
 		XMMATRIX xmmtxVibration = XMMatrixTranslation(0.0f, fOffsetY, 0.0f);
 
@@ -553,6 +553,8 @@ void CCar1Player::OnInitialize()
 	m_pWheelRightRearFrame = FindFrame("RB");
 	m_pCarBodyFrame = FindFrame("Body");
 
+	m_fVibrationAmplitude = 0.00008;
+
 	if (m_pWheelLeftFrontFrame) m_xmf4x4OriginalFL = m_pWheelLeftFrontFrame->m_xmf4x4Transform;
 	if (m_pWheelRightFrontFrame) m_xmf4x4OriginalFR = m_pWheelRightFrontFrame->m_xmf4x4Transform;
 	if (m_pWheelLeftRearFrame) m_xmf4x4OriginalBL = m_pWheelLeftRearFrame->m_xmf4x4Transform;
@@ -573,6 +575,8 @@ void CCar2Player::OnInitialize()
 	m_pWheelLeftRearFrame = FindFrame("RL");
 	m_pWheelRightRearFrame = FindFrame("RR");
 	m_pCarBodyFrame = FindFrame("BODY");
+
+	m_fVibrationAmplitude = 0.01;
 
 	if (m_pWheelLeftFrontFrame) m_xmf4x4OriginalFL = m_pWheelLeftFrontFrame->m_xmf4x4Transform;
 	if (m_pWheelRightFrontFrame) m_xmf4x4OriginalFR = m_pWheelRightFrontFrame->m_xmf4x4Transform;

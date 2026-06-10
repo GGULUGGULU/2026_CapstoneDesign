@@ -52,9 +52,10 @@ void CEffectLibrary::InitializeDefaultEffectConfigs()
 	m_EffectConfigs[(int)EFFECT_TYPE::DUST].particleCount = 1;
 	m_EffectConfigs[(int)EFFECT_TYPE::DUST].useDepth = true;
 
-	for (int i = (int)EFFECT_TYPE::ITEM1; i <= (int)EFFECT_TYPE::ITEM9; ++i)
+	for (int i = (int)EFFECT_TYPE::ITEM1; i <= (int)EFFECT_TYPE::ITEM11; ++i)
 	{
 		m_EffectConfigs[i].spread = 50.0f;
+
 	}
 
 	m_EffectConfigs[(int)EFFECT_TYPE::BOOSTER].poolSize = 1;
@@ -74,6 +75,15 @@ void CEffectLibrary::InitializeDefaultEffectConfigs()
 	m_EffectConfigs[(int)EFFECT_TYPE::LOCK_ORBIT].spread = 0.0f;
 	m_EffectConfigs[(int)EFFECT_TYPE::LOCK_ORBIT].loop = false;
 	m_EffectConfigs[(int)EFFECT_TYPE::LOCK_ORBIT].useDepth = true;
+
+	m_EffectConfigs[(int)EFFECT_TYPE::ITEM10].spread = 0.0f;
+	m_EffectConfigs[(int)EFFECT_TYPE::ITEM10].particleCount = 1;
+	m_EffectConfigs[(int)EFFECT_TYPE::ITEM10].lifeTime = 0.18f;
+
+	m_EffectConfigs[(int)EFFECT_TYPE::ITEM11].spread = 0.0f;
+	m_EffectConfigs[(int)EFFECT_TYPE::ITEM11].particleCount = 1;
+	m_EffectConfigs[(int)EFFECT_TYPE::ITEM11].lifeTime = 0.35f;
+
 }
 
 void CEffectLibrary::InitializeDefaultMeshConfigs()
@@ -110,7 +120,7 @@ bool CEffectLibrary::IsValidEffectType(EFFECT_TYPE type) const
 
 bool CEffectLibrary::IsItemEffect(EFFECT_TYPE type) const
 {
-	return type >= EFFECT_TYPE::ITEM1 && type <= EFFECT_TYPE::ITEM9;
+	return type >= EFFECT_TYPE::ITEM1 && type <= EFFECT_TYPE::ITEM11;
 }
 
 bool CEffectLibrary::IsDepthParticleEffect(EFFECT_TYPE type) const
