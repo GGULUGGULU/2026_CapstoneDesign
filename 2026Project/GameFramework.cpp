@@ -1664,6 +1664,23 @@ void CGameFramework::UpdateDashSystem(float fTimeElapsed, bool bDashKeyDown, boo
 
 				m_bDashOverheated = true;
 				m_fDashOverheatTime = 0.8f;
+
+		
+				XMFLOAT3 v = m_pPlayer->GetVelocity();
+				XMVECTOR vel = XMLoadFloat3(&v);
+
+				float speed = XMVectorGetX(XMVector3Length(vel));
+
+				if (speed > 50.0f)
+				{
+					XMVECTOR dir = XMVector3Normalize(vel);
+					vel = dir * 50.0f;
+					XMStoreFloat3(&v, vel);
+					m_pPlayer->SetVelocity(v);
+				}
+
+				m_nPlayerCurrentSpeed = 50;
+				m_pPlayer->m_fMaxVelocityXZ = 50.0f;
 			}
 		}
 	}
