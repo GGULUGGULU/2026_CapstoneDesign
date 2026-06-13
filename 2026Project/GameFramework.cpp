@@ -1489,22 +1489,40 @@ void CGameFramework::ApplyItemReward(ITEM_TYPE eItemType)
 
 	XMFLOAT3 effectColor(1.0f, 1.0f, 1.0f);
 
-	switch (eItemType)
-	{
-	case ITEM_DASH_POTION:
-		effectColor = XMFLOAT3(1.0f, 0.2f, 0.2f); // 빨
-		break;
-	case ITEM_MAX_SPEED_UP:
-		effectColor = XMFLOAT3(0.2f, 1.0f, 0.3f); // 초
-		break;
-	case ITEM_MAX_DASH_GAUGE_UP:
-		effectColor = XMFLOAT3(0.2f, 0.7f, 1.0f); // 파
-		break;
-	case ITEM_LOCK:
-		effectColor = XMFLOAT3(1.0, 0.75, 0.1); // 노
-		break;
-	}
+switch (eItemType)
+{
+case ITEM_DASH_POTION:
+{
+	effectColor = XMFLOAT3(1.0f, 0.2f, 0.2f);
 
+	float beforeGauge = m_fCurrentDashGauge;
+
+	float afterGauge = beforeGauge + 30.0f;
+
+	if (afterGauge > m_fMaxDashGauge)
+		afterGauge = m_fMaxDashGauge;
+
+	if (afterGauge > beforeGauge)
+	{
+		m_fDashPotionFlashStartGauge = beforeGauge;
+		m_fDashPotionFlashEndGauge = afterGauge;
+		m_fDashPotionFlashTime = m_fDashPotionFlashDuration;
+	}
+	break;
+}
+
+case ITEM_MAX_SPEED_UP:
+	effectColor = XMFLOAT3(0.2f, 1.0f, 0.3f);
+	break;
+
+case ITEM_MAX_DASH_GAUGE_UP:
+	effectColor = XMFLOAT3(0.2f, 0.7f, 1.0f);
+	break;
+
+case ITEM_LOCK:
+	effectColor = XMFLOAT3(1.0f, 0.75f, 0.1f);
+	break;
+}
 	PlayAndSyncEffect(EFFECT_TYPE::ITEM10, effectPos, XMFLOAT2(65.f, 65.f), effectColor);
 	PlayAndSyncEffect(EFFECT_TYPE::ITEM11, effectPos, XMFLOAT2(120.f, 120.f), effectColor);
 
@@ -1715,6 +1733,16 @@ void CGameFramework::UpdateDashSystem(float fTimeElapsed, bool bDashKeyDown, boo
 	CEffectLibrary::Instance()->ToggleLocalBooster(m_bIsDashing);
 
 	//m_pPlayer->m_fMaxVelocityXZ = GetPlayerEffectiveMaxSpeed();
+
+	if (m_fDashPotionFlashTime > 0.0f)
+	{
+		m_fDashPotionFlashTime -= fTimeElapsed;
+
+		if (m_fDashPotionFlashTime < 0.0f)
+			m_fDashPotionFlashTime = 0.0f;
+	}
+
+
 }
 
 void CGameFramework::CollisionProcess()
@@ -2511,8 +2539,43 @@ void CGameFramework::RenderUI()
 			float fillHeight = gaugeHeight * dashRatio;
 			float fillTop = bottom - fillHeight;
 
+
+			XMFLOAT3 gaugeColor = GetDashGaugeColor();
+
+			m_dashGaugeFillBrush->SetColor(
+				D2D1::ColorF(gaugeColor.x, gaugeColor.y, gaugeColor.z, 1.0f)
+			);
+
+
 			D2D1_RECT_F fillRect = D2D1::RectF(left, fillTop, right, bottom);
 			m_d2dDeviceContext->FillRectangle(&fillRect, m_dashGaugeFillBrush.Get());
+
+
+			if (m_fDashPotionFlashTime > 0.0f && m_fMaxDashGauge > 0.0f)
+			{
+				float startRatio = m_fDashPotionFlashStartGauge / m_fMaxDashGauge;
+				float endRatio = m_fDashPotionFlashEndGauge / m_fMaxDashGauge;
+
+				if (startRatio < 0.0f) startRatio = 0.0f;
+				if (startRatio > 1.0f) startRatio = 1.0f;
+				if (endRatio < 0.0f) endRatio = 0.0f;
+				if (endRatio > 1.0f) endRatio = 1.0f;
+
+				float flashTop = bottom - (gaugeHeight * endRatio);
+				float flashBottom = bottom - (gaugeHeight * startRatio);
+
+				float alpha = m_fDashPotionFlashTime / m_fDashPotionFlashDuration;
+
+				ComPtr<ID2D1SolidColorBrush> flashBrush;
+				m_d2dDeviceContext->CreateSolidColorBrush(
+					D2D1::ColorF(1.0f, 0.2f, 0.2f, alpha),
+					&flashBrush
+				);
+
+				D2D1_RECT_F flashRect = D2D1::RectF(left, flashTop, right, flashBottom);
+				m_d2dDeviceContext->FillRectangle(&flashRect, flashBrush.Get());
+			}
+
 
 			m_d2dDeviceContext->DrawRectangle(&bgRect, m_dashGaugeBorderBrush.Get(), 2.0f);
 			///////////////////////////
@@ -4209,4 +4272,19 @@ void CGameFramework::DrawHelpUI()
 		0.7f, // 투명도
 		D2D1_BITMAP_INTERPOLATION_MODE_LINEAR
 	);
+}
+
+XMFLOAT3 CGameFramework::GetDashGaugeColor() const
+{
+	if (m_bDashLocked)
+		return XMFLOAT3(1.0f, 0.75f, 0.1f); // 노랑
+
+	if (m_fSpeedItemBonusTime > 0.0f)
+		return XMFLOAT3(0.2f, 1.0f, 0.3f); // 초록
+
+	if (m_fNoDashGaugeConsumeTime > 0.0f)
+		return XMFLOAT3(0.2f, 0.7f, 1.0f); // 파랑
+
+	// return XMFLOAT3(1.0f, 0.2f, 0.2f); // 빨강
+	return XMFLOAT3(0.9f, 0.9f, 0.9f); // 흰
 }

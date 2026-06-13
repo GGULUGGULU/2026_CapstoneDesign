@@ -455,4 +455,14 @@ public:
 
 	bool  m_bRemoteLockEffectActive = false;
 	float m_fRemoteLockEffectTime = 0.0f;
+
+
+	//
+
+	float m_fDashPotionFlashTime = 0.0f;
+	float m_fDashPotionFlashDuration = 0.5f;
+	float m_fDashPotionFlashStartGauge = 0.0f;
+	float m_fDashPotionFlashEndGauge = 0.0f;
+
+	XMFLOAT3 GetDashGaugeColor() const;
 };

@@ -12,7 +12,7 @@ CShader::CShader()
 CShader::~CShader()
 {
 	ReleaseShaderVariables();
-
+	
 	if (m_ppd3dPipelineStates)
 	{
 		for (int i = 0; i < m_nPipelineStates; i++) if (m_ppd3dPipelineStates[i]) m_ppd3dPipelineStates[i]->Release();
