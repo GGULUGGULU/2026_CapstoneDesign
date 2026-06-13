@@ -93,8 +93,9 @@ bool CGameFramework::OnCreate(HINSTANCE hInstance, HWND hMainWnd)
 	CreateRenderTargetView();
 	LoadMinimapUIResource();
 	LoadDashVignetteResource();
+	LoadDashGaugeFrameResource();
 	LoadHelpUIResource();
-	LoadLobbyUIResource();//
+	LoadLobbyUIResource();
 	LoadResultUIResource();
 	LoadRoomUIResource();
 	LoadCarImages();
@@ -2519,26 +2520,46 @@ void CGameFramework::RenderUI()
 				m_textSpeedBrush.Get()
 			);
 
-			float gaugeWidth = 40.0f;   // 게이지 너비
-			float gaugeHeight = 200.0f; // 게이지 높이
-			float marginX = 50.0f;      // 좌측 여백
-			float marginY = 50.0f;      // 하단 여백
+			
+			// 연료통 ui
+			float dashFrameWidth = m_nWndClientWidth * 0.30f;
+			float dashFrameHeight = dashFrameWidth * (1024.0f / 1536.0f);
 
-			float left = marginX;
-			float bottom = (float)m_nWndClientHeight - marginY;
-			float top = bottom - gaugeHeight;
-			float right = left + gaugeWidth;
+			float dashFrameLeft = 25.0f;
+			float dashFrameBottom = (float)m_nWndClientHeight +15.0f;
+			float dashFrameTop = dashFrameBottom - dashFrameHeight;
+			float dashFrameRight = dashFrameLeft + dashFrameWidth;
 
-			D2D1_RECT_F bgRect = D2D1::RectF(left, top, right, bottom);
-			m_d2dDeviceContext->FillRectangle(&bgRect, m_dashGaugeBGBrush.Get());
+			D2D1_RECT_F dashFrameRect = D2D1::RectF(
+				dashFrameLeft,
+				dashFrameTop,
+				dashFrameRight,
+				dashFrameBottom
+			);
 
-			float dashRatio = m_fCurrentDashGauge / m_fMaxDashGauge;
+			if (m_pDashGaugeFrameBitmap)
+			{
+				m_d2dDeviceContext->DrawBitmap(
+					m_pDashGaugeFrameBitmap.Get(),
+					dashFrameRect,
+					1.0f,
+					D2D1_BITMAP_INTERPOLATION_MODE_LINEAR
+				);
+			}
+
+			// 게이지바
+			float dashLeft = dashFrameLeft + dashFrameWidth * 0.28f;
+			float dashRight = dashFrameLeft + dashFrameWidth * 0.72f;
+			float dashTop = dashFrameTop + dashFrameHeight * 0.465f;
+			float dashBottom = dashFrameTop + dashFrameHeight * 0.585f;
+
+			float dashRatio = 0.0f;
+
+			if (m_fMaxDashGauge > 0.0f)
+				dashRatio = m_fCurrentDashGauge / m_fMaxDashGauge;
+
 			if (dashRatio < 0.0f) dashRatio = 0.0f;
 			if (dashRatio > 1.0f) dashRatio = 1.0f;
-
-			float fillHeight = gaugeHeight * dashRatio;
-			float fillTop = bottom - fillHeight;
-
 
 			XMFLOAT3 gaugeColor = GetDashGaugeColor();
 
@@ -2546,10 +2567,20 @@ void CGameFramework::RenderUI()
 				D2D1::ColorF(gaugeColor.x, gaugeColor.y, gaugeColor.z, 1.0f)
 			);
 
+			float dashGaugeWidth = dashRight - dashLeft;
+			float dashFillRight = dashLeft + (dashGaugeWidth * dashRatio);
 
-			D2D1_RECT_F fillRect = D2D1::RectF(left, fillTop, right, bottom);
-			m_d2dDeviceContext->FillRectangle(&fillRect, m_dashGaugeFillBrush.Get());
+			D2D1_RECT_F dashFillRect = D2D1::RectF(
+				dashLeft,
+				dashTop,
+				dashFillRight,
+				dashBottom
+			);
 
+			m_d2dDeviceContext->FillRectangle(
+				&dashFillRect,
+				m_dashGaugeFillBrush.Get()
+			);
 
 			if (m_fDashPotionFlashTime > 0.0f && m_fMaxDashGauge > 0.0f)
 			{
@@ -2561,23 +2592,33 @@ void CGameFramework::RenderUI()
 				if (endRatio < 0.0f) endRatio = 0.0f;
 				if (endRatio > 1.0f) endRatio = 1.0f;
 
-				float flashTop = bottom - (gaugeHeight * endRatio);
-				float flashBottom = bottom - (gaugeHeight * startRatio);
+				float flashLeft = dashLeft + (dashGaugeWidth * startRatio);
+				float flashRight = dashLeft + (dashGaugeWidth * endRatio);
 
 				float alpha = m_fDashPotionFlashTime / m_fDashPotionFlashDuration;
 
 				ComPtr<ID2D1SolidColorBrush> flashBrush;
+
 				m_d2dDeviceContext->CreateSolidColorBrush(
 					D2D1::ColorF(1.0f, 0.2f, 0.2f, alpha),
 					&flashBrush
 				);
 
-				D2D1_RECT_F flashRect = D2D1::RectF(left, flashTop, right, flashBottom);
-				m_d2dDeviceContext->FillRectangle(&flashRect, flashBrush.Get());
+				D2D1_RECT_F flashRect = D2D1::RectF(
+					flashLeft,
+					dashTop,
+					flashRight,
+					dashBottom
+				);
+
+				m_d2dDeviceContext->FillRectangle(
+					&flashRect,
+					flashBrush.Get()
+				);
 			}
 
 
-			m_d2dDeviceContext->DrawRectangle(&bgRect, m_dashGaugeBorderBrush.Get(), 2.0f);
+
 			///////////////////////////
 			//float ItemWidth = 60.0f;   // 게이지 너비
 			//float ItemHeight = 90.0f; // 게이지 높이
@@ -4287,4 +4328,39 @@ XMFLOAT3 CGameFramework::GetDashGaugeColor() const
 
 	// return XMFLOAT3(1.0f, 0.2f, 0.2f); // 빨강
 	return XMFLOAT3(0.9f, 0.9f, 0.9f); // 흰
+}
+
+void CGameFramework::LoadDashGaugeFrameResource()
+{
+	ComPtr<IWICBitmapDecoder> decoder;
+	HRESULT hr = m_pWICFactory->CreateDecoderFromFilename(
+		L"Asset/image/dash_gauge_frame.png",
+		NULL,
+		GENERIC_READ,
+		WICDecodeMetadataCacheOnLoad,
+		&decoder
+	);
+
+	if (FAILED(hr)) return;
+
+	ComPtr<IWICBitmapFrameDecode> frame;
+	decoder->GetFrame(0, &frame);
+
+	ComPtr<IWICFormatConverter> converter;
+	m_pWICFactory->CreateFormatConverter(&converter);
+
+	converter->Initialize(
+		frame.Get(),
+		GUID_WICPixelFormat32bppPBGRA,
+		WICBitmapDitherTypeNone,
+		NULL,
+		0.0f,
+		WICBitmapPaletteTypeMedianCut
+	);
+
+	m_d2dDeviceContext->CreateBitmapFromWicBitmap(
+		converter.Get(),
+		NULL,
+		&m_pDashGaugeFrameBitmap
+	);
 }

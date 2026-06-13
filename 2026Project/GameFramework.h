@@ -129,6 +129,7 @@ public:
 	void CreateTextResources();
 	void RenderUI();
 	void BuildObjectEnd();
+	
 
 	void CreateShadowMap();
 	void RenderShadowPass();
@@ -158,6 +159,7 @@ public:
 	void LoadLobbyUIResource();
 	void LoadResultUIResource();
 	void LoadDashVignetteResource();
+	void LoadDashGaugeFrameResource();
 	void LoadRoomUIResource();
 	void LoadCarImages();
 	void LoadMapImages();
@@ -259,7 +261,7 @@ private:
 	ComPtr<ID2D1Bitmap> m_pCarImages[3];
 	ComPtr<ID2D1Bitmap> m_pMapImages[2];
 	ComPtr<ID2D1Bitmap> m_pReadyImage;
-	
+	ComPtr<ID2D1Bitmap> m_pDashGaugeFrameBitmap;
 
 	float m_fDashVignetteAlpha = 0.0f;
 
