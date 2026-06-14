@@ -187,6 +187,8 @@ public:
 
 	int m_nCollidedObjectIndex{ -1 };
 
+	int m_nCurrentMapStage{ 0 };
+
 	void ApplyMeshTextures(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CGameObject* pObject);
 
 };

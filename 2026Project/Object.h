@@ -208,6 +208,7 @@ public:
 	bool m_bIsGround{ false };
 	bool m_bIsInvisibleWall{ false };
 	bool m_bIsCheckPoint{ false };
+	bool m_bIsRCP{ false };
 	int m_nCheckPointIndex{-1};
 
 	bool    m_bIsItemBox = false;    

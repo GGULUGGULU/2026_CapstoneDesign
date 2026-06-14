@@ -354,7 +354,8 @@ private:
 	float m_fDashOverheatTime = 0.0f;
 	bool m_bPrevBoosterSyncActive = false;
 
-
+	int m_nLastRCPIndex{ 0 };
+	float m_fCheckRotationTime = 0;
 public:
 	// UI
 	TCHAR m_timeBuffer[1024];

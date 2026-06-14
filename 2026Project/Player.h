@@ -132,6 +132,8 @@ public:
 	CGameObject* m_pCarBodyFrame = NULL;
 	XMFLOAT4X4 m_xmf4x4OriginalBody;
 
+	bool m_bRotate{ false };
+	bool m_bPair{ false };
 public:
 	virtual void OnInitialize();
 	virtual void Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent = NULL);

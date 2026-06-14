@@ -1377,9 +1377,11 @@ void CGameFramework::BuildGameObjects()
 	m_pScene = new CScene();
 	if (m_pScene) {
 		if (0 == m_nSelectedMapIndex) {
+			m_pScene->m_nCurrentMapStage = 0;
 			m_pScene->BuildGameObjects(m_pd3dDevice, m_pd3dCommandList);
 		}
 		else if (1 == m_nSelectedMapIndex) {
+			m_pScene->m_nCurrentMapStage = 1;
 			m_pScene->BuildGameStage2(m_pd3dDevice, m_pd3dCommandList);
 		}
 	}
@@ -1960,6 +1962,24 @@ void CGameFramework::CollisionProcess()
 				else if (randItem == 3) m_eHoldItem = ITEM_LOCK;
 			}
 			
+		}
+		else if (pCollidedObject->m_bIsRCP) {
+			int currentRCP = pCollidedObject->m_nCheckPointIndex;
+			if (m_nLastRCPIndex != currentRCP) {
+				if (currentRCP == 1) {
+					m_pPlayer->Rotate(-18, 0, 0);
+				}
+				else if (currentRCP == 2) {
+					m_pPlayer->Rotate(18, 0, 0); 
+				}
+				else if (currentRCP == 3) {
+					m_pPlayer->Rotate(18, 0, 0); 
+				}
+				else if (currentRCP == 4) {
+					m_pPlayer->Rotate(-18, 0, 0);
+				}
+				m_nLastRCPIndex = currentRCP;
+			}
 		}
 		else if (pCollidedObject->m_bIsInvisibleWall)
 		{

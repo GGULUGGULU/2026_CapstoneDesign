@@ -698,7 +698,7 @@ void CScene::BuildGameStage2(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 	BuildUIResources(pd3dDevice, pd3dCommandList);
 
 	// 
-	m_nGameObjects = 1 + 1 + 10;
+	m_nGameObjects = 1 + 1 + 10 + 4;
 	m_ppGameObjects = new CGameObject * [m_nGameObjects];
 
 	CGameObject* pMapModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/FORTR.bin");
@@ -820,6 +820,48 @@ void CScene::BuildGameStage2(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 		pCPObject9->m_bIsCheckPoint = true;
 		pCPObject9->m_nCheckPointIndex = 9;
 		m_ppGameObjects[11] = pCPObject9;
+	}
+
+	{
+		CGameObject* pRCPModel1 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/RCP1.bin");
+		ApplyMeshTextures(pd3dDevice, pd3dCommandList, pRCPModel1);
+		CGameObject* pRCPObject1 = new CGameObject();
+		pRCPObject1->SetChild(pRCPModel1);
+		pRCPObject1->SetPosition(0.0f, -2500.0f, 0.0f);
+		pRCPObject1->SetScale(8, 8, 8);
+		pRCPObject1->m_bIsRCP = true;
+		pRCPObject1->m_nCheckPointIndex = 1;
+		m_ppGameObjects[12] = pRCPObject1;
+
+		CGameObject* pRCPModel2 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/RCP2.bin");
+		ApplyMeshTextures(pd3dDevice, pd3dCommandList, pRCPModel2);
+		CGameObject* pRCPObject2 = new CGameObject();
+		pRCPObject2->SetChild(pRCPModel2);
+		pRCPObject2->SetPosition(0.0f, -2500.0f, 0.0f);
+		pRCPObject2->SetScale(8, 8, 8);
+		pRCPObject2->m_bIsRCP = true;
+		pRCPObject2->m_nCheckPointIndex = 2;
+		m_ppGameObjects[13] = pRCPObject2;
+
+		CGameObject* pRCPModel3 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/RCP3.bin");
+		ApplyMeshTextures(pd3dDevice, pd3dCommandList, pRCPModel3);
+		CGameObject* pRCPObject3 = new CGameObject();
+		pRCPObject3->SetChild(pRCPModel3);
+		pRCPObject3->SetPosition(0.0f, -2500.0f, 0.0f);
+		pRCPObject3->SetScale(8, 8, 8);
+		pRCPObject3->m_bIsRCP = true;
+		pRCPObject3->m_nCheckPointIndex = 3;
+		m_ppGameObjects[14] = pRCPObject3;
+
+		CGameObject* pRCPModel4 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/RCP4.bin");
+		ApplyMeshTextures(pd3dDevice, pd3dCommandList, pRCPModel4);
+		CGameObject* pRCPObject4 = new CGameObject();
+		pRCPObject4->SetChild(pRCPModel4);
+		pRCPObject4->SetPosition(0.0f, -2500.0f, 0.0f);
+		pRCPObject4->SetScale(8, 8, 8);
+		pRCPObject4->m_bIsRCP = true;
+		pRCPObject4->m_nCheckPointIndex = 4;
+		m_ppGameObjects[15] = pRCPObject4;
 	}
 
 	CreateWireFrameBox(pd3dDevice, pd3dCommandList);
@@ -1237,13 +1279,14 @@ bool CScene::CheckCollision()
 		if (!pObject || !pObject->m_bIsActive) continue;
 		if (pObject->m_bIsGround) continue;
 
-		if (pObject->m_bIsInvisibleWall || pObject->m_bIsCheckPoint)
+		if (pObject->m_bIsInvisibleWall || pObject->m_bIsCheckPoint || pObject->m_bIsRCP)
 		{
 			if (CheckRecursiveCollision(pObject, worldPlayerOBB, playerPos, &m_pCollidedObject))
 			{
 				m_pCollidedObject->m_bIsInvisibleWall = pObject->m_bIsInvisibleWall;
 				m_pCollidedObject->m_bIsCheckPoint = pObject->m_bIsCheckPoint;
 				m_pCollidedObject->m_nCheckPointIndex = pObject->m_nCheckPointIndex;
+				m_pCollidedObject->m_bIsRCP = pObject->m_bIsRCP;
 				return true;
 			}
 		}
@@ -1286,23 +1329,23 @@ bool CScene::CheckGroundCollision()
 	float bestT = FLT_MAX;
 	float bestY = -FLT_MAX;
 
-	{
-		XMVECTOR vRayOrigin = XMVectorSet(rayX, playerBottomY + 10.0f, rayZ, 1.0f);
-		XMVECTOR vRayDir = XMVectorSet(0.0f, -1.0f, 0.0f, 0.0f);
-		XMVECTOR vRayTarget = vRayOrigin + vRayDir * rayMaxDistance;
-
-		for (int i = 0; i < m_nGameObjects; ++i)
-		{
-			CGameObject* pObject = m_ppGameObjects[i];
-			if (!pObject) continue;
-			if (!pObject->m_bIsGround) continue;
-			RaycastDownRecursive(pObject, vRayOrigin, vRayTarget, vRayDir, rayMaxDistance, bestT, bestY);
-		}
-	}
+	//{
+	//	XMVECTOR vRayOrigin = XMVectorSet(rayX, playerBottomY + 10.0f, rayZ, 1.0f);
+	//	XMVECTOR vRayDir = XMVectorSet(0.0f, -1.0f, 0.0f, 0.0f);
+	//	XMVECTOR vRayTarget = vRayOrigin + vRayDir * rayMaxDistance;
+	//
+	//	for (int i = 0; i < m_nGameObjects; ++i)
+	//	{
+	//		CGameObject* pObject = m_ppGameObjects[i];
+	//		if (!pObject) continue;
+	//		if (!pObject->m_bIsGround) continue;
+	//		RaycastDownRecursive(pObject, vRayOrigin, vRayTarget, vRayDir, rayMaxDistance, bestT, bestY);
+	//	}
+	//}
 
 	if (bestT == FLT_MAX)
 	{
-		XMVECTOR vRayOrigin = XMVectorSet(rayX, playerBottomY + 200.0f, rayZ, 1.0f);
+		XMVECTOR vRayOrigin = XMVectorSet(rayX, playerBottomY + 40.0f, rayZ, 1.0f);
 		XMVECTOR vRayDir = XMVectorSet(0.0f, -1.0f, 0.0f, 0.0f);
 		XMVECTOR vRayTarget = vRayOrigin + vRayDir * rayMaxDistance;
 
@@ -1921,8 +1964,11 @@ void CScene::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera
 	{
 		if (m_ppGameObjects[i])
 		{
-			if (i >= 1 && i <= 12) continue; // 스테이지 1 index 1~12번은 체크포인트&벽
+			if (i >= 1 && i <= 12) continue; // 스테이지 1,2 공통 index 1~12번은 체크포인트&벽
 			//if (i == 1) continue; // 스테이지 1 index 1~12번은 체크포인트&벽
+			if (m_nCurrentMapStage == 1) { // 스테이지 2 회전 충돌체
+				if (i >= 13 && i <= 15) continue;
+			}
 			m_ppGameObjects[i]->Animate(m_fElapsedTime, NULL);
 			m_ppGameObjects[i]->UpdateTransform(NULL);
 			m_ppGameObjects[i]->Render(pd3dCommandList, pDebugBoxToRender, pCamera);
