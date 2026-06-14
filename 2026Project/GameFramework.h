@@ -161,9 +161,15 @@ public:
 	void LoadDashVignetteResource();
 	void LoadDashGaugeFrameResource();
 	void LoadRoomUIResource();
+
 	void LoadCarImages();
 	void LoadMapImages();
 	void LoadReadyImage();
+
+	void LoadSpeedometerUIResource();
+	void DrawSpeedometerUI();
+
+
 
 	void CreateRemotePlayers();
 	void ReleaseRemotePlayers();
@@ -262,6 +268,13 @@ private:
 	ComPtr<ID2D1Bitmap> m_pMapImages[2];
 	ComPtr<ID2D1Bitmap> m_pReadyImage;
 	ComPtr<ID2D1Bitmap> m_pDashGaugeFrameBitmap;
+
+	ComPtr<ID2D1Bitmap1> m_pSpeedometerBitmap;
+	ComPtr<ID2D1Bitmap1> m_pSpeedNeedleBitmap;
+
+
+
+
 
 	float m_fDashVignetteAlpha = 0.0f;
 

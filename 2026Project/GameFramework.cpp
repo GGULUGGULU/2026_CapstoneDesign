@@ -95,6 +95,8 @@ bool CGameFramework::OnCreate(HINSTANCE hInstance, HWND hMainWnd)
 	LoadDashVignetteResource();
 	LoadDashGaugeFrameResource();
 	LoadHelpUIResource();
+	LoadSpeedometerUIResource();
+
 	LoadLobbyUIResource();
 	LoadResultUIResource();
 	LoadRoomUIResource();
@@ -2527,6 +2529,8 @@ void CGameFramework::RenderUI()
 				m_textTimeBrush.Get()
 			);
 
+			DrawSpeedometerUI();
+
 			m_d2dDeviceContext->DrawTextW(
 				m_speedBuffer,
 				wcslen(m_speedBuffer),
@@ -4332,6 +4336,105 @@ void CGameFramework::DrawHelpUI()
 	);
 }
 
+// 속도계 ui
+void CGameFramework::DrawSpeedometerUI()
+{
+	if (!m_pSpeedometerBitmap) return;
+
+	//float speedUIWidth = m_nWndClientWidth * 0.32f * 1.4f;
+	//float speedUIHeight = speedUIWidth * (768.0f / 1536.0f);
+	float speedUIWidth = m_nWndClientWidth * 0.30f;
+	float speedUIHeight = speedUIWidth * 0.68f;
+
+	float speedUILeft = ((float)m_nWndClientWidth - speedUIWidth) * 0.5f;
+	float speedUITop = (float)m_nWndClientHeight - speedUIHeight + 10.0f;
+	float speedUIRight = speedUILeft + speedUIWidth;
+	float speedUIBottom = speedUITop + speedUIHeight; // 회전축 위치
+
+	D2D1_RECT_F speedRect = D2D1::RectF(
+		speedUILeft,
+		speedUITop,
+		speedUIRight,
+		speedUIBottom
+	);
+
+	m_d2dDeviceContext->DrawBitmap(
+		m_pSpeedometerBitmap.Get(),
+		speedRect,
+		1.0f,
+		D2D1_BITMAP_INTERPOLATION_MODE_LINEAR
+	);
+
+	if (!m_pSpeedNeedleBitmap) return;
+
+	float displaySpeed = (float)m_nPlayerCurrentSpeed / 2.1f;
+
+
+
+	float ratio = displaySpeed / 350.0f;
+	if (ratio < 0.0f) ratio = 0.0f;
+	if (ratio > 1.0f) ratio = 1.0f;
+
+
+	// 시침
+	// float needleOffsetY = speedUIHeight * -0.27f;
+	float needleOffsetY = speedUIHeight * -0.10f;
+
+	// float angle = +173.0f + ratio * 220.0f;
+	//float angle = -180.0f + ratio * 180.0f;
+
+	float angle = -185.0f + ratio * 182.0f;
+
+	//D2D1_POINT_2F pivot = D2D1::Point2F(
+	//	speedUILeft + speedUIWidth * 0.50f,
+	//	speedUITop + speedUIHeight * 0.72f + needleOffsetY
+	//);
+	D2D1_POINT_2F pivot = D2D1::Point2F(
+		speedUILeft + speedUIWidth * 0.50f,
+		speedUITop + speedUIHeight * 0.64f
+	);
+
+
+	//float needleW = speedUIWidth * 0.25f; // 시침가로길이
+	//float needleH = speedUIHeight * 0.25f; // 18
+
+
+	float needleW = speedUIWidth * 0.3f;
+	float needleH = speedUIHeight * 0.3f;
+
+	//float needleOffsetX = 25.0f;
+	//float needleOffsetY2 = -10.0f;
+	float needleOffsetX = 0.0f;
+	float needleOffsetY2 = 0.0f;
+
+	// 시침 중심조절
+	float needlePivotOffsetX = needleH * 0.25f;
+
+	D2D1_RECT_F needleRect = D2D1::RectF(
+		pivot.x - needlePivotOffsetX + needleOffsetX,
+		pivot.y - needleH * 0.5f + needleOffsetY2,
+		pivot.x - needlePivotOffsetX + needleW + needleOffsetX,
+		pivot.y + needleH * 0.5f + needleOffsetY2
+	);
+
+	D2D1_MATRIX_3X2_F oldTransform;
+	m_d2dDeviceContext->GetTransform(&oldTransform);
+
+	m_d2dDeviceContext->SetTransform(
+		D2D1::Matrix3x2F::Rotation(angle, pivot)
+	);
+
+	m_d2dDeviceContext->DrawBitmap(
+		m_pSpeedNeedleBitmap.Get(),
+		needleRect,
+		1.0f,
+		D2D1_BITMAP_INTERPOLATION_MODE_LINEAR
+	);
+
+	m_d2dDeviceContext->SetTransform(oldTransform);
+}
+
+
 XMFLOAT3 CGameFramework::GetDashGaugeColor() const
 {
 	if (m_bDashLocked)
@@ -4381,3 +4484,73 @@ void CGameFramework::LoadDashGaugeFrameResource()
 		&m_pDashGaugeFrameBitmap
 	);
 }
+
+void CGameFramework::LoadSpeedometerUIResource()
+{
+	ComPtr<IWICBitmapDecoder> decoder;
+	ComPtr<IWICBitmapFrameDecode> frame;
+	ComPtr<IWICFormatConverter> converter;
+
+	HRESULT hr = m_pWICFactory->CreateDecoderFromFilename(
+		L"Asset/image/speedometer.png",
+		NULL,
+		GENERIC_READ,
+		WICDecodeMetadataCacheOnLoad,
+		&decoder
+	);
+
+	if (SUCCEEDED(hr))
+	{
+		decoder->GetFrame(0, &frame);
+		m_pWICFactory->CreateFormatConverter(&converter);
+
+		converter->Initialize(
+			frame.Get(),
+			GUID_WICPixelFormat32bppPBGRA,
+			WICBitmapDitherTypeNone,
+			NULL,
+			0.0f,
+			WICBitmapPaletteTypeMedianCut
+		);
+
+		m_d2dDeviceContext->CreateBitmapFromWicBitmap(
+			converter.Get(),
+			NULL,
+			&m_pSpeedometerBitmap
+		);
+	}
+
+	decoder.Reset();
+	frame.Reset();
+	converter.Reset();
+
+	hr = m_pWICFactory->CreateDecoderFromFilename(
+		L"Asset/image/speed_needle.png",
+		NULL,
+		GENERIC_READ,
+		WICDecodeMetadataCacheOnLoad,
+		&decoder
+	);
+
+	if (SUCCEEDED(hr))
+	{
+		decoder->GetFrame(0, &frame);
+		m_pWICFactory->CreateFormatConverter(&converter);
+
+		converter->Initialize(
+			frame.Get(),
+			GUID_WICPixelFormat32bppPBGRA,
+			WICBitmapDitherTypeNone,
+			NULL,
+			0.0f,
+			WICBitmapPaletteTypeMedianCut
+		);
+
+		m_d2dDeviceContext->CreateBitmapFromWicBitmap(
+			converter.Get(),
+			NULL,
+			&m_pSpeedNeedleBitmap
+		);
+	}
+}
+
