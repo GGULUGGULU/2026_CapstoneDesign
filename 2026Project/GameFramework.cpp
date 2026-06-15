@@ -1035,7 +1035,6 @@ void CGameFramework::ProcessInputGameStage()
 	const bool bRight = ((pKeysBuffer[VK_RIGHT] & 0xF0) != 0);
 	const bool bHasDriveInput = (bForward || bBackward);
 	const bool bDashKeyDown = ((::GetAsyncKeyState('Z') & 0x8000) != 0);
-	m_bShowHelpUI = ((::GetAsyncKeyState(VK_TAB) & 0x8000) != 0);
 
 
 	const float fTimeElapsed = m_GameTimer.GetTimeElapsed();
@@ -2887,11 +2886,10 @@ void CGameFramework::RenderUI()
 
 
 
-	if (m_nStage == 2 && m_bShowHelpUI)
+	if (m_bShowHelpUI)
 	{
 		DrawHelpUI();
 	}
-
 
 	m_d2dDeviceContext->EndDraw();
 	m_d3d11On12Device->ReleaseWrappedResources(m_wrappedBackBuffers[m_nSwapChainBufferIndex].GetAddressOf(), 1);
@@ -3775,7 +3773,19 @@ void CGameFramework::CheckResult()
 
 void CGameFramework::FrameAdvance()
 {
+
 	m_GameTimer.Tick(0.0f);
+
+
+
+	
+	if (m_nStage == -2 || m_nStage == 2)
+		m_bShowHelpUI = ((::GetAsyncKeyState(VK_TAB) & 0x8000) != 0);
+	else
+		m_bShowHelpUI = false;
+
+
+	
 
 
 	if (m_bPlayingIntroVideo)
@@ -4423,26 +4433,27 @@ void CGameFramework::LoadLoadingImage()
 // 도움말 ui 
 void CGameFramework::DrawHelpUI()
 {
-	if (!m_pHelpUID2DBitmap) return;
+	float screenW = (float)m_nWndClientWidth;
+	float screenH = (float)m_nWndClientHeight;
 
-	float width = 900.0f;
-	float height = 500.0f;
 
-	float left = ((float)m_nWndClientWidth - width) * 0.5f;
-	float top = ((float)m_nWndClientHeight - height) * 0.5f;
+	float helpW = screenW * 0.75f;
+	float helpH = screenH * 0.75f;
 
-	D2D1_RECT_F rect = D2D1::RectF(
+
+	float left = (screenW - helpW) * 0.5f;
+	float top = (screenH - helpH) * 0.5f;
+
+	D2D1_RECT_F helpRect = D2D1::RectF(
 		left,
 		top,
-		left + width,
-		top + height
+		left + helpW,
+		top + helpH
 	);
 
 	m_d2dDeviceContext->DrawBitmap(
 		m_pHelpUID2DBitmap.Get(),
-		rect,
-		0.7f, // 투명도
-		D2D1_BITMAP_INTERPOLATION_MODE_LINEAR
+		helpRect
 	);
 }
 
