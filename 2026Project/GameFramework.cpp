@@ -1671,6 +1671,8 @@ void CGameFramework::UpdateDashSystem(float fTimeElapsed, bool bDashKeyDown, boo
 				m_bDashOverheated = true;
 				m_fDashOverheatTime = 0.8f;
 
+				m_SoundManager.PlaySFX("Asset/Audio/Boom.mp3");
+
 		
 				XMFLOAT3 v = m_pPlayer->GetVelocity();
 				XMVECTOR vel = XMLoadFloat3(&v);
