@@ -4565,7 +4565,8 @@ void CGameFramework::DrawSpeedometerUI()
 XMFLOAT3 CGameFramework::GetDashGaugeColor() const
 {
 	if (m_bDashLocked)
-		return XMFLOAT3(1.0f, 0.75f, 0.1f); // 노랑
+		//	return XMFLOAT3(1.0f, 0.75f, 0.1f); // 노랑
+		return XMFLOAT3(0.65f, 0.65f, 0.65f); // 회색
 
 	if (m_fSpeedItemBonusTime > 0.0f)
 		return XMFLOAT3(0.2f, 1.0f, 0.3f); // 초록
@@ -4574,7 +4575,7 @@ XMFLOAT3 CGameFramework::GetDashGaugeColor() const
 		return XMFLOAT3(0.2f, 0.7f, 1.0f); // 파랑
 
 	// return XMFLOAT3(1.0f, 0.2f, 0.2f); // 빨강
-	return XMFLOAT3(0.9f, 0.9f, 0.9f); // 흰
+	return XMFLOAT3(1.0f, 0.75f, 0.1f); 
 }
 
 void CGameFramework::LoadDashGaugeFrameResource()
