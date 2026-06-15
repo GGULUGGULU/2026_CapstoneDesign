@@ -103,6 +103,8 @@ bool CGameFramework::OnCreate(HINSTANCE hInstance, HWND hMainWnd)
 	LoadCarImages();
 	LoadMapImages();
 	LoadReadyImage();
+	LoadLoadingImage();
+
 
 	CreateDepthStencilView();
 
@@ -2793,6 +2795,13 @@ void CGameFramework::RenderUI()
 
 		}
 	}
+
+	if (m_nStage == 1)
+	{
+		DrawLoadingImage();
+	}
+
+
 	else if (100 == m_nStage)
 	{
 		if (m_pResultD2DBitmap)
@@ -3803,12 +3812,13 @@ void CGameFramework::FrameAdvance()
 
 	SetUIInfo();
 	SyncMultiplayer();
-	if (1 == m_nStage)
-	{
-		m_pScene->m_nGFStage = m_nStage = 2;
+	//if (1 == m_nStage)
+	//{
+	//	m_pScene->m_nGFStage = m_nStage = 2;
 
-		BuildGameObjects();
-	} // 
+	//	BuildGameObjects();
+	//} // 
+
 
 	if (-1 == m_nStage) {
 		m_pScene->m_nGFStage = m_nStage = -2;
@@ -3819,6 +3829,33 @@ void CGameFramework::FrameAdvance()
 	{
 		ProcessInput();
 	}
+
+	else if (1 == m_nStage)
+	{
+		if (!m_bLoadingPageShown)
+		{
+			m_bLoadingPageShown = true;
+		}
+		else
+		{
+			if (!m_bGameObjectsBuilt)
+			{
+				BuildGameObjects();
+				m_bGameObjectsBuilt = true;
+			}
+
+			SyncInGame();
+
+			if (!m_bMultiplayerEnabled || m_bServerStartSign)
+			{
+				m_nStage = 2;
+				m_bGameObjectsBuilt = false;
+				m_bLoadingPageShown = false;
+			}
+		}
+	}
+
+
 	else if (2 == m_nStage)
 	{
 		CollisionProcess();
@@ -4328,6 +4365,57 @@ void CGameFramework::LoadReadyImage()
 	m_d2dDeviceContext->CreateBitmapFromWicBitmap(
 		converter.Get(), nullptr, &m_pReadyImage);
 
+}
+void CGameFramework::DrawLoadingImage()
+{
+	if (!m_pLoadingImage) return;
+
+	D2D1_RECT_F rect = D2D1::RectF(
+		0.0f,
+		0.0f,
+		(float)m_nWndClientWidth,
+		(float)m_nWndClientHeight
+	);
+
+	m_d2dDeviceContext->DrawBitmap(m_pLoadingImage.Get(), rect);
+}
+
+void CGameFramework::LoadLoadingImage()
+{
+	m_pLoadingImage.Reset();
+
+	ComPtr<IWICBitmapDecoder> decoder;
+	ComPtr<IWICBitmapFrameDecode> frame;
+	ComPtr<IWICFormatConverter> converter;
+
+	HRESULT hr = m_pWICFactory->CreateDecoderFromFilename(
+		L"Asset/image/loading.png",
+		nullptr,
+		GENERIC_READ,
+		WICDecodeMetadataCacheOnLoad,
+		decoder.GetAddressOf()
+	);
+
+	if (FAILED(hr)) return;
+
+	decoder->GetFrame(0, frame.GetAddressOf());
+
+	m_pWICFactory->CreateFormatConverter(converter.GetAddressOf());
+
+	converter->Initialize(
+		frame.Get(),
+		GUID_WICPixelFormat32bppPBGRA,
+		WICBitmapDitherTypeNone,
+		nullptr,
+		0.0f,
+		WICBitmapPaletteTypeMedianCut
+	);
+
+	m_d2dDeviceContext->CreateBitmapFromWicBitmap(
+		converter.Get(),
+		nullptr,
+		m_pLoadingImage.GetAddressOf()
+	);
 }
 
 // 도움말 ui 

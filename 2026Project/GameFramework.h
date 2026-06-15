@@ -438,6 +438,14 @@ public:
 		0.50, 0.9227, 0.3713, 0.1033
 	};
 
+	ComPtr<ID2D1Bitmap1> m_pLoadingImage;
+	bool m_bGameObjectsBuilt = false;
+
+	void LoadLoadingImage();
+	void DrawLoadingImage();
+	bool m_bLoadingPageShown = false;
+
+
 	ComPtr<ID2D1PathGeometry> m_pPathGeometry;
 	ComPtr<ID2D1GeometrySink> m_pSink;
 	
