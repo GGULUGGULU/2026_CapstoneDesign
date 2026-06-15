@@ -1671,6 +1671,7 @@ void CGameFramework::UpdateDashSystem(float fTimeElapsed, bool bDashKeyDown, boo
 				m_fDashOverheatTime = 0.8f;
 
 				m_SoundManager.PlaySFX("Asset/Audio/Boom.mp3");
+			
 
 		
 				XMFLOAT3 v = m_pPlayer->GetVelocity();
@@ -4083,7 +4084,12 @@ void CGameFramework::FrameAdvance()
 			else if (m_eHoldItem == ITEM_MAX_DASH_GAUGE_UP) itemIdx = 2;
 			else if (m_eHoldItem == ITEM_LOCK) itemIdx = 3;
 
-			m_pScene->RenderItemUI(m_pd3dCommandList, itemIdx);
+			m_pScene->RenderItemUI(
+				m_pd3dCommandList,
+				itemIdx,
+				m_nWndClientWidth,
+				m_nWndClientHeight
+			);
 		}
 
 		D3D12_RESOURCE_BARRIER presentBarrier = CD3DX12_RESOURCE_BARRIER::Transition(

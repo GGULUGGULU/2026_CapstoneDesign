@@ -351,7 +351,17 @@ CUIMesh::CUIMesh(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dComman
 	{ XMFLOAT3(-0.80f,  0.55f, 0.0f), XMFLOAT2(1.0f, 1.0f) } 
 	};
 
-	m_pd3dVertexBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, pVertices, m_nStride * m_nVertices, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, &m_pd3dVertexUploadBuffer);
+	/*m_pd3dVertexBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, pVertices, m_nStride * m_nVertices, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, &m_pd3dVertexUploadBuffer);*/
+
+	m_pd3dVertexBuffer = ::CreateBufferResource(
+		pd3dDevice,
+		pd3dCommandList,
+		pVertices,
+		m_nStride * m_nVertices,
+		D3D12_HEAP_TYPE_UPLOAD,
+		D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER,
+		nullptr);
+
 
 	m_d3dVertexBufferView.BufferLocation = m_pd3dVertexBuffer->GetGPUVirtualAddress();
 	m_d3dVertexBufferView.StrideInBytes = m_nStride;
@@ -365,4 +375,24 @@ void CUIMesh::Render(ID3D12GraphicsCommandList* pd3dCommandList)
 	pd3dCommandList->IASetPrimitiveTopology(m_d3dPrimitiveTopology);
 	pd3dCommandList->IASetVertexBuffers(m_nSlot, 1, &m_d3dVertexBufferView);
 	pd3dCommandList->DrawInstanced(m_nVertices, 1, m_nOffset, 0);
+}
+
+void CUIMesh::SetRect(float left, float top, float right, float bottom)
+{
+	UITexturedVertex vertices[4] =
+	{
+		{ XMFLOAT3(left,  top,    0.0f), XMFLOAT2(0.0f, 0.0f) },
+		{ XMFLOAT3(right, top,    0.0f), XMFLOAT2(1.0f, 0.0f) },
+		{ XMFLOAT3(left,  bottom, 0.0f), XMFLOAT2(0.0f, 1.0f) },
+		{ XMFLOAT3(right, bottom, 0.0f), XMFLOAT2(1.0f, 1.0f) }
+	};
+
+	void* pMappedData = nullptr;
+	m_pd3dVertexBuffer->Map(0, nullptr, &pMappedData);
+	memcpy(pMappedData, vertices, sizeof(vertices));
+	m_pd3dVertexBuffer->Unmap(0, nullptr);
+
+	m_d3dVertexBufferView.BufferLocation = m_pd3dVertexBuffer->GetGPUVirtualAddress();
+	m_d3dVertexBufferView.StrideInBytes = m_nStride;
+	m_d3dVertexBufferView.SizeInBytes = m_nStride * m_nVertices;
 }

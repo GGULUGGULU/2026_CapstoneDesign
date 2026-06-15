@@ -87,7 +87,7 @@ public:
 
 	void CreateUIRootSignature(ID3D12Device* pd3dDevice);
 	void BuildUIResources(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
-	void RenderItemUI(ID3D12GraphicsCommandList* pd3dCommandList, int nItemIndex);
+	void RenderItemUI(ID3D12GraphicsCommandList* pd3dCommandList, int nItemIndex, int screenW, int screenH);
 
 	CGameObject* m_pSelectedObject = NULL; // 클릭된 객체 저장용 
 	CGameObject* m_pCollidedObject = NULL;

@@ -1861,10 +1861,10 @@ void CScene::BuildUIResources(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 	m_pUIShader->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dUIRootSignature);
 
 	const wchar_t* texPaths[4] = {
-		L"Asset/DDS_File/Item_Dash.dds",
-		L"Asset/DDS_File/Item_Speed.dds",
-		L"Asset/DDS_File/Item_Gauge.dds",
-		L"Asset/DDS_File/Item_Lock.dds" 
+		L"Asset/DDS_File/Item_Dash_02.dds",
+		L"Asset/DDS_File/Item_Speed_02.dds",
+		L"Asset/DDS_File/Item_Gauge_02.dds",
+		L"Asset/DDS_File/Item_Lock_02.dds" 
 	};
 
 	UINT uiSrvStartIndex = m_nNextSrvTableIndex;
@@ -1919,12 +1919,31 @@ void CScene::BuildUIResources(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 	}
 }
 
-void CScene::RenderItemUI(ID3D12GraphicsCommandList* pd3dCommandList, int nItemIndex)
+
+void CScene::RenderItemUI(ID3D12GraphicsCommandList* pd3dCommandList, int nItemIndex, int screenW, int screenH)
 {
 	if (!m_pd3dUIRootSignature || !m_pUIShader || !m_pUIMesh) return;
+	if (nItemIndex < 0 || nItemIndex >= 4) return;
+
+	float baseW = 1280.0f;
+	float baseH = 720.0f;
+
+	float scale = (float)screenH / baseH;
+
+	float iconSize = 90.0f * scale; // 아이템 아이콘 사이즈 조절 
+
+	float iconW = (iconSize / (float)screenW) * 2.0f;
+	float iconH = (iconSize / (float)screenH) * 2.0f;
+
+	float left = -0.95f;
+	float top = 0.85f;
+	float right = left + iconW;
+	float bottom = top - iconH;
+
+	m_pUIMesh->SetRect(left, top, right, bottom);
 
 	pd3dCommandList->SetGraphicsRootSignature(m_pd3dUIRootSignature);
-	m_pUIShader->Render(pd3dCommandList, 0); 
+	m_pUIShader->Render(pd3dCommandList, 0);
 
 	pd3dCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
@@ -1935,6 +1954,7 @@ void CScene::RenderItemUI(ID3D12GraphicsCommandList* pd3dCommandList, int nItemI
 
 	m_pUIMesh->Render(pd3dCommandList);
 }
+
 
 void CScene::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
 {

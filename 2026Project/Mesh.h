@@ -181,4 +181,7 @@ public:
 	ID3D12Resource* m_pd3dVertexBuffer = NULL;
 	ID3D12Resource* m_pd3dVertexUploadBuffer = NULL;
 	D3D12_VERTEX_BUFFER_VIEW m_d3dVertexBufferView;
+
+	void SetRect(float left, float top, float right, float bottom);
+
 };
