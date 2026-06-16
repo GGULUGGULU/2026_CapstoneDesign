@@ -36,6 +36,11 @@ struct PlayerNetState
 
     std::uint32_t stage = 0;
     std::uint32_t score = 0;
+
+    std::uint32_t currentLap = 0;
+    std::uint32_t passedCheckpoints = 0;
+
+    float distToNextCP = 0.0f;
 };
 
 struct CollisionEventNet

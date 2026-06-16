@@ -77,6 +77,11 @@ struct RemotePlayerInfo {
 	int playerID{ -1 };
 	CPlayer* pPlayer{ nullptr };
 	float yaw{ 180 };
+
+	std::uint32_t currentLap = 0;
+	std::uint32_t passedCheckpoints = 0;
+
+	float distToNextCP = 0.0f;
 };
 
 class CGameFramework
@@ -205,7 +210,6 @@ public:
 
 	D2D1_RECT_F GetGameMenuImageRect() const;
 	D2D1_RECT_F GetGameMenuButtonRect(int index) const;
-	void UpdateGameMenuMouse(POINT pt);
 	ComPtr<ID2D1SolidColorBrush> m_menuButtonBrush;
 
 
@@ -320,9 +324,6 @@ private:
 
 	ComPtr<ID2D1Bitmap1> m_pSpeedometerBitmap;
 	ComPtr<ID2D1Bitmap1> m_pSpeedNeedleBitmap;
-
-
-
 
 
 	float m_fDashVignetteAlpha = 0.0f;

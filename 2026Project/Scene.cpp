@@ -2087,8 +2087,8 @@ void CScene::BuildUIResources(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 
 	const wchar_t* texPaths[4] = {
 		L"Asset/DDS_File/Item_Dash_02.dds",
-		L"Asset/DDS_File/Item_Speed_02.dds",
 		L"Asset/DDS_File/Item_Gauge_02.dds",
+		L"Asset/DDS_File/Item_Speed_02.dds",
 		L"Asset/DDS_File/Item_Lock_02.dds" 
 	};
 

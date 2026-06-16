@@ -2816,294 +2816,351 @@ void CGameFramework::RenderUI()
 
 		//swprintf_s(m_speedBuffer, 1024, L"%d Km/h", m_nPlayerCurrentSpeed);
 		//swprintf_s(m_speedBuffer, 1024, L"%d Km/h  [Res: %d x %d]", m_nPlayerCurrentSpeed, m_nWndClientWidth, m_nWndClientHeight);
-		const wchar_t* pwszNetStatus = L"OFF";
-		if (m_pNetwork)
-		{
-			if (m_pNetwork->IsHosting())
-				pwszNetStatus = (m_pNetwork->IsConnected() ? L"HOST CONNECTED" : L"HOST WAITING");
-			else
-				pwszNetStatus = (m_pNetwork->IsConnected() ? L"CLIENT CONNECTED" : L"CLIENT DISCONNECTED");
-		}
+		//const wchar_t* pwszNetStatus = L"OFF";
+		//if (m_pNetwork)
+		//{
+		//	if (m_pNetwork->IsHosting())
+		//		pwszNetStatus = (m_pNetwork->IsConnected() ? L"HOST CONNECTED" : L"HOST WAITING");
+		//	else
+		//		pwszNetStatus = (m_pNetwork->IsConnected() ? L"CLIENT CONNECTED" : L"CLIENT DISCONNECTED");
+		//}
 
-		swprintf_s(
-			m_speedBuffer,
-			1024,
-			L"%d Km/h  Dash : %.0f / %.0f  Net : %s  [Res: %d x %d]",
-			m_nPlayerCurrentSpeed / 2,
-			m_fCurrentDashGauge,
-			m_fMaxDashGauge,
-			pwszNetStatus,
-			m_nWndClientWidth,
-			m_nWndClientHeight
+		//swprintf_s(
+		//	m_speedBuffer,
+		//	1024,
+		//	L"%d Km/h  Dash : %.0f / %.0f  Net : %s  [Res: %d x %d]",
+		//	m_nPlayerCurrentSpeed / 2,
+		//	m_fCurrentDashGauge,
+		//	m_fMaxDashGauge,
+		//	pwszNetStatus,
+		//	m_nWndClientWidth,
+		//	m_nWndClientHeight
+		//);
+		////////////////////////////////////////////////////////////////////
+		swprintf_s(lapBuffer, L"LAP %d / %d", m_nCurrentLap, 3);
+
+		m_d2dDeviceContext->DrawTextW(
+			lapBuffer,
+			(UINT32)wcslen(lapBuffer),
+			m_textTimeFormat.Get(),
+			D2D1::RectF((float)m_nWndClientWidth - 200.0f, 50.0f, 
+				(float)m_nWndClientHeight - 20.0f, 100.0f),
+			m_textTimeBrush.Get()
 		);
 
-		if (2 == m_nStage)
+		m_d2dDeviceContext->DrawTextW(
+			m_timeBuffer,
+			wcslen(m_timeBuffer),
+			m_textTimeFormat.Get(),
+			D2D1::RectF(10.0f, 10.0f,
+				(float)m_nWndClientWidth - 10.0f,
+				(float)m_nWndClientHeight - 10.0f),
+			m_textTimeBrush.Get()
+		);
+
+		int nTotalActivePlayers = (m_pNetwork && m_pNetwork->IsConnected()) ? m_pNetwork->GetCurrentPlayerCount() : 1;
+		int nMyRank = 1;
+
+		if (m_bMultiplayerEnabled)
 		{
-			swprintf_s(lapBuffer, L"LAP %d / %d", m_nCurrentLap, 3);
-
-			m_d2dDeviceContext->DrawTextW(
-				lapBuffer,
-				(UINT32)wcslen(lapBuffer),
-				m_textTimeFormat.Get(),
-				D2D1::RectF((float)m_nWndClientWidth - 200.0f, 50.0f, 
-					(float)m_nWndClientHeight - 20.0f, 100.0f),
-				m_textTimeBrush.Get()
-			);
-
-			m_d2dDeviceContext->DrawTextW(
-				m_timeBuffer,
-				wcslen(m_timeBuffer),
-				m_textTimeFormat.Get(),
-				D2D1::RectF(10.0f, 10.0f,
-					(float)m_nWndClientWidth - 10.0f,
-					(float)m_nWndClientHeight - 10.0f),
-				m_textTimeBrush.Get()
-			);
-
-			DrawSpeedometerUI();
-
-
-			m_d2dDeviceContext->DrawTextW(
-				m_speedBuffer,
-				wcslen(m_speedBuffer),
-				m_textSpeedFormat.Get(),
-				D2D1::RectF(10, 10,
-					(float)m_nWndClientWidth - 10.0f,
-					(float)m_nWndClientHeight - 10.0f),
-				m_textSpeedBrush.Get()
-			);
-
-			
-			// 연료통 ui
-			float dashFrameWidth = m_nWndClientWidth * 0.30f;
-			float dashFrameHeight = dashFrameWidth * (1024.0f / 1536.0f);
-
-			float dashFrameLeft = 25.0f;
-			float dashFrameBottom = (float)m_nWndClientHeight +15.0f;
-			float dashFrameTop = dashFrameBottom - dashFrameHeight;
-			float dashFrameRight = dashFrameLeft + dashFrameWidth;
-
-			D2D1_RECT_F dashFrameRect = D2D1::RectF(
-				dashFrameLeft,
-				dashFrameTop,
-				dashFrameRight,
-				dashFrameBottom
-			);
-
-			if (m_pDashGaugeFrameBitmap)
+			float fMyDistToNextCP = 999999.0f;
+			if (m_pScene && m_pScene->m_ppGameObjects)
 			{
-				m_d2dDeviceContext->DrawBitmap(
-					m_pDashGaugeFrameBitmap.Get(),
-					dashFrameRect,
-					1.0f,
-					D2D1_BITMAP_INTERPOLATION_MODE_LINEAR
-				);
+				int nextCPIndex = m_nPassedCheckPoints + 1;
+				int objectIndex = -1;
+
+				if (m_nSelectedMapIndex == 0) objectIndex = nextCPIndex + 2;
+				else if (m_nSelectedMapIndex == 1) objectIndex = nextCPIndex + 1;
+
+				if (objectIndex != -1 && m_pScene->m_ppGameObjects[objectIndex])
+				{
+					XMFLOAT3 nextCPPos = m_pScene->m_ppGameObjects[objectIndex]->GetPosition();
+					XMVECTOR vPlayer = XMLoadFloat3(&m_pPlayer->GetPosition());
+					XMVECTOR vCP = XMLoadFloat3(&nextCPPos);
+					fMyDistToNextCP = XMVectorGetX(XMVector3Length(vCP - vPlayer));
+				}
 			}
 
-			// 게이지바
-			float dashLeft = dashFrameLeft + dashFrameWidth * 0.28f;
-			float dashRight = dashFrameLeft + dashFrameWidth * 0.72f;
-			float dashTop = dashFrameTop + dashFrameHeight * 0.465f;
-			float dashBottom = dashFrameTop + dashFrameHeight * 0.585f;
+			for (const auto& info : m_vRemotePlayers)
+			{
+				if (info.playerID != -1 && info.pPlayer && info.pPlayer->m_bIsActive)
+				{
+					if (info.currentLap > m_nCurrentLap)
+					{
+						nMyRank++;
+					}
+					else if (info.currentLap == m_nCurrentLap)
+					{
+						if (info.passedCheckpoints > m_nPassedCheckPoints)
+						{
+							nMyRank++;
+						}
+						else if (info.passedCheckpoints == m_nPassedCheckPoints)
+						{
+							if (info.distToNextCP < fMyDistToNextCP)
+							{
+								nMyRank++;
+							}
+						}
+					}
+				}
+			}
+		}
 
-			float dashRatio = 0.0f;
+		wchar_t rankBuffer[64];
+		swprintf_s(rankBuffer, 64, L"RANK %d / %d", nMyRank, nTotalActivePlayers);
 
-			if (m_fMaxDashGauge > 0.0f)
-				dashRatio = m_fCurrentDashGauge / m_fMaxDashGauge;
+		m_d2dDeviceContext->DrawTextW(
+			rankBuffer,
+			(UINT32)wcslen(rankBuffer),
+			m_textTimeFormat.Get(),
+			D2D1::RectF((float)m_nWndClientWidth - 200.0f, 100.0f,
+				(float)m_nWndClientWidth - 20.0f, 150.0f),
+			m_textTimeBrush.Get()
+		);
+		///////////////////////////////////////////////////////////////////
+		DrawSpeedometerUI();
 
-			if (dashRatio < 0.0f) dashRatio = 0.0f;
-			if (dashRatio > 1.0f) dashRatio = 1.0f;
+		m_d2dDeviceContext->DrawTextW(
+			m_speedBuffer,
+			wcslen(m_speedBuffer),
+			m_textSpeedFormat.Get(),
+			D2D1::RectF(10, 10,
+				(float)m_nWndClientWidth - 10.0f,
+				(float)m_nWndClientHeight - 10.0f),
+			m_textSpeedBrush.Get()
+		);
 
-			XMFLOAT3 gaugeColor = GetDashGaugeColor();
+		// 연료통 ui
+		float dashFrameWidth = m_nWndClientWidth * 0.30f;
+		float dashFrameHeight = dashFrameWidth * (1024.0f / 1536.0f);
 
-			m_dashGaugeFillBrush->SetColor(
-				D2D1::ColorF(gaugeColor.x, gaugeColor.y, gaugeColor.z, 1.0f)
+		float dashFrameLeft = 25.0f;
+		float dashFrameBottom = (float)m_nWndClientHeight +15.0f;
+		float dashFrameTop = dashFrameBottom - dashFrameHeight;
+		float dashFrameRight = dashFrameLeft + dashFrameWidth;
+
+		D2D1_RECT_F dashFrameRect = D2D1::RectF(
+			dashFrameLeft,
+			dashFrameTop,
+			dashFrameRight,
+			dashFrameBottom
+		);
+
+		if (m_pDashGaugeFrameBitmap)
+		{
+			m_d2dDeviceContext->DrawBitmap(
+				m_pDashGaugeFrameBitmap.Get(),
+				dashFrameRect,
+				1.0f,
+				D2D1_BITMAP_INTERPOLATION_MODE_LINEAR
+			);
+		}
+
+		// 게이지바
+		float dashLeft = dashFrameLeft + dashFrameWidth * 0.28f;
+		float dashRight = dashFrameLeft + dashFrameWidth * 0.72f;
+		float dashTop = dashFrameTop + dashFrameHeight * 0.465f;
+		float dashBottom = dashFrameTop + dashFrameHeight * 0.585f;
+
+		float dashRatio = 0.0f;
+
+		if (m_fMaxDashGauge > 0.0f)
+			dashRatio = m_fCurrentDashGauge / m_fMaxDashGauge;
+
+		if (dashRatio < 0.0f) dashRatio = 0.0f;
+		if (dashRatio > 1.0f) dashRatio = 1.0f;
+
+		XMFLOAT3 gaugeColor = GetDashGaugeColor();
+
+		m_dashGaugeFillBrush->SetColor(
+			D2D1::ColorF(gaugeColor.x, gaugeColor.y, gaugeColor.z, 1.0f)
+		);
+
+		float dashGaugeWidth = dashRight - dashLeft;
+		float dashFillRight = dashLeft + (dashGaugeWidth * dashRatio);
+
+		D2D1_RECT_F dashFillRect = D2D1::RectF(
+			dashLeft,
+			dashTop,
+			dashFillRight,
+			dashBottom
+		);
+
+		m_d2dDeviceContext->FillRectangle(
+			&dashFillRect,
+			m_dashGaugeFillBrush.Get()
+		);
+
+		if (m_fDashPotionFlashTime > 0.0f && m_fMaxDashGauge > 0.0f)
+		{
+			float startRatio = m_fDashPotionFlashStartGauge / m_fMaxDashGauge;
+			float endRatio = m_fDashPotionFlashEndGauge / m_fMaxDashGauge;
+
+			if (startRatio < 0.0f) startRatio = 0.0f;
+			if (startRatio > 1.0f) startRatio = 1.0f;
+			if (endRatio < 0.0f) endRatio = 0.0f;
+			if (endRatio > 1.0f) endRatio = 1.0f;
+
+			float flashLeft = dashLeft + (dashGaugeWidth * startRatio);
+			float flashRight = dashLeft + (dashGaugeWidth * endRatio);
+
+			float alpha = m_fDashPotionFlashTime / m_fDashPotionFlashDuration;
+
+			ComPtr<ID2D1SolidColorBrush> flashBrush;
+
+			m_d2dDeviceContext->CreateSolidColorBrush(
+				D2D1::ColorF(1.0f, 0.2f, 0.2f, alpha),
+				&flashBrush
 			);
 
-			float dashGaugeWidth = dashRight - dashLeft;
-			float dashFillRight = dashLeft + (dashGaugeWidth * dashRatio);
-
-			D2D1_RECT_F dashFillRect = D2D1::RectF(
-				dashLeft,
+			D2D1_RECT_F flashRect = D2D1::RectF(
+				flashLeft,
 				dashTop,
-				dashFillRight,
+				flashRight,
 				dashBottom
 			);
 
 			m_d2dDeviceContext->FillRectangle(
-				&dashFillRect,
-				m_dashGaugeFillBrush.Get()
+				&flashRect,
+				flashBrush.Get()
 			);
-
-			if (m_fDashPotionFlashTime > 0.0f && m_fMaxDashGauge > 0.0f)
-			{
-				float startRatio = m_fDashPotionFlashStartGauge / m_fMaxDashGauge;
-				float endRatio = m_fDashPotionFlashEndGauge / m_fMaxDashGauge;
-
-				if (startRatio < 0.0f) startRatio = 0.0f;
-				if (startRatio > 1.0f) startRatio = 1.0f;
-				if (endRatio < 0.0f) endRatio = 0.0f;
-				if (endRatio > 1.0f) endRatio = 1.0f;
-
-				float flashLeft = dashLeft + (dashGaugeWidth * startRatio);
-				float flashRight = dashLeft + (dashGaugeWidth * endRatio);
-
-				float alpha = m_fDashPotionFlashTime / m_fDashPotionFlashDuration;
-
-				ComPtr<ID2D1SolidColorBrush> flashBrush;
-
-				m_d2dDeviceContext->CreateSolidColorBrush(
-					D2D1::ColorF(1.0f, 0.2f, 0.2f, alpha),
-					&flashBrush
-				);
-
-				D2D1_RECT_F flashRect = D2D1::RectF(
-					flashLeft,
-					dashTop,
-					flashRight,
-					dashBottom
-				);
-
-				m_d2dDeviceContext->FillRectangle(
-					&flashRect,
-					flashBrush.Get()
-				);
-			}
-
-
-
-			///////////////////////////
-			//float ItemWidth = 60.0f;   // 게이지 너비
-			//float ItemHeight = 90.0f; // 게이지 높이
-			//float ItemmarginX = 10.0f;      // 좌측 여백
-			//float ItemmarginY = 120.0f;      // 하단 여백
-			//
-			//float Itemleft = m_nWndClientWidth * (0.5f * (-0.97f + 1.0f));
-			//float Itemright = m_nWndClientWidth * (0.5f * (-0.78f + 1.0f));
-			//float Itemtop = m_nWndClientHeight * (0.5f * (1.0f - 0.90f));
-			//float Itembottom = m_nWndClientHeight * (0.5f * (1.0f - 0.50f));
-			//
-			//D2D1_RECT_F ItemBgRect = D2D1::RectF(Itemleft, Itemtop, Itemright, Itembottom);
-			//m_d2dDeviceContext->FillRectangle(&ItemBgRect, m_dashGaugeBGBrush.Get());
-
-			float screenW = (float)m_nWndClientWidth;
-			float screenH = (float)m_nWndClientHeight;
-
-			
-			float minimapH = screenH * 0.25f;
-			float minimapW = minimapH;
-
-			minimapH = max(150.0f, min(350.0f, minimapH));
-
-			if (m_pMinimapBitmaps)
-			{
-				auto size = m_pMinimapBitmaps[0]->GetSize();
-				minimapW = minimapH * (size.width / size.height);
-			}
-
-			float margin = screenH * 0.03f;
-
-
-			D2D1_RECT_F frameRect = D2D1::RectF(
-				(float)m_nWndClientWidth - minimapW - margin - 2,
-				(float)m_nWndClientHeight - minimapH - margin - 2,
-				(float)m_nWndClientWidth - margin + 2,
-				(float)m_nWndClientHeight - margin + 2
-			);
-
-			D2D1_RECT_F minimapRect = D2D1::RectF(
-				(float)m_nWndClientWidth - minimapW - margin,
-				(float)m_nWndClientHeight - minimapH - margin,
-				(float)m_nWndClientWidth - margin,
-				(float)m_nWndClientHeight - margin
-			);
-
-			
-			m_d2dDeviceContext->FillRoundedRectangle(
-				D2D1::RoundedRect(frameRect, 12, 12),
-				m_minimapFrameBrush.Get()
-			);
-
-			
-			if (m_pMinimapBitmaps[m_nSelectedMapIndex])
-			{
-				m_d2dDeviceContext->DrawBitmap(
-					m_pMinimapBitmaps[m_nSelectedMapIndex].Get(),
-					minimapRect
-				);
-			}
-
-			// 미니맵 테두리
-			m_d2dDeviceContext->DrawRoundedRectangle(
-				D2D1::RoundedRect(frameRect, 12, 12),
-				m_minimapBorderBrush.Get(),
-				4.0f
-			);
-
-			if (m_pPlayer)
-			{
-				D2D1_POINT_2F pt = WorldToMinimap(
-					m_pPlayer->GetPosition(),
-					minimapRect
-				);
-
-				m_d2dDeviceContext->FillEllipse(
-					D2D1::Ellipse(pt, 5, 5),
-					m_minimapPlayerBrush.Get()
-				);
-			}
-
-			if (m_bMultiplayerEnabled) {
-				for (auto& info : m_vRemotePlayers) {
-					if (info.playerID != -1 && info.pPlayer && info.pPlayer->m_bIsActive) {
-						D2D1_POINT_2F remotePt = WorldToMinimap(
-							info.pPlayer->GetPosition(),
-							minimapRect
-						);
-
-						m_d2dDeviceContext->FillEllipse(
-							D2D1::Ellipse(remotePt, 5, 5),
-							m_minimapOtherBrush.Get()
-						);
-					}
-				}
-			}
-		
-			// 카운트다운
-			if (m_nStage == 2 &&
-				m_bMultiplayerEnabled &&
-				m_pNetwork &&
-				m_pNetwork->IsConnected() &&
-				!m_bRaceStarted)
-			{
-				float remain = m_fRaceStartDelayDuration - m_fRaceStartDelayTime;
-				int count = (int)ceilf(remain);
-
-				if (count > 0)
-				{
-					WCHAR text[32];
-					swprintf_s(text, L"%d", count);
-
-					D2D1_RECT_F rect = D2D1::RectF(
-						0.0f,
-						0.0f,
-						(float)m_nWndClientWidth,
-						(float)m_nWndClientHeight
-					);
-
-					m_d2dDeviceContext->DrawText(
-						text,
-						(UINT32)wcslen(text),
-						m_textCountdownFormat.Get(),
-						rect,
-						m_textCountdownBrush.Get()
-					
-					);
-				}
-			}
-
-
 		}
+
+
+
+		///////////////////////////
+		//float ItemWidth = 60.0f;   // 게이지 너비
+		//float ItemHeight = 90.0f; // 게이지 높이
+		//float ItemmarginX = 10.0f;      // 좌측 여백
+		//float ItemmarginY = 120.0f;      // 하단 여백
+		//
+		//float Itemleft = m_nWndClientWidth * (0.5f * (-0.97f + 1.0f));
+		//float Itemright = m_nWndClientWidth * (0.5f * (-0.78f + 1.0f));
+		//float Itemtop = m_nWndClientHeight * (0.5f * (1.0f - 0.90f));
+		//float Itembottom = m_nWndClientHeight * (0.5f * (1.0f - 0.50f));
+		//
+		//D2D1_RECT_F ItemBgRect = D2D1::RectF(Itemleft, Itemtop, Itemright, Itembottom);
+		//m_d2dDeviceContext->FillRectangle(&ItemBgRect, m_dashGaugeBGBrush.Get());
+
+		float screenW = (float)m_nWndClientWidth;
+		float screenH = (float)m_nWndClientHeight;
+
+			
+		float minimapH = screenH * 0.25f;
+		float minimapW = minimapH;
+
+		minimapH = max(150.0f, min(350.0f, minimapH));
+
+		if (m_pMinimapBitmaps)
+		{
+			auto size = m_pMinimapBitmaps[0]->GetSize();
+			minimapW = minimapH * (size.width / size.height);
+		}
+
+		float margin = screenH * 0.03f;
+
+
+		D2D1_RECT_F frameRect = D2D1::RectF(
+			(float)m_nWndClientWidth - minimapW - margin - 2,
+			(float)m_nWndClientHeight - minimapH - margin - 2,
+			(float)m_nWndClientWidth - margin + 2,
+			(float)m_nWndClientHeight - margin + 2
+		);
+
+		D2D1_RECT_F minimapRect = D2D1::RectF(
+			(float)m_nWndClientWidth - minimapW - margin,
+			(float)m_nWndClientHeight - minimapH - margin,
+			(float)m_nWndClientWidth - margin,
+			(float)m_nWndClientHeight - margin
+		);
+
+			
+		m_d2dDeviceContext->FillRoundedRectangle(
+			D2D1::RoundedRect(frameRect, 12, 12),
+			m_minimapFrameBrush.Get()
+		);
+
+			
+		if (m_pMinimapBitmaps[m_nSelectedMapIndex])
+		{
+			m_d2dDeviceContext->DrawBitmap(
+				m_pMinimapBitmaps[m_nSelectedMapIndex].Get(),
+				minimapRect
+			);
+		}
+
+		// 미니맵 테두리
+		m_d2dDeviceContext->DrawRoundedRectangle(
+			D2D1::RoundedRect(frameRect, 12, 12),
+			m_minimapBorderBrush.Get(),
+			4.0f
+		);
+
+		if (m_pPlayer)
+		{
+			D2D1_POINT_2F pt = WorldToMinimap(
+				m_pPlayer->GetPosition(),
+				minimapRect
+			);
+
+			m_d2dDeviceContext->FillEllipse(
+				D2D1::Ellipse(pt, 5, 5),
+				m_minimapPlayerBrush.Get()
+			);
+		}
+
+		if (m_bMultiplayerEnabled) {
+			for (auto& info : m_vRemotePlayers) {
+				if (info.playerID != -1 && info.pPlayer && info.pPlayer->m_bIsActive) {
+					D2D1_POINT_2F remotePt = WorldToMinimap(
+						info.pPlayer->GetPosition(),
+						minimapRect
+					);
+
+					m_d2dDeviceContext->FillEllipse(
+						D2D1::Ellipse(remotePt, 5, 5),
+						m_minimapOtherBrush.Get()
+					);
+				}
+			}
+		}
+		
+		// 카운트다운
+		if (m_nStage == 2 &&
+			m_bMultiplayerEnabled &&
+			m_pNetwork &&
+			m_pNetwork->IsConnected() &&
+			!m_bRaceStarted)
+		{
+			float remain = m_fRaceStartDelayDuration - m_fRaceStartDelayTime;
+			int count = (int)ceilf(remain);
+
+			if (count > 0)
+			{
+				WCHAR text[32];
+				swprintf_s(text, L"%d", count);
+
+				D2D1_RECT_F rect = D2D1::RectF(
+					0.0f,
+					0.0f,
+					(float)m_nWndClientWidth,
+					(float)m_nWndClientHeight
+				);
+
+				m_d2dDeviceContext->DrawText(
+					text,
+					(UINT32)wcslen(text),
+					m_textCountdownFormat.Get(),
+					rect,
+					m_textCountdownBrush.Get()
+					
+				);
+			}
+		}
+
+
+	
 	}
 
 	if (m_nStage == 1)
@@ -3493,6 +3550,36 @@ PlayerNetState CGameFramework::BuildLocalPlayerState() const
 	state.speed = static_cast<float>(m_nPlayerCurrentSpeed);
 	state.stage = static_cast<unsigned int>(m_nStage);
 	state.score = static_cast<unsigned int>(m_nScore);
+	state.currentLap = static_cast<std::uint32_t>(m_nCurrentLap);
+	state.passedCheckpoints = static_cast<std::uint32_t>(m_nPassedCheckPoints);
+
+	float fDistToNext = 999999.0f; 
+
+	if (m_pScene && m_pScene->m_ppGameObjects)
+	{
+		int nextCPIndex = m_nPassedCheckPoints + 1;
+		int objectIndex = -1;
+
+		if (m_nSelectedMapIndex == 0)
+		{
+			objectIndex = nextCPIndex + 2;
+		}
+		else if (m_nSelectedMapIndex == 1)
+		{
+			objectIndex = nextCPIndex + 1;
+		}
+
+		if (objectIndex != -1 && m_pScene->m_ppGameObjects[objectIndex])
+		{
+			XMFLOAT3 nextCPPos = m_pScene->m_ppGameObjects[objectIndex]->GetPosition();
+
+			XMVECTOR vPlayer = XMLoadFloat3(&position);
+			XMVECTOR vCP = XMLoadFloat3(&nextCPPos);
+			fDistToNext = XMVectorGetX(XMVector3Length(vCP - vPlayer));
+		}
+	}
+
+	state.distToNextCP = fDistToNext;
 
 	return(state);
 }
@@ -3520,6 +3607,12 @@ void CGameFramework::ApplyRemotePlayerState(const PlayerNetState& state)
 	}
 
 	pInfo->yaw = state.yaw;
+
+	pInfo->currentLap = state.currentLap;
+	pInfo->passedCheckpoints = state.passedCheckpoints;
+
+	pInfo->distToNextCP = state.distToNextCP;
+
 	pTargetPlayer->OnPrepareRender();
 }
 
@@ -4994,10 +5087,6 @@ void CGameFramework::DrawGameMenuUI()
 		}
 	}
 }
-
-
-
-
 
 void CGameFramework::DrawLoadingImage()
 {
