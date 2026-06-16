@@ -2598,8 +2598,12 @@ void CGameFramework::RenderUI()
 
 				if (m_nHoveredButtonIndex == i)
 				{
-					m_d2dDeviceContext->FillRectangle(
-						m_LobbyButtons[i].rect,
+					m_d2dDeviceContext->FillRoundedRectangle(
+						D2D1::RoundedRect(
+							m_LobbyButtons[i].rect,
+							15.0f,
+							15.0f
+						),
 						m_pBtnHoverBrush.Get()
 					);
 				}
