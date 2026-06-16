@@ -847,10 +847,6 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 	case WM_KEYUP:
 		switch (wParam)
 		{
-		case VK_ESCAPE:
-			m_bShowGameMenu = !m_bShowGameMenu;
-		
-			break;
 		case VK_RETURN:
 			break;
 		case VK_F1:
@@ -957,8 +953,11 @@ LRESULT CALLBACK CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMess
 	case WM_KEYDOWN:
 		if (wParam == VK_ESCAPE)
 		{
-			m_bNameInputActive = false;
-			m_bShowGameMenu = true;
+			if (!(lParam & 0x40000000)) // 반복입력 방지하기
+			{
+				m_bNameInputActive = false;
+				m_bShowGameMenu = !m_bShowGameMenu;
+			}
 			return 0;
 		}
 
@@ -986,11 +985,11 @@ LRESULT CALLBACK CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMess
 		break;
 
 	case WM_KEYUP:
-		if (wParam == VK_ESCAPE)
+	/*	if (wParam == VK_ESCAPE)
 		{
 			m_bShowGameMenu = false;
 			return 0;
-		}
+		}*/
 
 		if (m_nStage == 0 && m_bNameInputActive)
 		{
