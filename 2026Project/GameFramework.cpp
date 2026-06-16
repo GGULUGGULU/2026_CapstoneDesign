@@ -540,7 +540,8 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 				SaveNameFromEditControl();
 
 				m_nStage = -1;
-				ConnectToServer("127.0.0.1");
+				ConnectToServer("172.30.1.97");
+				//ConnectToServer("127.0.0.1");
 			}
 				//m_nStage = 1; // 임시, 인게임으로 바로 들어가는 경로
 			
