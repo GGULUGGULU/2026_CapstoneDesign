@@ -191,6 +191,25 @@ public:
 	D2D1_RECT_F GetNameInputRect() const;
 
 
+	bool m_bShowGameMenu = false;
+	ComPtr<ID2D1Bitmap1> m_pGameMenuD2DBitmap;
+
+	void LoadGameMenuResource();
+	void DrawGameMenuUI();
+
+
+	int m_nGameMenuHoveredIndex = -1;
+	int m_nGameMenuSelectedIndex = -1; 
+	float m_fBGMVolume = 0.5f;
+	float m_fSFXVolume = 0.5f;
+
+	D2D1_RECT_F GetGameMenuImageRect() const;
+	D2D1_RECT_F GetGameMenuButtonRect(int index) const;
+	void UpdateGameMenuMouse(POINT pt);
+	ComPtr<ID2D1SolidColorBrush> m_menuButtonBrush;
+
+
+
 	//
 private:
 	HINSTANCE					m_hInstance;

@@ -82,6 +82,14 @@ CGameFramework::CGameFramework()
 	m_bNameInputActive = false;
 	m_fNameCaretTime = 0.0f;
 
+	m_bShowGameMenu = false;
+
+
+	m_nGameMenuHoveredIndex = -1;
+	m_nGameMenuSelectedIndex = -1;
+	m_fBGMVolume = 0.5f;
+	m_fSFXVolume = 0.5f;
+
 }
 
 CGameFramework::~CGameFramework()
@@ -116,6 +124,7 @@ bool CGameFramework::OnCreate(HINSTANCE hInstance, HWND hMainWnd)
 	LoadMapImages();
 	LoadReadyImage();
 	LoadLoadingImage();
+	LoadGameMenuResource();
 
 
 	CreateDepthStencilView();
@@ -446,6 +455,8 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 	m_ptMousePos.x = LOWORD(lParam);
 	m_ptMousePos.y = HIWORD(lParam);
 
+
+
 	// m_nStage
 	// 0 -> 메인로비 
 	// 1 -> 게임으로 들어가는 중간단계
@@ -454,6 +465,44 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 	// 2 -> 인게임
 	// 99 -> 피니시대기
 	// 100 -> 게임결과
+
+
+
+	if (m_bShowGameMenu)
+	{
+		m_nGameMenuHoveredIndex = -1;
+
+		for (int i = 0; i < 3; ++i)
+		{
+			D2D1_RECT_F r = GetGameMenuButtonRect(i);
+
+			if (m_ptMousePos.x >= r.left &&
+				m_ptMousePos.x <= r.right &&
+				m_ptMousePos.y >= r.top &&
+				m_ptMousePos.y <= r.bottom)
+			{
+				m_nGameMenuHoveredIndex = i;
+				break;
+			}
+		}
+
+		if (nMessageID == WM_LBUTTONDOWN)
+		{
+			if (m_nGameMenuHoveredIndex == 0)
+			{
+				m_bShowGameMenu = false;
+			}
+			else if (m_nGameMenuHoveredIndex == 2)
+			{
+				::PostQuitMessage(0);
+			}
+		}
+
+		return;
+	}
+
+
+
 	if (0 == m_nStage)
 	{
 		m_nHoveredButtonIndex = -1;
@@ -679,6 +728,28 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 
 void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
+
+	if (m_bShowGameMenu)
+	{
+		if (nMessageID == WM_KEYUP)
+		{
+			if (wParam == VK_ESCAPE)
+			{
+				m_bShowGameMenu = false;
+				return;
+			}
+
+			if (wParam == VK_F9)
+			{
+				ChangeSwapChainState();
+				return;
+			}
+		}
+
+		return;
+	}
+
+
 	if (m_bPlayingIntroVideo)
 	{
 		if (nMessageID == WM_KEYDOWN)
@@ -695,7 +766,7 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 
 			if (wParam == VK_ESCAPE)
 			{
-				::PostQuitMessage(0);
+				m_bShowGameMenu = true;
 				return;
 			}
 
@@ -777,7 +848,8 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 		switch (wParam)
 		{
 		case VK_ESCAPE:
-			::PostQuitMessage(0);
+			m_bShowGameMenu = !m_bShowGameMenu;
+		
 			break;
 		case VK_RETURN:
 			break;
@@ -850,6 +922,9 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 		break;
 	}
 }
+
+
+
 LRESULT CALLBACK CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
 	switch (nMessageID)
@@ -875,13 +950,21 @@ LRESULT CALLBACK CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMess
 		break;
 
 	case WM_CHAR:
-		HandleNameCharInput(wParam);
+		if (!(m_bShowGameMenu))
+			HandleNameCharInput(wParam);
 		return 0;
 
 	case WM_KEYDOWN:
+		if (wParam == VK_ESCAPE)
+		{
+			m_bNameInputActive = false;
+			m_bShowGameMenu = true;
+			return 0;
+		}
+
 		if (m_nStage == 0 && m_bNameInputActive)
 		{
-			if (wParam == VK_BACK || wParam == VK_RETURN || wParam == VK_ESCAPE)
+			if (wParam == VK_BACK || wParam == VK_RETURN)
 			{
 				HandleNameCharInput(wParam);
 			}
@@ -903,7 +986,12 @@ LRESULT CALLBACK CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMess
 		break;
 
 	case WM_KEYUP:
-		// 닉네임 입력 중에는 게임 키 입력 처리 막기
+		if (wParam == VK_ESCAPE)
+		{
+			m_bShowGameMenu = false;
+			return 0;
+		}
+
 		if (m_nStage == 0 && m_bNameInputActive)
 		{
 			return 0;
@@ -915,7 +1003,6 @@ LRESULT CALLBACK CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMess
 
 	return 0;
 }
-
 
 void CGameFramework::OnDestroy()
 {
@@ -930,6 +1017,7 @@ void CGameFramework::OnDestroy()
 	if (m_pLobbyD2DBitmap) m_pLobbyD2DBitmap.Reset();
 	if (m_pResultD2DBitmap) m_pResultD2DBitmap.Reset();
 	if (m_pWICFactory) m_pWICFactory.Reset();
+	if (m_pGameMenuD2DBitmap) m_pGameMenuD2DBitmap.Reset();
 
 	ReleaseObjects();
 
@@ -1107,6 +1195,16 @@ void CGameFramework::ProcessInput()
 
 void CGameFramework::ProcessInputGameStage()
 {
+	if (m_bShowGameMenu)
+	{
+		if (m_pPlayer)
+		{
+			m_pPlayer->SetVelocity(XMFLOAT3(0.0f, 0.0f, 0.0f));
+		}
+		return;
+	}
+
+
 	static UCHAR pKeysBuffer[256];
 	::ZeroMemory(pKeysBuffer, sizeof(pKeysBuffer));
 
@@ -2437,6 +2535,10 @@ void CGameFramework::CreateTextResources()
 		m_minimapOtherBrush.GetAddressOf()
 	);
 
+	m_d2dDeviceContext->CreateSolidColorBrush(
+		D2D1::ColorF(0, 0, 0, 1.0f),
+		m_menuButtonBrush.GetAddressOf()
+	);
 	//m_dWriteFactory->CreateTextFormat(
 	//	L"맑은 고딕",
 	//	NULL,
@@ -3067,6 +3169,11 @@ void CGameFramework::RenderUI()
 	if (m_bShowHelpUI)
 	{
 		DrawHelpUI();
+	}
+
+	if (m_bShowGameMenu)
+	{
+		DrawGameMenuUI();
 	}
 
 	m_d2dDeviceContext->EndDraw();
@@ -4574,6 +4681,240 @@ void CGameFramework::LoadReadyImage()
 		converter.Get(), nullptr, &m_pReadyImage);
 
 }
+
+D2D1_RECT_F CGameFramework::GetGameMenuImageRect() const
+{
+	if (!m_pGameMenuD2DBitmap)
+		return D2D1::RectF(0, 0, 0, 0);
+
+	float imgW = (float)m_pGameMenuD2DBitmap->GetSize().width;
+	float imgH = (float)m_pGameMenuD2DBitmap->GetSize().height;
+
+	float targetH = m_nWndClientHeight * 0.75f;
+	float scale = targetH / imgH;
+	float targetW = imgW * scale;
+
+	float left = (m_nWndClientWidth - targetW) * 0.5f;
+	float top = (m_nWndClientHeight - targetH) * 0.5f;
+
+	return D2D1::RectF(left, top, left + targetW, top + targetH);
+}
+
+D2D1_RECT_F CGameFramework::GetGameMenuButtonRect(int index) const
+{
+	D2D1_RECT_F menu = GetGameMenuImageRect();
+
+	float w = menu.right - menu.left;
+	float h = menu.bottom - menu.top;
+
+
+	const float x1 = 0.045f;
+	const float x2 = 0.975f;
+
+	float y1[3] = { 0.260f, 0.420f, 0.720f };
+	float y2[3] = { 0.425f, 0.705f, 0.885f };
+
+	return D2D1::RectF(
+		menu.left + w * x1,
+		menu.top + h * y1[index],
+		menu.left + w * x2,
+		menu.top + h * y2[index]
+	);
+}
+
+
+void CGameFramework::DrawGameMenuUI()
+{
+	if (!m_pGameMenuD2DBitmap) return;
+
+	D2D1_RECT_F menuRect = GetGameMenuImageRect();
+
+
+	for (int i = 0; i < 3; ++i)
+	{
+		D2D1_RECT_F r = GetGameMenuButtonRect(i);
+
+		m_d2dDeviceContext->FillRoundedRectangle(
+			D2D1::RoundedRect(r, 18.0f, 18.0f),
+			m_menuButtonBrush.Get()
+		);
+
+	
+		if (i != 1)
+		{
+			if (m_nGameMenuSelectedIndex == i || m_nGameMenuHoveredIndex == i)
+			{
+				m_d2dDeviceContext->FillRoundedRectangle(
+					D2D1::RoundedRect(r, 18.0f, 18.0f),
+					m_pBtnHoverBrush.Get()
+				);
+			}
+		}
+	}
+
+
+	m_d2dDeviceContext->DrawBitmap(
+		m_pGameMenuD2DBitmap.Get(),
+		menuRect,
+		1.0f,
+		D2D1_BITMAP_INTERPOLATION_MODE_LINEAR
+	);
+
+
+	for (int i = 0; i < 3; ++i)
+	{
+		D2D1_RECT_F r = GetGameMenuButtonRect(i);
+
+		float menuH = menuRect.bottom - menuRect.top;
+		float textOffsetY = menuH * 0.055f;
+		float textH = menuH * 0.055f;
+
+		if (i == 0)
+		{
+
+			D2D1_RECT_F resumeRect = D2D1::RectF(
+				r.left,
+				r.top + textOffsetY,
+				r.right,
+				r.top + textOffsetY + textH
+			);
+
+			m_d2dDeviceContext->DrawTextW(
+				L"RESUME",
+				6,
+				m_textNameTagFormat.Get(),
+				resumeRect,
+				m_textNameTagBrush.Get()
+			);
+		}
+		else if (i == 1)
+		{
+			D2D1_RECT_F titleRect = D2D1::RectF(
+				r.left,
+				r.top + 30.0f,
+				r.right,
+				r.top + 70.0f
+			);
+
+			m_d2dDeviceContext->DrawTextW(
+				L"VOLUME",
+				6,
+				m_textNameTagFormat.Get(),
+				titleRect,
+				m_textNameTagBrush.Get()
+			);
+
+			float boxW = r.right - r.left;
+			float boxH = r.bottom - r.top;
+
+			float sliderLeft = r.left + boxW * 0.22f;
+			float sliderRight = r.right - boxW * 0.12f;
+
+			float bgmY = r.top + boxH * 0.45f;
+			float sfxY = r.top + boxH * 0.72f;
+
+			D2D1_RECT_F bgmTextRect = D2D1::RectF(
+				r.left + boxW * 0.06f,
+				bgmY - 18.0f,
+				r.left + boxW * 0.20f,
+				bgmY + 18.0f
+			);
+
+			D2D1_RECT_F sfxTextRect = D2D1::RectF(
+				r.left + boxW * 0.06f,
+				sfxY - 18.0f,
+				r.left + boxW * 0.20f,
+				sfxY + 18.0f
+			);
+
+			m_d2dDeviceContext->DrawTextW(
+				L"BGM",
+				3,
+				m_textNameTagFormat.Get(),
+				bgmTextRect,
+				m_textNameTagBrush.Get()
+			);
+
+			m_d2dDeviceContext->DrawTextW(
+				L"SFX",
+				3,
+				m_textNameTagFormat.Get(),
+				sfxTextRect,
+				m_textNameTagBrush.Get()
+			);
+
+			D2D1_RECT_F bgmBg = D2D1::RectF(
+				sliderLeft,
+				bgmY - 8.0f,
+				sliderRight,
+				bgmY + 8.0f
+			);
+
+			D2D1_RECT_F bgmFill = D2D1::RectF(
+				sliderLeft,
+				bgmY - 8.0f,
+				sliderLeft + (sliderRight - sliderLeft) * m_fBGMVolume,
+				bgmY + 8.0f
+			);
+
+			D2D1_RECT_F sfxBg = D2D1::RectF(
+				sliderLeft,
+				sfxY - 8.0f,
+				sliderRight,
+				sfxY + 8.0f
+			);
+
+			D2D1_RECT_F sfxFill = D2D1::RectF(
+				sliderLeft,
+				sfxY - 8.0f,
+				sliderLeft + (sliderRight - sliderLeft) * m_fSFXVolume,
+				sfxY + 8.0f
+			);
+
+			m_d2dDeviceContext->FillRoundedRectangle(
+				D2D1::RoundedRect(bgmBg, 8.0f, 8.0f),
+				m_dashGaugeBGBrush.Get()
+			);
+
+			m_d2dDeviceContext->FillRoundedRectangle(
+				D2D1::RoundedRect(bgmFill, 8.0f, 8.0f),
+				m_dashGaugeFillBrush.Get()
+			);
+
+			m_d2dDeviceContext->FillRoundedRectangle(
+				D2D1::RoundedRect(sfxBg, 8.0f, 8.0f),
+				m_dashGaugeBGBrush.Get()
+			);
+
+			m_d2dDeviceContext->FillRoundedRectangle(
+				D2D1::RoundedRect(sfxFill, 8.0f, 8.0f),
+				m_dashGaugeFillBrush.Get()
+			);
+		}
+		else if (i == 2)
+		{
+			D2D1_RECT_F exitRect = D2D1::RectF(
+				r.left,
+				r.top,
+				r.right,
+				r.bottom
+			);
+
+			m_d2dDeviceContext->DrawTextW(
+				L"EXIT",
+				4,
+				m_textNameTagFormat.Get(),
+				exitRect,
+				m_textNameTagBrush.Get()
+			);
+		}
+	}
+}
+
+
+
+
+
 void CGameFramework::DrawLoadingImage()
 {
 	if (!m_pLoadingImage) return;
@@ -4625,6 +4966,46 @@ void CGameFramework::LoadLoadingImage()
 		m_pLoadingImage.GetAddressOf()
 	);
 }
+
+void CGameFramework::LoadGameMenuResource()
+{
+	m_pGameMenuD2DBitmap.Reset();
+
+	ComPtr<IWICBitmapDecoder> decoder;
+	ComPtr<IWICBitmapFrameDecode> frame;
+	ComPtr<IWICFormatConverter> converter;
+
+	HRESULT hr = m_pWICFactory->CreateDecoderFromFilename(
+		L"Asset/image/GameMenu.png",
+		nullptr,
+		GENERIC_READ,
+		WICDecodeMetadataCacheOnLoad,
+		&decoder
+	);
+
+	if (FAILED(hr)) return;
+
+	decoder->GetFrame(0, &frame);
+
+	m_pWICFactory->CreateFormatConverter(&converter);
+
+	converter->Initialize(
+		frame.Get(),
+		GUID_WICPixelFormat32bppPBGRA,
+		WICBitmapDitherTypeNone,
+		nullptr,
+		0.0f,
+		WICBitmapPaletteTypeMedianCut
+	);
+
+	m_d2dDeviceContext->CreateBitmapFromWicBitmap(
+		converter.Get(),
+		nullptr,
+		&m_pGameMenuD2DBitmap
+	);
+}
+
+
 
 // 도움말 ui 
 void CGameFramework::DrawHelpUI()
