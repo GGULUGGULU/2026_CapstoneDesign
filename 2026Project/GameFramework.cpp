@@ -124,6 +124,11 @@ bool CGameFramework::OnCreate(HINSTANCE hInstance, HWND hMainWnd)
 	LoadMapImages();
 	LoadReadyImage();
 	LoadLoadingImage();
+
+	LoadLoadingImage();
+	LoadRankingWaitImage();
+	LoadGameMenuResource();
+
 	LoadGameMenuResource();
 
 
@@ -3106,6 +3111,10 @@ void CGameFramework::RenderUI()
 		DrawLoadingImage();
 	}
 
+	if (m_nStage == 99 && m_bShowRankingWaitImage)
+	{
+		DrawRankingWaitImage();
+	}
 
 	else if (100 == m_nStage)
 	{
@@ -4098,6 +4107,10 @@ void CGameFramework::CheckResult()
 	{
 		m_fMyFinalTime = m_GameTimer.GetTotalTime();
 		m_nStage = 99;
+
+		m_fFinishAfterTime = 0.0f;
+		m_bShowRankingWaitImage = false;
+
 		++m_nScore;
 
 		if (m_pNetwork && m_pNetwork->IsConnected())
@@ -4313,8 +4326,15 @@ void CGameFramework::FrameAdvance()
 
 	CheckResult();
 	
-	if (99 == m_nStage) {
-		ShowResult();
+	if (99 == m_nStage)
+	{
+		m_fFinishAfterTime += m_GameTimer.GetTimeElapsed();
+
+		if (m_fFinishAfterTime >= m_fRankingWaitDelay)
+		{
+			m_bShowRankingWaitImage = true;
+			ShowResult();
+		}
 	}
 
 	if (0 != m_nStage) {
@@ -5375,7 +5395,7 @@ void CGameFramework::SaveNameFromEditControl()
 
 void CGameFramework::DrawPlayerNameTags()
 {
-	if (m_nStage != 2 && m_nStage != 99) return;
+	if (m_nStage != 2) return;
 	if (!m_d2dDeviceContext) return;
 	if (!m_textNameTagFormat || !m_textNameTagBrush) return;
 	if (!m_pPlayer) return;
@@ -5536,5 +5556,56 @@ void CGameFramework::DrawNameInputUI()
 		m_textNameTagFormat.Get(),
 		D2D1::RectF(rect.left + 12.0f, rect.top, rect.right - 12.0f, rect.bottom),
 		m_textNameTagBrush.Get()
+	);
+}
+
+void CGameFramework::DrawRankingWaitImage()
+{
+	if (!m_pRankingWaitImage) return;
+
+	D2D1_RECT_F rect = D2D1::RectF(
+		0.0f,
+		0.0f,
+		(float)m_nWndClientWidth,
+		(float)m_nWndClientHeight
+	);
+
+	m_d2dDeviceContext->DrawBitmap(m_pRankingWaitImage.Get(), rect);
+}
+
+void CGameFramework::LoadRankingWaitImage()
+{
+	m_pRankingWaitImage.Reset();
+
+	ComPtr<IWICBitmapDecoder> decoder;
+	ComPtr<IWICBitmapFrameDecode> frame;
+	ComPtr<IWICFormatConverter> converter;
+
+	HRESULT hr = m_pWICFactory->CreateDecoderFromFilename(
+		L"Asset/image/ranking_wait.png",
+		nullptr,
+		GENERIC_READ,
+		WICDecodeMetadataCacheOnLoad,
+		decoder.GetAddressOf()
+	);
+
+	if (FAILED(hr)) return;
+
+	decoder->GetFrame(0, frame.GetAddressOf());
+	m_pWICFactory->CreateFormatConverter(converter.GetAddressOf());
+
+	converter->Initialize(
+		frame.Get(),
+		GUID_WICPixelFormat32bppPBGRA,
+		WICBitmapDitherTypeNone,
+		nullptr,
+		0.0f,
+		WICBitmapPaletteTypeMedianCut
+	);
+
+	m_d2dDeviceContext->CreateBitmapFromWicBitmap(
+		converter.Get(),
+		nullptr,
+		m_pRankingWaitImage.GetAddressOf()
 	);
 }

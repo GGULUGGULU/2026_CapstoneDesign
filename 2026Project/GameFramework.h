@@ -490,6 +490,18 @@ public:
 	ComPtr<ID2D1Bitmap1> m_pLoadingImage;
 	bool m_bGameObjectsBuilt = false;
 
+
+	ComPtr<ID2D1Bitmap1> m_pRankingWaitImage;
+
+	void LoadRankingWaitImage();
+	void DrawRankingWaitImage();
+
+	float m_fFinishAfterTime = 0.0f;
+	float m_fRankingWaitDelay = 3.0f;
+	bool m_bShowRankingWaitImage = false;
+
+
+
 	void LoadLoadingImage();
 	void DrawLoadingImage();
 	bool m_bLoadingPageShown = false;
