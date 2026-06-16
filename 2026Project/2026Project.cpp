@@ -45,8 +45,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 			if (msg.message == WM_QUIT) break;
 			if (!::TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
 			{
-				::TranslateMessage(&msg);
-				::DispatchMessage(&msg);
+				DispatchMessage(&msg);
 			}
 		}
 		else

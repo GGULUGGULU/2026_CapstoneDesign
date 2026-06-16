@@ -66,8 +66,9 @@ struct ItemEventNet
 
 struct RaceRecordNet
 {
-    std::uint32_t playerId;
-    float finishTime;
+    std::uint32_t playerId = 0;
+    float finishTime = 0.0f;
+    wchar_t playerName[16]{};
 };
 
 struct RaceResultNet
@@ -85,10 +86,11 @@ struct MapItemEventNet
 
 struct RoomSyncEventNet
 {
-    std::uint32_t playerId;
-    int selectedCarIndex;
-    int selectedMapIndex;
-    bool isReady;
+    std::uint32_t playerId = 0;
+    int selectedCarIndex = 0;
+    int selectedMapIndex = 0;
+    bool isReady = false;
+    wchar_t playerName[16]{};
 };
 
 struct LoadCompleteNet

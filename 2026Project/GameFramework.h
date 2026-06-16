@@ -131,6 +131,14 @@ public:
 	void BuildObjectEnd();
 	
 
+	void CreateNameEditControl();
+	
+	void SaveNameFromEditControl();
+	void DrawPlayerNameTags();
+	bool WorldToScreenPoint(const XMFLOAT3& worldPos, D2D1_POINT_2F& outScreen);
+
+
+
 	void CreateShadowMap();
 	void RenderShadowPass();
 	void SetMainViewport();
@@ -174,6 +182,14 @@ public:
 	void CreateRemotePlayers();
 	void ReleaseRemotePlayers();
 	RemotePlayerInfo* FindOrAllocateRemotePlayer(int targetId);
+
+	bool m_bNameInputActive = true;
+	float m_fNameCaretTime = 0.0f;
+
+	void DrawNameInputUI();
+	void HandleNameCharInput(WPARAM wParam);
+	D2D1_RECT_F GetNameInputRect() const;
+
 
 	//
 private:
@@ -223,11 +239,19 @@ private:
 	bool						m_bMultiplayerEnabled = false;
 	bool						m_bIsHostPlayer = false;
 
+
+
 	int m_nMyPlayerId{ 0 };
+
+	HWND m_hNameEdit = NULL;
+	wchar_t m_szMyPlayerName[16]{};
+	wchar_t m_szPlayerNames[4][16]{};
 
 	POINT						m_ptOldCursorPos;
 
 	_TCHAR						m_pszFrameRate[80];
+
+
 
 
 	ID3D11DeviceContext* m_d3d11DeviceContext;
@@ -251,6 +275,12 @@ private:
 
 	ComPtr<IDWriteTextFormat> m_textEndTimeFormat;  // 글꼴, 크기, 정렬
 	ComPtr<ID2D1SolidColorBrush> m_textEndTimeBrush; // 글자 색상
+
+
+	ComPtr<IDWriteTextFormat> m_textNameTagFormat;
+	ComPtr<ID2D1SolidColorBrush> m_textNameTagBrush;
+	ComPtr<ID2D1SolidColorBrush> m_textNameTagBgBrush;
+
 
 	ComPtr<ID2D1SolidColorBrush> m_dashGaugeFillBrush; // 대시게이지 색상
 	ComPtr<ID2D1SolidColorBrush> m_dashGaugeBGBrush; // 대시게이지 배경 색상

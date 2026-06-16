@@ -71,6 +71,17 @@ CGameFramework::CGameFramework()
 	m_fRemoteLockEffectTime = 0.0f;
 
 	_tcscpy_s(m_pszFrameRate, _T("2026Project ("));
+
+	wcscpy_s(m_szMyPlayerName, L"Player");
+
+	for (int i = 0; i < 4; ++i)
+	{
+		swprintf_s(m_szPlayerNames[i], L"Player%d", i + 1);
+	}
+
+	m_bNameInputActive = false;
+	m_fNameCaretTime = 0.0f;
+
 }
 
 CGameFramework::~CGameFramework()
@@ -90,6 +101,7 @@ bool CGameFramework::OnCreate(HINSTANCE hInstance, HWND hMainWnd)
 	CreateD3D11On12Device();
 	CreateD2DDevice();
 	CreateTextResources();
+
 	CreateRenderTargetView();
 	LoadMinimapUIResource();
 	LoadDashVignetteResource();
@@ -455,15 +467,34 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 
 		if (nMessageID == WM_LBUTTONDOWN)
 		{
+			D2D1_RECT_F nameRect = GetNameInputRect();
+
+			if (m_ptMousePos.x >= nameRect.left && m_ptMousePos.x <= nameRect.right &&
+				m_ptMousePos.y >= nameRect.top && m_ptMousePos.y <= nameRect.bottom)
+			{
+				m_bNameInputActive = true;
+				return;
+			}
+			else
+			{
+				m_bNameInputActive = false;
+			}
+
+
 			if (m_nHoveredButtonIndex == 0) {
+				SaveNameFromEditControl();
+
 				m_nStage = -1;
 				ConnectToServer("127.0.0.1");
 			}
 			else if (m_nHoveredButtonIndex == 1) {
+				SaveNameFromEditControl();
+
 				m_nStage = -1;
 				ConnectToServer("127.0.0.1");
-				//m_nStage = 1; // 임시, 인게임으로 바로 들어가는 경로
 			}
+				//m_nStage = 1; // 임시, 인게임으로 바로 들어가는 경로
+			
 			else if (m_nHoveredButtonIndex == 2) {
 				::PostQuitMessage(0);
 			}
@@ -541,7 +572,8 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 					syncEvent.playerId = m_nMyPlayerId;
 					syncEvent.selectedCarIndex = m_nSelectedCarIndex;
 					syncEvent.selectedMapIndex = m_nSelectedMapIndex;
-					syncEvent.isReady = m_bPlayerReady[m_nMyPlayerId - 1]; // 내 레디 상태 담기
+					syncEvent.isReady = m_bPlayerReady[m_nMyPlayerId - 1]; // 내 레디상태 담기
+					wcscpy_s(syncEvent.playerName, m_szMyPlayerName);
 					m_pNetwork->SendRoomSyncEvent(syncEvent);
 				}
 			}
@@ -554,6 +586,12 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 				for (int i = 0; i < 4; ++i) {
 					m_nPlayerIndices[i] = -1;
 					m_bPlayerReady[i] = false;
+					swprintf_s(m_szPlayerNames[i], L"Player%d", i + 1);
+				}
+
+				if (m_nMyPlayerId >= 1 && m_nMyPlayerId <= 4)
+				{
+					wcscpy_s(m_szPlayerNames[m_nMyPlayerId - 1], m_szMyPlayerName);
 				}
 			}
 
@@ -563,6 +601,7 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 				syncEvent.selectedCarIndex = m_nSelectedCarIndex;
 				syncEvent.selectedMapIndex = m_nSelectedMapIndex;
 				syncEvent.isReady = m_bPlayerReady[m_nMyPlayerId - 1];
+				wcscpy_s(syncEvent.playerName, m_szMyPlayerName);
 				m_pNetwork->SendRoomSyncEvent(syncEvent);
 
 				if (m_nMyPlayerId >= 1 && m_nMyPlayerId <= 4) {
@@ -615,15 +654,24 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 	{
 	case WM_LBUTTONDOWN:
 	case WM_RBUTTONDOWN:
-		::SetCapture(hWnd);
-		::GetCursorPos(&m_ptOldCursorPos);
+		if (m_nStage != 0)
+		{
+			::SetCapture(hWnd);
+			::GetCursorPos(&m_ptOldCursorPos);
+		}
 		break;
+
 	case WM_LBUTTONUP:
 	case WM_RBUTTONUP:
-		::ReleaseCapture();
+		if (m_nStage != 0)
+		{
+			::ReleaseCapture();
+		}
 		break;
+
 	case WM_MOUSEMOVE:
 		break;
+
 	default:
 		break;
 	}
@@ -802,7 +850,6 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 		break;
 	}
 }
-
 LRESULT CALLBACK CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
 	switch (nMessageID)
@@ -815,8 +862,10 @@ LRESULT CALLBACK CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMess
 			m_GameTimer.Start();
 		break;
 	}
+
 	case WM_SIZE:
 		break;
+
 	case WM_LBUTTONDOWN:
 	case WM_RBUTTONDOWN:
 	case WM_LBUTTONUP:
@@ -824,13 +873,49 @@ LRESULT CALLBACK CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMess
 	case WM_MOUSEMOVE:
 		OnProcessingMouseMessage(hWnd, nMessageID, wParam, lParam);
 		break;
+
+	case WM_CHAR:
+		HandleNameCharInput(wParam);
+		return 0;
+
 	case WM_KEYDOWN:
+		if (m_nStage == 0 && m_bNameInputActive)
+		{
+			if (wParam == VK_BACK || wParam == VK_RETURN || wParam == VK_ESCAPE)
+			{
+				HandleNameCharInput(wParam);
+			}
+			else if (wParam >= 'A' && wParam <= 'Z')
+			{
+				bool shift = (::GetKeyState(VK_SHIFT) & 0x8000) != 0;
+				wchar_t ch = shift ? (wchar_t)wParam : (wchar_t)(wParam + 32);
+				HandleNameCharInput(ch);
+			}
+			else if (wParam >= '0' && wParam <= '9')
+			{
+				HandleNameCharInput(wParam);
+			}
+
+			return 0;
+		}
+
+		OnProcessingKeyboardMessage(hWnd, nMessageID, wParam, lParam);
+		break;
+
 	case WM_KEYUP:
+		// 닉네임 입력 중에는 게임 키 입력 처리 막기
+		if (m_nStage == 0 && m_bNameInputActive)
+		{
+			return 0;
+		}
+
 		OnProcessingKeyboardMessage(hWnd, nMessageID, wParam, lParam);
 		break;
 	}
-	return(0);
+
+	return 0;
 }
+
 
 void CGameFramework::OnDestroy()
 {
@@ -2254,6 +2339,33 @@ void CGameFramework::CreateTextResources()
 		&m_textCountdownFormat
 	);
 
+	m_dWriteFactory->CreateTextFormat(
+		L"맑은 고딕",
+		NULL,
+		DWRITE_FONT_WEIGHT_BOLD,
+		DWRITE_FONT_STYLE_NORMAL,
+		DWRITE_FONT_STRETCH_NORMAL,
+		22.0f,
+		L"ko-kr",
+		m_textNameTagFormat.GetAddressOf()
+	);
+
+	if (m_textNameTagFormat)
+	{
+		m_textNameTagFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
+		m_textNameTagFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+	}
+
+	m_d2dDeviceContext->CreateSolidColorBrush(
+		D2D1::ColorF(D2D1::ColorF::White),
+		m_textNameTagBrush.GetAddressOf()
+	);
+
+	m_d2dDeviceContext->CreateSolidColorBrush(
+		D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.55f),
+		m_textNameTagBgBrush.GetAddressOf()
+	);
+
 	//
 
 
@@ -2318,6 +2430,35 @@ void CGameFramework::CreateTextResources()
 		D2D1::ColorF(D2D1::ColorF::Yellow),
 		m_minimapOtherBrush.GetAddressOf()
 	);
+
+	m_dWriteFactory->CreateTextFormat(
+		L"맑은 고딕",
+		NULL,
+		DWRITE_FONT_WEIGHT_BOLD,
+		DWRITE_FONT_STYLE_NORMAL,
+		DWRITE_FONT_STRETCH_NORMAL,
+		22.0f,
+		L"ko-kr",
+		m_textNameTagFormat.GetAddressOf()
+	);
+
+	if (m_textNameTagFormat)
+	{
+		m_textNameTagFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
+		m_textNameTagFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+	}
+
+	m_d2dDeviceContext->CreateSolidColorBrush(
+		D2D1::ColorF(D2D1::ColorF::White),
+		m_textNameTagBrush.GetAddressOf()
+	);
+
+	m_d2dDeviceContext->CreateSolidColorBrush(
+		D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.55f),
+		m_textNameTagBgBrush.GetAddressOf()
+	);
+
+
 }
 
 void CGameFramework::RenderUI()
@@ -2349,11 +2490,17 @@ void CGameFramework::RenderUI()
 
 				if (m_nHoveredButtonIndex == i)
 				{
-					m_d2dDeviceContext->FillRectangle(m_LobbyButtons[i].rect, m_pBtnHoverBrush.Get());
+					m_d2dDeviceContext->FillRectangle(
+						m_LobbyButtons[i].rect,
+						m_pBtnHoverBrush.Get()
+					);
 				}
 			}
 		}
+
+		DrawNameInputUI();
 	}
+
 	else if (-2 == m_nStage) {
 		if (m_pRoomD2DBitmap && m_pCarImages && m_pMapImages)
 		{
@@ -2554,6 +2701,7 @@ void CGameFramework::RenderUI()
 			);
 
 			DrawSpeedometerUI();
+
 
 			m_d2dDeviceContext->DrawTextW(
 				m_speedBuffer,
@@ -2835,10 +2983,33 @@ void CGameFramework::RenderUI()
 
 		for (std::uint32_t i = 0; i < m_FinalRaceResult.playerCount; ++i)
 		{
-			swprintf_s(tempBuffer, 128, L"%d Place - Player %d : %.2f sec\n",
+			const RaceRecordNet& record = m_FinalRaceResult.playerRecords[i];
+
+			const wchar_t* name = record.playerName;
+
+			if (wcslen(name) <= 0)
+			{
+				int playerIndex = static_cast<int>(record.playerId) - 1;
+
+				if (playerIndex >= 0 && playerIndex < 4 && wcslen(m_szPlayerNames[playerIndex]) > 0)
+				{
+					name = m_szPlayerNames[playerIndex];
+				}
+				else
+				{
+					name = L"Player";
+				}
+			}
+
+			swprintf_s(
+				tempBuffer,
+				128,
+				L"%d Place - %s : %.2f sec\n",
 				i + 1,
-				m_FinalRaceResult.playerRecords[i].playerId,
-				m_FinalRaceResult.playerRecords[i].finishTime);
+				name,
+				record.finishTime
+			);
+
 			wcscat_s(resultBuffer, tempBuffer);
 		}
 
@@ -2885,7 +3056,7 @@ void CGameFramework::RenderUI()
 		);
 	}
 
-
+	DrawPlayerNameTags();
 
 	if (m_bShowHelpUI)
 	{
@@ -3216,6 +3387,7 @@ void CGameFramework::SyncRoom()
 		syncEvent.selectedCarIndex = m_nSelectedCarIndex;
 		syncEvent.selectedMapIndex = m_nSelectedMapIndex;
 		syncEvent.isReady = m_bPlayerReady[m_nMyPlayerId - 1];
+		wcscpy_s(syncEvent.playerName, m_szMyPlayerName);
 		m_pNetwork->SendRoomSyncEvent(syncEvent);
 	}
 
@@ -3227,9 +3399,15 @@ void CGameFramework::SyncRoom()
 		}
 
 		if (roomSyncEv.playerId >= 1 && roomSyncEv.playerId <= 4) {
+
+			if (wcslen(roomSyncEv.playerName) > 0)
+			{
+				wcscpy_s(m_szPlayerNames[roomSyncEv.playerId - 1], roomSyncEv.playerName);
+			}
+
 			if (roomSyncEv.selectedCarIndex == -1) {
-				m_nPlayerIndices[roomSyncEv.playerId - 1] = -1; 
-				m_bPlayerReady[roomSyncEv.playerId - 1] = false;   
+				m_nPlayerIndices[roomSyncEv.playerId - 1] = -1;
+				m_bPlayerReady[roomSyncEv.playerId - 1] = false;
 			}
 			else {
 				m_nPlayerIndices[roomSyncEv.playerId - 1] = roomSyncEv.selectedCarIndex;
@@ -3250,6 +3428,7 @@ void CGameFramework::SyncRoom()
 			syncEvent.selectedCarIndex = m_nSelectedCarIndex;
 			syncEvent.selectedMapIndex = m_nSelectedMapIndex;
 			syncEvent.isReady = m_bPlayerReady[m_nMyPlayerId - 1];
+			wcscpy_s(syncEvent.playerName, m_szMyPlayerName);
 			m_pNetwork->SendRoomSyncEvent(syncEvent);
 		}
 	}
@@ -3746,6 +3925,7 @@ void CGameFramework::ShowResult()
 		m_FinalRaceResult.playerCount = 1;
 		m_FinalRaceResult.playerRecords[0].playerId = m_nMyPlayerId > 0 ? m_nMyPlayerId : 1;
 		m_FinalRaceResult.playerRecords[0].finishTime = m_fMyFinalTime;
+		wcscpy_s(m_FinalRaceResult.playerRecords[0].playerName, m_szMyPlayerName);
 
 		BuildObjectEnd();
 		m_nStage = 100;
@@ -3763,9 +3943,10 @@ void CGameFramework::CheckResult()
 		if (m_pNetwork && m_pNetwork->IsConnected())
 		{
 			// 내 ID와 최종 시간을 담아서 서버로 바로 쏜다.
-			RaceRecordNet record;
+			RaceRecordNet record{};
 			record.playerId = m_nMyPlayerId;
 			record.finishTime = m_fMyFinalTime;
+			wcscpy_s(record.playerName, m_szMyPlayerName);
 
 			m_pNetwork->SendRaceFinish(record);
 		}
@@ -3788,9 +3969,10 @@ void CGameFramework::FrameAdvance()
 
 	
 
-
 	if (m_bPlayingIntroVideo)
 	{
+	
+
 		if (!m_pVideoPlayer || m_pVideoPlayer->IsFinished())
 		{
 			FinishIntroVideo();
@@ -3822,6 +4004,8 @@ void CGameFramework::FrameAdvance()
 		}
 	}
 	// 
+
+
 
 	SetUIInfo();
 	SyncMultiplayer();
@@ -4682,3 +4866,210 @@ void CGameFramework::LoadSpeedometerUIResource()
 	}
 }
 
+bool CGameFramework::WorldToScreenPoint(
+	const XMFLOAT3& worldPos,
+	D2D1_POINT_2F& outScreen)
+{
+	if (!m_pCamera) return false;
+
+	XMFLOAT4X4 viewMat = m_pCamera->GetViewMatrix();
+	XMFLOAT4X4 projMat = m_pCamera->GetProjectionMatrix();
+
+	XMMATRIX view = XMLoadFloat4x4(&viewMat);
+	XMMATRIX proj = XMLoadFloat4x4(&projMat);
+
+	XMVECTOR pos = XMVectorSet(
+		worldPos.x,
+		worldPos.y,
+		worldPos.z,
+		1.0f);
+
+	XMVECTOR clip = XMVector4Transform(
+		pos,
+		view * proj);
+
+	float w = XMVectorGetW(clip);
+
+	if (w <= 0.001f)
+		return false;
+
+	float x = XMVectorGetX(clip) / w;
+	float y = XMVectorGetY(clip) / w;
+
+	outScreen.x =
+		(x * 0.5f + 0.5f) * m_nWndClientWidth;
+
+	outScreen.y =
+		(-y * 0.5f + 0.5f) * m_nWndClientHeight;
+
+	return true;
+}
+
+
+void CGameFramework::SaveNameFromEditControl()
+{
+	if (wcslen(m_szMyPlayerName) <= 0)
+	{
+		wcscpy_s(m_szMyPlayerName, L"Player");
+	}
+
+	if (m_nMyPlayerId >= 1 && m_nMyPlayerId <= 4)
+	{
+		wcscpy_s(m_szPlayerNames[m_nMyPlayerId - 1], m_szMyPlayerName);
+	}
+}
+
+
+
+void CGameFramework::DrawPlayerNameTags()
+{
+	if (m_nStage != 2 && m_nStage != 99) return;
+	if (!m_d2dDeviceContext) return;
+	if (!m_textNameTagFormat || !m_textNameTagBrush) return;
+
+	for (auto& info : m_vRemotePlayers)
+	{
+		if (info.playerID == -1) continue;
+		if (!info.pPlayer) continue;
+		if (info.playerID == m_nMyPlayerId) continue;
+
+		int index = info.playerID - 1;
+		if (index < 0 || index >= 4) continue;
+
+		const wchar_t* name = m_szPlayerNames[index];
+		if (wcslen(name) <= 0) continue;
+
+		XMFLOAT3 pos = info.pPlayer->GetPosition();
+		XMFLOAT3 up = info.pPlayer->GetUpVector();
+
+		pos.y += 20.0f;
+
+
+		D2D1_POINT_2F screen{};
+		if (!WorldToScreenPoint(pos, screen))
+			continue;
+
+		float boxW = 160.0f;
+		float boxH = 32.0f;
+
+		D2D1_RECT_F rect = D2D1::RectF(
+			screen.x - boxW * 0.5f,
+			screen.y - boxH * 0.5f,
+			screen.x + boxW * 0.5f,
+			screen.y + boxH * 0.5f
+		);
+
+		if (m_textNameTagBgBrush)
+		{
+			m_d2dDeviceContext->FillRoundedRectangle(
+				D2D1::RoundedRect(rect, 8.0f, 8.0f),
+				m_textNameTagBgBrush.Get()
+			);
+		}
+
+		m_d2dDeviceContext->DrawTextW(
+			name,
+			static_cast<UINT32>(wcslen(name)),
+			m_textNameTagFormat.Get(),
+			rect,
+			m_textNameTagBrush.Get()
+		);
+	}
+
+
+}
+
+
+D2D1_RECT_F CGameFramework::GetNameInputRect() const
+{
+	float w = 260.0f;
+	float h = 42.0f;
+
+	float x = m_nWndClientWidth * 0.62f;
+	float y = m_nWndClientHeight * 0.42f;
+
+	return D2D1::RectF(x, y, x + w, y + h);
+}
+void CGameFramework::HandleNameCharInput(WPARAM wParam)
+{
+	if (m_nStage != 0) return;
+	if (!m_bNameInputActive) return;
+
+	if (wParam == VK_BACK)
+	{
+		size_t len = wcsnlen_s(m_szMyPlayerName, 16);
+		if (len > 0)
+			m_szMyPlayerName[len - 1] = L'\0';
+		return;
+	}
+
+	if (wParam == VK_RETURN || wParam == VK_ESCAPE)
+	{
+		m_bNameInputActive = false;
+		return;
+	}
+
+	if (wParam < 32) return;
+
+	size_t len = wcsnlen_s(m_szMyPlayerName, 16);
+	if (len >= 15) return;
+
+	m_szMyPlayerName[len] = static_cast<wchar_t>(wParam);
+	m_szMyPlayerName[len + 1] = L'\0';
+}
+
+
+void CGameFramework::DrawNameInputUI()
+{
+	if (m_nStage != 0) return;
+	if (!m_d2dDeviceContext) return;
+
+	D2D1_RECT_F rect = GetNameInputRect();
+
+	if (m_textNameTagBgBrush)
+	{
+		m_d2dDeviceContext->FillRoundedRectangle(
+			D2D1::RoundedRect(rect, 8.0f, 8.0f),
+			m_textNameTagBgBrush.Get()
+		);
+	}
+
+	if (m_dashGaugeBorderBrush)
+	{
+		m_d2dDeviceContext->DrawRoundedRectangle(
+			D2D1::RoundedRect(rect, 8.0f, 8.0f),
+			m_dashGaugeBorderBrush.Get(),
+			m_bNameInputActive ? 3.0f : 1.5f
+		);
+	}
+
+	const wchar_t* label = L"Nickname";
+	m_d2dDeviceContext->DrawTextW(
+		label,
+		(UINT32)wcslen(label),
+		m_textNameTagFormat.Get(),
+		D2D1::RectF(rect.left, rect.top - 34.0f, rect.right, rect.top - 4.0f),
+		m_textNameTagBrush.Get()
+	);
+
+	wchar_t textBuffer[32]{};
+	wcscpy_s(textBuffer, 32, m_szMyPlayerName);
+
+	if (m_bNameInputActive)
+	{
+		m_fNameCaretTime += m_GameTimer.GetTimeElapsed();
+
+		if (fmodf(m_fNameCaretTime, 1.0f) < 0.5f)
+		{
+			wcscat_s(textBuffer, 32, L"|");
+		}
+	}
+
+	m_d2dDeviceContext->DrawTextW(
+		textBuffer,
+		(UINT32)wcslen(textBuffer),
+		m_textNameTagFormat.Get(),
+		D2D1::RectF(rect.left + 12.0f, rect.top, rect.right - 12.0f, rect.bottom),
+		m_textNameTagBrush.Get()
+	);
+}
