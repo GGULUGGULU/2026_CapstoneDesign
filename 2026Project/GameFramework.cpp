@@ -488,6 +488,41 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 
 		if (nMessageID == WM_LBUTTONDOWN)
 		{
+			if (m_nGameMenuHoveredIndex == 1)
+			{
+				D2D1_RECT_F r = GetGameMenuButtonRect(1);
+
+				float boxW = r.right - r.left;
+				float boxH = r.bottom - r.top;
+
+				float sliderLeft = r.left + boxW * 0.22f;
+				float sliderRight = r.right - boxW * 0.12f;
+
+				float bgmY = r.top + boxH * 0.45f;
+				float sfxY = r.top + boxH * 0.72f;
+
+				auto Clamp01 = [](float v)
+					{
+						if (v < 0.0f) return 0.0f;
+						if (v > 1.0f) return 1.0f;
+						return v;
+					};
+
+				if (m_ptMousePos.y >= bgmY - 20.0f && m_ptMousePos.y <= bgmY + 20.0f)
+				{
+					m_fBGMVolume = Clamp01((m_ptMousePos.x - sliderLeft) / (sliderRight - sliderLeft));
+					m_SoundManager.SetBGMVolume(m_fBGMVolume);
+				}
+				else if (m_ptMousePos.y >= sfxY - 20.0f && m_ptMousePos.y <= sfxY + 20.0f)
+				{
+					m_fSFXVolume = Clamp01((m_ptMousePos.x - sliderLeft) / (sliderRight - sliderLeft));
+					m_SoundManager.SetSFXVolume(m_fSFXVolume);
+					m_SoundManager.PlaySFX("Asset/Audio/Claxon.mp3"); 
+				}
+
+				return;
+			}
+
 			if (m_nGameMenuHoveredIndex == 0)
 			{
 				m_bShowGameMenu = false;
@@ -540,8 +575,8 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 				SaveNameFromEditControl();
 
 				m_nStage = -1;
-				ConnectToServer("172.30.1.97");
-				//ConnectToServer("127.0.0.1");
+				//ConnectToServer("172.30.1.97");
+				ConnectToServer("127.0.0.1");
 			}
 				//m_nStage = 1; // 임시, 인게임으로 바로 들어가는 경로
 			
@@ -954,10 +989,18 @@ LRESULT CALLBACK CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMess
 	case WM_KEYDOWN:
 		if (wParam == VK_ESCAPE)
 		{
-			if (!(lParam & 0x40000000)) // 반복입력 방지하기
+			if (!(lParam & 0x40000000))
 			{
 				m_bNameInputActive = false;
-				m_bShowGameMenu = !m_bShowGameMenu;
+
+				bool bOpenMenu = !m_bShowGameMenu;
+
+				m_bShowGameMenu = bOpenMenu;
+
+				if (bOpenMenu)
+				{
+					m_SoundManager.PlaySFX("Asset/Audio/Robot.mp3");
+				}
 			}
 			return 0;
 		}
@@ -4078,11 +4121,25 @@ void CGameFramework::FrameAdvance()
 
 
 	
-	if (m_nStage == -2 || m_nStage == 2)
-		m_bShowHelpUI = ((::GetAsyncKeyState(VK_TAB) & 0x8000) != 0);
-	else
-		m_bShowHelpUI = false;
+	static bool bPrevHelpUI = false;
 
+	if (m_nStage == -2 || m_nStage == 2)
+	{
+		bool bHelpNow = ((::GetAsyncKeyState(VK_TAB) & 0x8000) != 0);
+
+		if (bHelpNow && !bPrevHelpUI)
+		{
+			m_SoundManager.PlaySFX("Asset/Audio/Robot.mp3");
+		}
+
+		m_bShowHelpUI = bHelpNow;
+		bPrevHelpUI = bHelpNow;
+	}
+	else
+	{
+		m_bShowHelpUI = false;
+		bPrevHelpUI = false;
+	}
 
 	
 
@@ -4133,9 +4190,12 @@ void CGameFramework::FrameAdvance()
 	//	BuildGameObjects();
 	//} // 
 
+	if (-1 == m_nStage)
+	{
+		if (m_pScene)
+			m_pScene->m_nGFStage = -2;
 
-	if (-1 == m_nStage) {
-		m_pScene->m_nGFStage = m_nStage = -2;
+		m_nStage = -2;
 		BuildObjectGameRoom();
 	}
 

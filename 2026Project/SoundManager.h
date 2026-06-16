@@ -24,6 +24,11 @@ public:
 	void SetCarEnginePitch(float pitch);
 	void SetCarEngineVolume(float volume);
 
+	void SetSFXVolume(float volume);
+	float GetSFXVolume() const;
+	float m_fSFXVolume = 0.5f;
+
+
 	void StopBGM();
 	void StopCarEngine();
 

@@ -16,10 +16,27 @@ void CSoundManager::PlayBGM(const std::string& filepath)
     ma_sound_start(&BGMSound);
 }
 
+void CSoundManager::SetSFXVolume(float volume)
+{
+    if (volume < 0.0f) volume = 0.0f;
+    if (volume > 1.0f) volume = 1.0f;
+
+    m_fSFXVolume = volume;
+}
+
+
+float CSoundManager::GetSFXVolume() const
+{
+    return m_fSFXVolume;
+}
+
+
 void CSoundManager::PlaySFX(const std::string& filepath)
 {
+    ma_engine_set_volume(&engine, m_fSFXVolume);
     ma_engine_play_sound(&engine, filepath.c_str(), NULL);
 }
+
 
 void CSoundManager::SetMasterVolume(float volume)
 {
@@ -65,3 +82,4 @@ void CSoundManager::Release() {
     ma_sound_uninit(&carEngineSound);
     ma_engine_uninit(&engine);
 }
+
