@@ -2341,13 +2341,17 @@ void CGameFramework::CreateTextResources()
 		&m_textCountdownFormat
 	);
 
+
+
+	float uiScale = min((float)m_nWndClientHeight / 720.0f, 1.5f);
+	float fontSize = 45.0f * uiScale;
 	m_dWriteFactory->CreateTextFormat(
 		L"맑은 고딕",
 		NULL,
 		DWRITE_FONT_WEIGHT_BOLD,
 		DWRITE_FONT_STYLE_NORMAL,
 		DWRITE_FONT_STRETCH_NORMAL,
-		22.0f,
+		fontSize,
 		L"ko-kr",
 		m_textNameTagFormat.GetAddressOf()
 	);
@@ -2433,16 +2437,16 @@ void CGameFramework::CreateTextResources()
 		m_minimapOtherBrush.GetAddressOf()
 	);
 
-	m_dWriteFactory->CreateTextFormat(
-		L"맑은 고딕",
-		NULL,
-		DWRITE_FONT_WEIGHT_BOLD,
-		DWRITE_FONT_STYLE_NORMAL,
-		DWRITE_FONT_STRETCH_NORMAL,
-		22.0f,
-		L"ko-kr",
-		m_textNameTagFormat.GetAddressOf()
-	);
+	//m_dWriteFactory->CreateTextFormat(
+	//	L"맑은 고딕",
+	//	NULL,
+	//	DWRITE_FONT_WEIGHT_BOLD,
+	//	DWRITE_FONT_STYLE_NORMAL,
+	//	DWRITE_FONT_STRETCH_NORMAL,
+	//	22.0f,
+	//	L"ko-kr",
+	//	m_textNameTagFormat.GetAddressOf()
+	//);
 
 	if (m_textNameTagFormat)
 	{
@@ -4924,17 +4928,23 @@ void CGameFramework::SaveNameFromEditControl()
 }
 
 
-
 void CGameFramework::DrawPlayerNameTags()
 {
 	if (m_nStage != 2 && m_nStage != 99) return;
 	if (!m_d2dDeviceContext) return;
 	if (!m_textNameTagFormat || !m_textNameTagBrush) return;
+	if (!m_pPlayer) return;
+
+	const float maxNameTagDistance = 800.0f; // 이름 보이는 거리
+	const float maxDistSq = maxNameTagDistance * maxNameTagDistance;
+
+	XMFLOAT3 myPos = m_pPlayer->GetPosition();
 
 	for (auto& info : m_vRemotePlayers)
 	{
 		if (info.playerID == -1) continue;
 		if (!info.pPlayer) continue;
+		if (!info.pPlayer->m_bIsActive) continue;
 		if (info.playerID == m_nMyPlayerId) continue;
 
 		int index = info.playerID - 1;
@@ -4944,17 +4954,22 @@ void CGameFramework::DrawPlayerNameTags()
 		if (wcslen(name) <= 0) continue;
 
 		XMFLOAT3 pos = info.pPlayer->GetPosition();
-		XMFLOAT3 up = info.pPlayer->GetUpVector();
+
+		XMVECTOR vMyPos = XMLoadFloat3(&myPos);
+		XMVECTOR vOtherPos = XMLoadFloat3(&pos);
+		float distSq = XMVectorGetX(XMVector3LengthSq(vOtherPos - vMyPos));
+
+		if (distSq > maxDistSq)
+			continue;
 
 		pos.y += 20.0f;
-
 
 		D2D1_POINT_2F screen{};
 		if (!WorldToScreenPoint(pos, screen))
 			continue;
 
 		float boxW = 160.0f;
-		float boxH = 32.0f;
+		float boxH = 36.0f;
 
 		D2D1_RECT_F rect = D2D1::RectF(
 			screen.x - boxW * 0.5f,
@@ -4963,13 +4978,6 @@ void CGameFramework::DrawPlayerNameTags()
 			screen.y + boxH * 0.5f
 		);
 
-		if (m_textNameTagBgBrush)
-		{
-			m_d2dDeviceContext->FillRoundedRectangle(
-				D2D1::RoundedRect(rect, 8.0f, 8.0f),
-				m_textNameTagBgBrush.Get()
-			);
-		}
 
 		m_d2dDeviceContext->DrawTextW(
 			name,
@@ -4979,21 +4987,29 @@ void CGameFramework::DrawPlayerNameTags()
 			m_textNameTagBrush.Get()
 		);
 	}
-
-
 }
-
 
 D2D1_RECT_F CGameFramework::GetNameInputRect() const
 {
-	float w = 260.0f;
-	float h = 42.0f;
+	float uiScale = (float)m_nWndClientHeight / 720.0f;
+	uiScale = max(0.9f, min(uiScale, 1.2f));
 
-	float x = m_nWndClientWidth * 0.62f;
-	float y = m_nWndClientHeight * 0.42f;
+	float w = 400.0f * uiScale;
+	float h = 55.0f * uiScale;
+
+	float x = m_nWndClientWidth * 0.65f + 50.0f;
+	float y = m_nWndClientHeight * 0.52f - 80.0f;
+
+	// 창모드 잘림 방지
+	float rightMargin = 30.0f;
+	if (x + w > m_nWndClientWidth - rightMargin)
+	{
+		x = m_nWndClientWidth - w - rightMargin;
+	}
 
 	return D2D1::RectF(x, y, x + w, y + h);
 }
+
 void CGameFramework::HandleNameCharInput(WPARAM wParam)
 {
 	if (m_nStage != 0) return;
