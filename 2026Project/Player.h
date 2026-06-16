@@ -162,3 +162,12 @@ public:
 
 	virtual void OnInitialize() override;
 };
+
+class CCar3Player : public CCarPlayer
+{
+public:
+	CCar3Player(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature);
+	virtual ~CCar3Player() {}
+
+	virtual void OnInitialize() override;
+};

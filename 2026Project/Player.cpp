@@ -584,3 +584,26 @@ void CCar2Player::OnInitialize()
 	if (m_pWheelRightRearFrame) m_xmf4x4OriginalBR = m_pWheelRightRearFrame->m_xmf4x4Transform;
 	if (m_pCarBodyFrame) m_xmf4x4OriginalBody = m_pCarBodyFrame->m_xmf4x4Transform;
 }
+
+CCar3Player::CCar3Player(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature)
+	: CCarPlayer(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/FINAL_MODEL_GT1.bin")
+{
+	OnInitialize();
+}
+
+void CCar3Player::OnInitialize()
+{
+	m_pWheelLeftFrontFrame = FindFrame("FL");
+	m_pWheelRightFrontFrame = FindFrame("FR");
+	m_pWheelLeftRearFrame = FindFrame("RL");
+	m_pWheelRightRearFrame = FindFrame("RR");
+	m_pCarBodyFrame = FindFrame("BODY");
+
+	m_fVibrationAmplitude = 0.00008;
+
+	if (m_pWheelLeftFrontFrame) m_xmf4x4OriginalFL = m_pWheelLeftFrontFrame->m_xmf4x4Transform;
+	if (m_pWheelRightFrontFrame) m_xmf4x4OriginalFR = m_pWheelRightFrontFrame->m_xmf4x4Transform;
+	if (m_pWheelLeftRearFrame) m_xmf4x4OriginalBL = m_pWheelLeftRearFrame->m_xmf4x4Transform;
+	if (m_pWheelRightRearFrame) m_xmf4x4OriginalBR = m_pWheelRightRearFrame->m_xmf4x4Transform;
+	if (m_pCarBodyFrame) m_xmf4x4OriginalBody = m_pCarBodyFrame->m_xmf4x4Transform;
+}

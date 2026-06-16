@@ -1120,7 +1120,7 @@ void CGameFramework::BuildObjectGameStart()
 	{
 		case 0: pCarPlayer = new CCar1Player(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature()); break;
 		case 1: pCarPlayer = new CCar2Player(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature()); break;
-		//case 2: pCarPlayer = new CCar3Player(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature()); break;
+		case 2: pCarPlayer = new CCar3Player(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature()); break;
 		default: pCarPlayer = new CCar1Player(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature()); break;
 	}
 	pCarPlayer->SetPosition(XMFLOAT3(.0f, .0f, .0f));
@@ -1153,7 +1153,7 @@ void CGameFramework::BuildObjectGameRoom()
 	{
 	case 0: pCarPlayer = new CCar1Player(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature()); break;
 	case 1: pCarPlayer = new CCar2Player(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature()); break;
-		//case 2: pCarPlayer = new CCar3Player(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature()); break;
+	case 2: pCarPlayer = new CCar3Player(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature()); break;
 	default: pCarPlayer = new CCar1Player(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature()); break;
 	}
 	pCarPlayer->SetPosition(XMFLOAT3(.0f, .0f, .0f));
@@ -1626,7 +1626,7 @@ void CGameFramework::BuildGameObjects()
 	{
 	case 0: pCarPlayer = new CCar1Player(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature()); break;
 	case 1: pCarPlayer = new CCar2Player(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature()); break;
-		//case 2: pCarPlayer = new CCar3Player(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature()); break;
+	case 2: pCarPlayer = new CCar3Player(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature()); break;
 	default: pCarPlayer = new CCar1Player(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature()); break;
 	}
 	pCarPlayer->SetScale(10.2f, 10.2f, 10.2f);
@@ -3321,7 +3321,7 @@ void CGameFramework::BuildObjectEnd()
 	{
 	case 0: pCarPlayer = new CCar1Player(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature()); break;
 	case 1: pCarPlayer = new CCar2Player(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature()); break;
-		//case 2: pCarPlayer = new CCar3Player(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature()); break;
+	case 2: pCarPlayer = new CCar3Player(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature()); break;
 	default: pCarPlayer = new CCar1Player(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature()); break;
 	}
 	pCarPlayer->SetPosition(XMFLOAT3(0.0f, 0.0f, 0.0f));
@@ -4781,7 +4781,7 @@ void CGameFramework::LoadCarImages()
 	const wchar_t* fileNames[3] = {
 		L"Asset/image/Car_01.png",
 		L"Asset/image/Car_02.png",
-		L"Asset/image/Car_01.png" // 추가해야함
+		L"Asset/image/Car_03.png" // 추가해야함
 	};
 
 	for (int i = 0; i < 3; ++i)
