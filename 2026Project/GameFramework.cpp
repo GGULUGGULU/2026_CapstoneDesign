@@ -1603,15 +1603,17 @@ case ITEM_DASH_POTION:
 }
 
 case ITEM_MAX_SPEED_UP:
-	effectColor = XMFLOAT3(0.2f, 1.0f, 0.3f);
-	break;
-
-case ITEM_MAX_DASH_GAUGE_UP:
+	// effectColor = XMFLOAT3(0.2f, 1.0f, 0.3f);
 	effectColor = XMFLOAT3(0.2f, 0.7f, 1.0f);
 	break;
 
+case ITEM_MAX_DASH_GAUGE_UP:
+	// effectColor = XMFLOAT3(0.2f, 0.7f, 1.0f);
+	effectColor = XMFLOAT3(0.2f, 1.0f, 0.3f);
+	break;
+
 case ITEM_LOCK:
-	effectColor = XMFLOAT3(1.0f, 0.75f, 0.1f);
+	effectColor = XMFLOAT3(0.75f, 0.4f, 1.0f);
 	break;
 }
 	PlayAndSyncEffect(EFFECT_TYPE::ITEM10, effectPos, XMFLOAT2(65.f, 65.f), effectColor);
@@ -4748,18 +4750,20 @@ void CGameFramework::DrawSpeedometerUI()
 
 XMFLOAT3 CGameFramework::GetDashGaugeColor() const
 {
+	// Lock
 	if (m_bDashLocked)
-		//	return XMFLOAT3(1.0f, 0.75f, 0.1f); // 노랑
 		return XMFLOAT3(0.65f, 0.65f, 0.65f); // 회색
 
+	// Item_Speed
 	if (m_fSpeedItemBonusTime > 0.0f)
-		return XMFLOAT3(0.2f, 1.0f, 0.3f); // 초록
+		return XMFLOAT3(0.2f, 0.7f, 1.0f); // 파란색
 
+	// Item_Gauge
 	if (m_fNoDashGaugeConsumeTime > 0.0f)
-		return XMFLOAT3(0.2f, 0.7f, 1.0f); // 파랑
+		return XMFLOAT3(0.2f, 1.0f, 0.3f); // 초록색
 
-	// return XMFLOAT3(1.0f, 0.2f, 0.2f); // 빨강
-	return XMFLOAT3(1.0f, 0.75f, 0.1f); 
+	// 기본
+	return XMFLOAT3(1.0f, 0.75f, 0.1f); // 노란색
 }
 
 void CGameFramework::LoadDashGaugeFrameResource()
