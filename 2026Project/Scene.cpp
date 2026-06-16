@@ -674,7 +674,7 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 	pPlayerPlane->Rotate(0, -90, 0);
 	pPlayerPlane->SetPosition(-1700.0f, -200.0f, 360.0f);
 	m_ppGameObjects[35] = pPlayerPlane;
-	
+
 	CreateWireFrameBox(pd3dDevice, pd3dCommandList);
 	CreateAABBWireFrameBox(pd3dDevice, pd3dCommandList);
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
@@ -698,7 +698,7 @@ void CScene::BuildGameStage2(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 	BuildUIResources(pd3dDevice, pd3dCommandList);
 
 	// 
-	m_nGameObjects = 1 + 1 + 10 + 4 + 21;
+	m_nGameObjects = 1 + 1 + 10 + 4 + 21 + 1;
 	m_ppGameObjects = new CGameObject * [m_nGameObjects];
 
 	CGameObject* pMapModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/FORTR.bin");
@@ -1077,6 +1077,17 @@ void CScene::BuildGameStage2(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 		pItemObject21->m_fRespawnDelay = 3.0f;
 		m_ppGameObjects[36] = pItemObject21;
 	}
+
+	CCrabObject* pCrabObject = new CCrabObject();
+	pCrabObject->SetFPS(20.0f);
+	CGameObject* pCrabModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Crab.bin");
+	pCrabObject->SetChild(pCrabModel);
+	pCrabObject->OnInitialize();
+	//ApplyMeshTextures(pd3dDevice, pd3dCommandList, pCrabModel);
+	pCrabObject->SetScale(100, 100, 100);
+	pCrabObject->Rotate(0, 0, 0);
+	pCrabObject->SetPosition(-7749, -2259+100 , 6891);
+	m_ppGameObjects[37] = pCrabObject;
 
 	CreateWireFrameBox(pd3dDevice, pd3dCommandList);
 	CreateAABBWireFrameBox(pd3dDevice, pd3dCommandList);

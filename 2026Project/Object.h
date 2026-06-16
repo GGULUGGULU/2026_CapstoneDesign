@@ -404,3 +404,36 @@ public:
 		InitializeFrames("Flag", 60);
 	}
 };
+
+class CCrabObject : public CSequenceObject
+{
+public:
+	CCrabObject() {}
+	virtual ~CCrabObject() {}
+
+	virtual void OnInitialize() override {
+		InitializeFrames("Crab", 20);
+	}
+};
+
+class CPendulumBladeObject : public CSequenceObject
+{
+public:
+	CPendulumBladeObject() {}
+	virtual ~CPendulumBladeObject() {}
+
+	virtual void OnInitialize() override {
+		InitializeFrames("PendulumBlade", 40);
+	}
+};
+
+class CSeagullObject : public CSequenceObject
+{
+public:
+	CSeagullObject() {}
+	virtual ~CSeagullObject() {}
+
+	virtual void OnInitialize() override {
+		InitializeFrames("Seagull", 60);
+	}
+};
