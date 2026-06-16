@@ -539,12 +539,27 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 		}
 
 		return;
-	}
+	} // 사운드 설정
 
 
 
 	if (0 == m_nStage)
 	{
+		if (m_bIPInputActive)
+		{
+			if (nMessageID == WM_LBUTTONDOWN)
+			{
+				D2D1_RECT_F ipRect = GetIPInputRect();
+
+				if (!(m_ptMousePos.x >= ipRect.left && m_ptMousePos.x <= ipRect.right &&
+					m_ptMousePos.y >= ipRect.top && m_ptMousePos.y <= ipRect.bottom))
+				{
+					m_bIPInputActive = false;
+				}
+			}
+			return;
+		}
+
 		m_nHoveredButtonIndex = -1;
 
 		for (int i = 0; i < 3; ++i) {
@@ -579,9 +594,11 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 			else if (m_nHoveredButtonIndex == 1) {
 				SaveNameFromEditControl();
 
-				m_nStage = -1;
-				//ConnectToServer("172.30.1.97");
-				ConnectToServer("127.0.0.1");
+				m_bIPInputActive = true;
+				m_bNameInputActive = false;
+				wcscpy_s(m_wszServerIP, L"");
+				
+				//ConnectToServer("127.0.0.1");
 			}
 				//m_nStage = 1; // 임시, 인게임으로 바로 들어가는 경로
 			
@@ -988,12 +1005,24 @@ LRESULT CALLBACK CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMess
 
 	case WM_CHAR:
 		if (!(m_bShowGameMenu))
-			HandleNameCharInput(wParam);
+		{
+			if (m_nStage == 0)
+			{
+				if (m_bNameInputActive) HandleNameCharInput(wParam);
+				else if (m_bIPInputActive) HandleIPCharInput(wParam);
+			}
+		}
 		return 0;
 
 	case WM_KEYDOWN:
 		if (wParam == VK_ESCAPE)
 		{
+			if (m_nStage == 0)
+			{
+				if (m_bNameInputActive) { m_bNameInputActive = false; return 0; }
+				if (m_bIPInputActive) { m_bIPInputActive = false; return 0; }
+			}
+
 			if (!(lParam & 0x40000000))
 			{
 				m_bNameInputActive = false;
@@ -1010,21 +1039,54 @@ LRESULT CALLBACK CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMess
 			return 0;
 		}
 
-		if (m_nStage == 0 && m_bNameInputActive)
+		if (m_nStage == 0 )
 		{
-			if (wParam == VK_BACK || wParam == VK_RETURN)
-			{
-				HandleNameCharInput(wParam);
+			if (m_bNameInputActive) {
+				if (wParam == VK_BACK || wParam == VK_RETURN)
+				{
+					HandleNameCharInput(wParam);
+				}
+				else if (wParam >= 'A' && wParam <= 'Z')
+				{
+					bool shift = (::GetKeyState(VK_SHIFT) & 0x8000) != 0;
+					wchar_t ch = shift ? (wchar_t)wParam : (wchar_t)(wParam + 32);
+					HandleNameCharInput(ch);
+				}
+				else if (wParam >= '0' && wParam <= '9')
+				{
+					HandleNameCharInput(wParam);
+				}
 			}
-			else if (wParam >= 'A' && wParam <= 'Z')
-			{
-				bool shift = (::GetKeyState(VK_SHIFT) & 0x8000) != 0;
-				wchar_t ch = shift ? (wchar_t)wParam : (wchar_t)(wParam + 32);
-				HandleNameCharInput(ch);
-			}
-			else if (wParam >= '0' && wParam <= '9')
-			{
-				HandleNameCharInput(wParam);
+			else if (m_bIPInputActive) {
+				if (wParam == VK_RETURN)
+				{
+					m_bIPInputActive = false;
+					SaveNameFromEditControl();
+					m_nStage = -1;
+
+					char szIP[32];
+					WideCharToMultiByte(CP_ACP, 0, m_wszServerIP, -1, szIP, 32, NULL, NULL);
+
+					ConnectToServer(szIP);
+					return 0;
+				}
+				else if (wParam == VK_BACK)
+				{
+					HandleIPCharInput(wParam);
+				}
+				else if (wParam >= '0' && wParam <= '9') 
+				{
+					HandleIPCharInput(wParam);
+				}
+				else if (wParam >= VK_NUMPAD0 && wParam <= VK_NUMPAD9) 
+				{
+					HandleIPCharInput((wParam - VK_NUMPAD0) + '0');
+				}
+				else if (wParam == VK_OEM_PERIOD || wParam == VK_DECIMAL) 
+				{
+					HandleIPCharInput('.');
+				}
+				return 0;
 			}
 
 			return 0;
@@ -2659,6 +2721,7 @@ void CGameFramework::RenderUI()
 		}
 
 		DrawNameInputUI();
+		DrawIPInputUI();
 	}
 
 	else if (-2 == m_nStage) {
@@ -2845,7 +2908,7 @@ void CGameFramework::RenderUI()
 			m_textTimeFormat.Get(),
 			D2D1::RectF((float)m_nWndClientWidth - 200.0f, 50.0f, 
 				(float)m_nWndClientHeight - 20.0f, 100.0f),
-			m_textTimeBrush.Get()
+			m_textSpeedBrush.Get()
 		);
 
 		m_d2dDeviceContext->DrawTextW(
@@ -2855,7 +2918,7 @@ void CGameFramework::RenderUI()
 			D2D1::RectF(10.0f, 10.0f,
 				(float)m_nWndClientWidth - 10.0f,
 				(float)m_nWndClientHeight - 10.0f),
-			m_textTimeBrush.Get()
+			m_textSpeedBrush.Get()
 		);
 
 		int nTotalActivePlayers = (m_pNetwork && m_pNetwork->IsConnected()) ? m_pNetwork->GetCurrentPlayerCount() : 1;
@@ -2916,7 +2979,7 @@ void CGameFramework::RenderUI()
 			m_textTimeFormat.Get(),
 			D2D1::RectF((float)m_nWndClientWidth - 200.0f, 100.0f,
 				(float)m_nWndClientWidth - 20.0f, 150.0f),
-			m_textTimeBrush.Get()
+			m_textSpeedBrush.Get()
 		);
 		///////////////////////////////////////////////////////////////////
 		DrawSpeedometerUI();
@@ -4896,6 +4959,80 @@ D2D1_RECT_F CGameFramework::GetGameMenuButtonRect(int index) const
 		menu.top + h * y1[index],
 		menu.left + w * x2,
 		menu.top + h * y2[index]
+	);
+}
+
+D2D1_RECT_F CGameFramework::GetIPInputRect() const
+{
+	float w = 400.0f;
+	float h = 60.0f;
+	float x = (m_nWndClientWidth - w) * 0.5f;
+	float y = (m_nWndClientHeight - h) * 0.5f;
+
+	return D2D1::RectF(x, y, x + w, y + h);
+}
+
+void CGameFramework::HandleIPCharInput(WPARAM wParam)
+{
+	if (m_nStage != 0 || !m_bIPInputActive) return;
+
+	if (wParam == VK_BACK)
+	{
+		size_t len = wcsnlen_s(m_wszServerIP, 32);
+		if (len > 0) m_wszServerIP[len - 1] = L'\0';
+		return;
+	}
+
+	if ((wParam >= '0' && wParam <= '9') || wParam == '.')
+	{
+		size_t len = wcsnlen_s(m_wszServerIP, 32);
+		if (len >= 15) return;
+
+		m_wszServerIP[len] = static_cast<wchar_t>(wParam);
+		m_wszServerIP[len + 1] = L'\0';
+	}
+}
+
+void CGameFramework::DrawIPInputUI()
+{
+	if (m_nStage != 0 || !m_bIPInputActive || !m_d2dDeviceContext) return;
+
+	ComPtr<ID2D1SolidColorBrush> dimBrush;
+	m_d2dDeviceContext->CreateSolidColorBrush(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.6f), &dimBrush);
+	if (dimBrush)
+	{
+		m_d2dDeviceContext->FillRectangle(
+			D2D1::RectF(0.0f, 0.0f, (float)m_nWndClientWidth, (float)m_nWndClientHeight),
+			dimBrush.Get()
+		);
+	}
+
+	D2D1_RECT_F rect = GetIPInputRect();
+
+	if (m_textNameTagBgBrush)
+		m_d2dDeviceContext->FillRoundedRectangle(D2D1::RoundedRect(rect, 8.0f, 8.0f), m_textNameTagBgBrush.Get());
+
+	if (m_dashGaugeBorderBrush)
+		m_d2dDeviceContext->DrawRoundedRectangle(D2D1::RoundedRect(rect, 8.0f, 8.0f), m_dashGaugeBorderBrush.Get(), 3.0f);
+
+	const wchar_t* label = L"Enter IP Address and Press 'ENTER'";
+	m_d2dDeviceContext->DrawTextW(
+		label, (UINT32)wcslen(label), m_textNameTagFormat.Get(),
+		D2D1::RectF(rect.left - 50.0f, rect.top - 40.0f, rect.right + 50.0f, rect.top - 5.0f), m_textNameTagBrush.Get()
+	);
+
+	wchar_t textBuffer[32]{};
+	wcscpy_s(textBuffer, 32, m_wszServerIP);
+
+	m_fNameCaretTime += m_GameTimer.GetTimeElapsed();
+	if (fmodf(m_fNameCaretTime, 1.0f) < 0.5f)
+	{
+		wcscat_s(textBuffer, 32, L"|");
+	}
+
+	m_d2dDeviceContext->DrawTextW(
+		textBuffer, (UINT32)wcslen(textBuffer), m_textNameTagFormat.Get(),
+		D2D1::RectF(rect.left + 15.0f, rect.top + 5.0f, rect.right - 15.0f, rect.bottom), m_textNameTagBrush.Get()
 	);
 }
 

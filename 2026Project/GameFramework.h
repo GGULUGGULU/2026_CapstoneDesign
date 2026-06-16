@@ -208,8 +208,14 @@ public:
 	float m_fBGMVolume = 0.5f;
 	float m_fSFXVolume = 0.5f;
 
+	bool m_bIPInputActive{ false };
+	wchar_t m_wszServerIP[32];
+
 	D2D1_RECT_F GetGameMenuImageRect() const;
 	D2D1_RECT_F GetGameMenuButtonRect(int index) const;
+	D2D1_RECT_F GetIPInputRect() const;
+	void HandleIPCharInput(WPARAM wParam);
+	void DrawIPInputUI();
 	ComPtr<ID2D1SolidColorBrush> m_menuButtonBrush;
 
 
@@ -500,8 +506,6 @@ public:
 	float m_fFinishAfterTime = 0.0f;
 	float m_fRankingWaitDelay = 3.0f;
 	bool m_bShowRankingWaitImage = false;
-
-
 
 	void LoadLoadingImage();
 	void DrawLoadingImage();
