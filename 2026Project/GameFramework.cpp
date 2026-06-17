@@ -1015,6 +1015,14 @@ LRESULT CALLBACK CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMess
 		return 0;
 
 	case WM_KEYDOWN:
+
+		if (m_bPlayingIntroVideo)
+		{
+			OnProcessingKeyboardMessage(hWnd, nMessageID, wParam, lParam);
+			return 0;
+		}
+
+
 		if (wParam == VK_ESCAPE)
 		{
 			if (m_nStage == 0)
@@ -1759,6 +1767,21 @@ void CGameFramework::BuildGameObjects()
 		m_nLoadedPlayersCnt = 0;
 	}
 	m_bRaceStarted = !m_bMultiplayerEnabled;
+
+
+	m_SoundManager.StopBGM();
+
+	if (m_nSelectedMapIndex == 0)
+	{
+		m_SoundManager.PlayBGM("Asset/Audio/TurboCandyCircuit.mp3");
+	}
+	else if (m_nSelectedMapIndex == 1)
+	{
+		m_SoundManager.PlayBGM("Asset/Audio/CutlassDash.mp3");
+	}m_GameTimer.Reset();
+
+
+	m_SoundManager.SetBGMVolume(m_fBGMVolume);
 }
 
 float CGameFramework::GetPlayerEffectiveMaxSpeed() const
