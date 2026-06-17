@@ -173,6 +173,8 @@ bool CGameFramework::OnCreate(HINSTANCE hInstance, HWND hMainWnd)
 		m_SoundManager.PlayBGM("Asset/Audio/TRBGM.mp3");
 	}
 
+	ChangeSwapChainState();
+
 	return(true);
 }
 
