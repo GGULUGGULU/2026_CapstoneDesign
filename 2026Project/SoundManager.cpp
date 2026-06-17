@@ -10,7 +10,7 @@ void CSoundManager::Init()
 
 void CSoundManager::PlayBGM(const std::string& filepath)
 {
-    StopBGM();
+   // StopBGM();
 
 
     ma_sound_init_from_file(&engine, filepath.c_str(),

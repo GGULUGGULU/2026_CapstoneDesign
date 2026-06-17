@@ -768,7 +768,7 @@ void CScene::BuildGameStage2(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 	BuildUIResources(pd3dDevice, pd3dCommandList);
 
 	// 
-	m_nGameObjects = 1 + 1 + 10 + 4 + 21 + 1 + 6;
+	m_nGameObjects = 1 + 1 + 10 + 4 + 21 + 6;
 	m_ppGameObjects = new CGameObject * [m_nGameObjects];
 
 	CGameObject* pMapModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/FORTR.bin");
@@ -1148,16 +1148,16 @@ void CScene::BuildGameStage2(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 		m_ppGameObjects[36] = pItemObject21;
 	}
 
-	CCrabObject* pCrabObject = new CCrabObject();
-	pCrabObject->SetFPS(20.0f);
-	CGameObject* pCrabModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Crab.bin");
-	pCrabObject->SetChild(pCrabModel);
-	pCrabObject->OnInitialize();
-	//ApplyMeshTextures(pd3dDevice, pd3dCommandList, pCrabModel);
-	pCrabObject->SetScale(100, 100, 100);
-	pCrabObject->Rotate(0, 0, 0);
-	pCrabObject->SetPosition(-7749, -2259+100 , 6891);
-	m_ppGameObjects[37] = pCrabObject;
+	//CCrabObject* pCrabObject = new CCrabObject();
+	//pCrabObject->SetFPS(20.0f);
+	//CGameObject* pCrabModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Crab.bin");
+	//pCrabObject->SetChild(pCrabModel);
+	//pCrabObject->OnInitialize();
+	////ApplyMeshTextures(pd3dDevice, pd3dCommandList, pCrabModel);
+	//pCrabObject->SetScale(100, 100, 100);
+	//pCrabObject->Rotate(0, 0, 0);
+	//pCrabObject->SetPosition(-7749, -2259+100 , 6891);
+	//m_ppGameObjects[37] = pCrabObject;
 
 	{
 		CGameObject* pRLModel1 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/RedLight1.bin");
@@ -1166,7 +1166,7 @@ void CScene::BuildGameStage2(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 		pRLObject1->SetChild(pRLModel1);
 		pRLObject1->SetPosition(0.0f, -2500.0f, 0.0f);
 		pRLObject1->SetScale(8, 8, 8);
-		m_ppGameObjects[38] = pRLObject1;
+		m_ppGameObjects[37] = pRLObject1;
 
 		CGameObject* pRLModel2 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/RedLight2.bin");
 		ApplyMeshTextures(pd3dDevice, pd3dCommandList, pRLModel2);
@@ -1178,7 +1178,7 @@ void CScene::BuildGameStage2(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 		pRLObject2->m_bCanRespawn = true;
 		pRLObject2->m_fInactiveTime = 0.0f;
 		pRLObject2->m_fRespawnDelay = 2.0f;
-		m_ppGameObjects[39] = pRLObject2;
+		m_ppGameObjects[38] = pRLObject2;
 
 		CGameObject* pRLModel3 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/RedLight3.bin");
 		ApplyMeshTextures(pd3dDevice, pd3dCommandList, pRLModel3);
@@ -1190,7 +1190,7 @@ void CScene::BuildGameStage2(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 		pRLObject3->m_bCanRespawn = true;
 		pRLObject3->m_fInactiveTime = 0.0f;
 		pRLObject3->m_fRespawnDelay = 4.0f;
-		m_ppGameObjects[40] = pRLObject3;
+		m_ppGameObjects[39] = pRLObject3;
 
 		CGameObject* pRLModel4 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/RedLight4.bin");
 		ApplyMeshTextures(pd3dDevice, pd3dCommandList, pRLModel4);
@@ -1202,7 +1202,7 @@ void CScene::BuildGameStage2(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 		pRLObject4->m_bCanRespawn = true;
 		pRLObject4->m_fInactiveTime = 0.0f;
 		pRLObject4->m_fRespawnDelay = 6.0f;
-		m_ppGameObjects[41] = pRLObject4;
+		m_ppGameObjects[40] = pRLObject4;
 
 		CGameObject* pRLModel5 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/RedLight5.bin");
 		ApplyMeshTextures(pd3dDevice, pd3dCommandList, pRLModel5);
@@ -1214,7 +1214,7 @@ void CScene::BuildGameStage2(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 		pRLObject5->m_bCanRespawn = true;
 		pRLObject5->m_fInactiveTime = 0.0f;
 		pRLObject5->m_fRespawnDelay = 8.0f;
-		m_ppGameObjects[42] = pRLObject5;
+		m_ppGameObjects[41] = pRLObject5;
 
 		CGameObject* pRLModel6 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/RedLight6.bin");
 		ApplyMeshTextures(pd3dDevice, pd3dCommandList, pRLModel6);
@@ -1226,7 +1226,7 @@ void CScene::BuildGameStage2(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 		pRLObject6->m_bCanRespawn = true;
 		pRLObject6->m_fInactiveTime = 0.0f;
 		pRLObject6->m_fRespawnDelay = 10.0f;
-		m_ppGameObjects[43] = pRLObject6;
+		m_ppGameObjects[42] = pRLObject6;
 	}
 
 	CreateWireFrameBox(pd3dDevice, pd3dCommandList);
