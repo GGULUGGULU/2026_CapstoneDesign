@@ -2516,10 +2516,10 @@ void CGameFramework::CreateTextResources()
 	m_dWriteFactory->CreateTextFormat(
 		L"Arial",
 		NULL,
-		DWRITE_FONT_WEIGHT_NORMAL,
+		DWRITE_FONT_WEIGHT_BOLD,
 		DWRITE_FONT_STYLE_NORMAL,
 		DWRITE_FONT_STRETCH_NORMAL,
-		24.0f,
+		32.0f,
 		L"en-us",
 		m_textTimeFormat.GetAddressOf()
 	);
@@ -2938,8 +2938,7 @@ void CGameFramework::RenderUI()
 			lapBuffer,
 			(UINT32)wcslen(lapBuffer),
 			m_textTimeFormat.Get(),
-			D2D1::RectF((float)m_nWndClientWidth - 200.0f, 50.0f, 
-				(float)m_nWndClientHeight - 20.0f, 100.0f),
+			D2D1::RectF(0.0f, 65.0f, (float)m_nWndClientWidth - 20.0f, 115.0f),
 			m_textSpeedBrush.Get()
 		);
 
@@ -3009,8 +3008,7 @@ void CGameFramework::RenderUI()
 			rankBuffer,
 			(UINT32)wcslen(rankBuffer),
 			m_textTimeFormat.Get(),
-			D2D1::RectF((float)m_nWndClientWidth - 200.0f, 100.0f,
-				(float)m_nWndClientWidth - 20.0f, 150.0f),
+			D2D1::RectF(0.0f, 110.0f, (float)m_nWndClientWidth - 20.0f, 160.0f),
 			m_textSpeedBrush.Get()
 		);
 		///////////////////////////////////////////////////////////////////
