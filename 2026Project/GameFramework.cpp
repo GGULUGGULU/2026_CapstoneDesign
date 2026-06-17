@@ -1812,12 +1812,14 @@ case ITEM_DASH_POTION:
 
 case ITEM_MAX_SPEED_UP:
 	// effectColor = XMFLOAT3(0.2f, 1.0f, 0.3f);
-	effectColor = XMFLOAT3(0.2f, 0.7f, 1.0f);
+	// effectColor = XMFLOAT3(0.2f, 0.7f, 1.0f);
+	effectColor = XMFLOAT3(0.2f, 1.0f, 0.3f);
 	break;
 
 case ITEM_MAX_DASH_GAUGE_UP:
 	// effectColor = XMFLOAT3(0.2f, 0.7f, 1.0f);
-	effectColor = XMFLOAT3(0.2f, 1.0f, 0.3f);
+	//effectColor = XMFLOAT3(0.2f, 1.0f, 0.3f);
+	effectColor = XMFLOAT3(0.2f, 0.7f, 1.0f);
 	break;
 
 case ITEM_LOCK:
@@ -2685,6 +2687,11 @@ void CGameFramework::RenderUI()
 	m_d2dDeviceContext->SetTarget(m_d2dRenderTargets[m_nSwapChainBufferIndex].Get());
 	m_d2dDeviceContext->BeginDraw();
 
+	if (m_nStage == 1)
+	{
+		m_d2dDeviceContext->Clear(D2D1::ColorF(D2D1::ColorF::Black, 1.0f));
+
+	}
 	if (0 == m_nStage) {
 		if (m_pLobbyD2DBitmap)
 		{
@@ -4566,10 +4573,13 @@ void CGameFramework::FrameAdvance()
 
 		ClearRTVDSV(m_pd3dRtvDescriptorHeap, m_pd3dDsvDescriptorHeap, m_pd3dCommandList);
 		SetMainViewport();
+		if (m_nStage != 1) {
 
-		if (m_pScene) m_pScene->Render(m_pd3dCommandList, m_pCamera);
-		if (m_pPlayer) m_pPlayer->Render(m_pd3dCommandList, NULL, m_pCamera);
-		
+
+			if (m_pScene) m_pScene->Render(m_pd3dCommandList, m_pCamera);
+			if (m_pPlayer) m_pPlayer->Render(m_pd3dCommandList, NULL, m_pCamera);
+
+		}
 	}
 
 	CGameObject* pDebugBoxToRender = NULL;
@@ -5451,11 +5461,13 @@ XMFLOAT3 CGameFramework::GetDashGaugeColor() const
 
 	// Item_Speed
 	if (m_fSpeedItemBonusTime > 0.0f)
-		return XMFLOAT3(0.2f, 0.7f, 1.0f); // 파란색
+		// return XMFLOAT3(0.2f, 0.7f, 1.0f); // 파란색
+		return XMFLOAT3(0.2f, 1.0f, 0.3f); // 초록색
 
 	// Item_Gauge
 	if (m_fNoDashGaugeConsumeTime > 0.0f)
-		return XMFLOAT3(0.2f, 1.0f, 0.3f); // 초록색
+		//return XMFLOAT3(0.2f, 1.0f, 0.3f); // 초록색
+		return XMFLOAT3(0.2f, 0.7f, 1.0f); // 파란색
 
 	// 기본
 	return XMFLOAT3(1.0f, 0.75f, 0.1f); // 노란색
