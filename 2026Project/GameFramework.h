@@ -525,7 +525,7 @@ public:
 	int m_nCurrentLap = 1;
 	int m_nPassedCheckPoints = 0;
 	int m_nTotalCheckPoints = 10;
-	const int MAX_LAPS = 1;
+	const int MAX_LAPS = 3;
 	WCHAR lapBuffer[64];
 
 

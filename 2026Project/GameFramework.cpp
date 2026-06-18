@@ -4086,7 +4086,7 @@ void CGameFramework::CreateRemotePlayers()
 		{
 		case 0: pRemotePlayer = new CCar1Player(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature()); break;
 		case 1: pRemotePlayer = new CCar2Player(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature()); break;
-			//case 2: pCarPlayer = new CCar3Player(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature()); break;
+		case 2: pRemotePlayer = new CCar3Player(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature()); break;
 		default: pRemotePlayer = new CCar1Player(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature()); break;
 		}
 		pRemotePlayer->SetScale(10.2f, 10.2f, 10.2f);
