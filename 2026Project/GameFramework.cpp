@@ -2841,7 +2841,37 @@ void CGameFramework::RenderUI()
 						D2D1_BITMAP_INTERPOLATION_MODE_LINEAR
 					);
 				}
+
+				const wchar_t* name = m_szPlayerNames[i];
+				if (wcslen(name) > 0) {
+					float textHeight = 35.0f;
+					float marginX = (boxRight - boxLeft) * 0.03f; 
+					float marginBottom = 4.0f;
+
+					float leftCorrection = (i == 1 || i == 3) ? 10.0f : 0.0f;
+
+					D2D1_RECT_F nameRect = D2D1::RectF(
+						boxLeft + marginX + leftCorrection, 
+						boxBottom - textHeight - marginBottom,
+						boxRight - marginX,
+						boxBottom - marginBottom
+					);
+
+					m_d2dDeviceContext->FillRoundedRectangle(
+						D2D1::RoundedRect(nameRect, 4.0f, 4.0f),
+						m_textNameTagBgBrush.Get()
+					);
+
+					m_d2dDeviceContext->DrawTextW(
+						name,
+						(UINT32)wcslen(name),
+						m_textNameTagFormat.Get(),
+						nameRect,
+						m_textNameTagBrush.Get()
+					);
+				}
 			}
+
 
 			for (int i = 0; i < 2; ++i)
 			{
@@ -3735,6 +3765,7 @@ void CGameFramework::SyncRoom()
 
 		if (m_nMyPlayerId >= 1 && m_nMyPlayerId <= 4) {
 			m_nPlayerIndices[m_nMyPlayerId - 1] = m_nSelectedCarIndex;
+			wcscpy_s(m_szPlayerNames[m_nMyPlayerId - 1], m_szMyPlayerName);
 		}
 
 		RoomSyncEventNet syncEvent{};
