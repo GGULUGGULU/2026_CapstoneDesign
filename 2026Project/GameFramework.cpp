@@ -2533,7 +2533,7 @@ void CGameFramework::CreateTextResources()
 	);
 
 	m_textSpeedFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
-	m_textSpeedFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
+ 	m_textSpeedFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
 
 	m_d2dDeviceContext->CreateSolidColorBrush(
 		D2D1::ColorF(D2D1::ColorF::Yellow),
@@ -2731,8 +2731,8 @@ void CGameFramework::RenderUI()
 					m_d2dDeviceContext->FillRoundedRectangle(
 						D2D1::RoundedRect(
 							m_LobbyButtons[i].rect,
-							15.0f,
-							15.0f
+							27.0f,
+							27.0f
 						),
 						m_pBtnHoverBrush.Get()
 					);
