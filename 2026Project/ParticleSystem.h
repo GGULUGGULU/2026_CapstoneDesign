@@ -58,9 +58,6 @@ private:
 	D3D12_VERTEX_BUFFER_VIEW m_d3dVertexBufferView;
 	VS_VB_INSTANCE_PARTICLE* m_pMappedParticles = nullptr;
 
-	ID3D12RootSignature* m_pRootSignature = nullptr;
-	ID3D12PipelineState* m_pPipelineState = nullptr;
-
 	friend class CEffectLibrary;
 };
 

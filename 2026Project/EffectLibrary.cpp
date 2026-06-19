@@ -1,5 +1,4 @@
 #include "EffectPCH.h"
-#include "EffectRendererDX12.h"
 #include "EffectLibrary.h"
 #include "ParticleSystem.h"
 #include "MeshEffect.h"
@@ -251,9 +250,6 @@ void CEffectLibrary::Initialize(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandL
 	}
 
 	CreateEffectPools(pd3dDevice, pd3dCommandList);
-
-	m_pRenderer = std::make_unique<EffectRendererDX12>();
-	m_pRenderer->Initialize(pd3dDevice);
 }
 
 void CEffectLibrary::ReleaseIfInitialized()
@@ -532,29 +528,36 @@ void CEffectLibrary::LoadAssets(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandL
 
 void CEffectLibrary::Render(ID3D12GraphicsCommandList* pd3dCommandList, const XMFLOAT4X4& view, const XMFLOAT4X4& proj)
 {
-	if (m_pRenderer)
+	if (!pd3dCommandList || !m_pRootSignature || !m_pd3dSrvHeap) return;
+
+	pd3dCommandList->SetGraphicsRootSignature(m_pRootSignature);
+
+	XMFLOAT4X4 tMats[2];
+	XMStoreFloat4x4(&tMats[0], XMMatrixTranspose(XMLoadFloat4x4(&view)));
+	XMStoreFloat4x4(&tMats[1], XMMatrixTranspose(XMLoadFloat4x4(&proj)));
+	pd3dCommandList->SetGraphicsRoot32BitConstants(1, 32, tMats, 0);
+
+	ID3D12DescriptorHeap* heaps[] = { m_pd3dSrvHeap };
+	pd3dCommandList->SetDescriptorHeaps(1, heaps);
+
+	int currentPsoType = 0; 
+
+	for (auto eff : m_vActiveEffects)
 	{
-		EffectRenderContext context;
-		context.commandContext = pd3dCommandList;
+		if (!eff || !eff->bActive) continue;
 
-		EffectMat4 effectView{};
-		EffectMat4 effectProj{};
+		if (eff->pParticleSys)
+		{
+			RenderParticleEffect(pd3dCommandList, eff, currentPsoType, heaps);
+		}
 
-		memcpy(effectView.m, &view, sizeof(EffectMat4));
-		memcpy(effectProj.m, &proj, sizeof(EffectMat4));
-
-		m_pRenderer->Render(context, this, effectView, effectProj);
+		if (eff->pMeshEffect)
+		{
+			RenderMeshEffect(pd3dCommandList, eff, currentPsoType);
+		}
 	}
 }
 
-
-void CEffectLibrary::Render(EffectRenderContext& context, const EffectMat4& view, const EffectMat4& proj)
-{
-	if (m_pRenderer)
-	{
-		m_pRenderer->Render(context, this, view, proj);
-	}
-}
 
 void CEffectLibrary::RenderParticleEffect(ID3D12GraphicsCommandList* pd3dCommandList, ActiveEffect* eff, int& currentPsoType, ID3D12DescriptorHeap** ppParticleHeap)
 {

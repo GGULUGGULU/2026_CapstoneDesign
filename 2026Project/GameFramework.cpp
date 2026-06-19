@@ -755,6 +755,7 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 			m_nPassedCheckPoints = 0;
 			m_fMyFinalTime = 0.0f;
 			m_fTotalTime = 0.0f;
+			m_bCountdownSoundPlayed = false;
 			m_GameTimer.Reset();
 		}
 	}
@@ -843,42 +844,42 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 	case WM_KEYDOWN:
 		switch (wParam)
 		{
-		case VK_SPACE:
-		{
-			if (lParam & 0x40000000) break;
-
-			if (m_nStage != 2 || !m_pPlayer || !m_pScene) break;
-
-			const float fFirstJumpVelocity = 150.0f;
-			const float fSecondJumpVelocity = 200.0f;
-			const float fNow = m_GameTimer.GetTotalTime();
-
-			const bool bOnGround = m_pScene->CheckGroundCollision();
-
-			if (m_nJumpCount == 0)
-			{
-				if (!bOnGround) break;
-
-				m_nJumpCount = 1;
-				m_fFirstJumpTime = fNow;
-
-				XMFLOAT3 v = m_pPlayer->GetVelocity();
-				v.y = fFirstJumpVelocity;
-				m_pPlayer->SetVelocity(v);
-			}
-			else if (m_nJumpCount == 1)
-			{
-				if ((fNow - m_fFirstJumpTime) <= m_fSecondJumpWindow)
-				{
-					m_nJumpCount = 2;
-
-					XMFLOAT3 v = m_pPlayer->GetVelocity();
-					v.y = fSecondJumpVelocity;
-					m_pPlayer->SetVelocity(v);
-				}
-			}
-		}
-		break;
+		//case VK_SPACE:
+		//{
+		//	if (lParam & 0x40000000) break;
+		//
+		//	if (m_nStage != 2 || !m_pPlayer || !m_pScene) break;
+		//
+		//	const float fFirstJumpVelocity = 150.0f;
+		//	const float fSecondJumpVelocity = 200.0f;
+		//	const float fNow = m_GameTimer.GetTotalTime();
+		//
+		//	const bool bOnGround = m_pScene->CheckGroundCollision();
+		//
+		//	if (m_nJumpCount == 0)
+		//	{
+		//		if (!bOnGround) break;
+		//
+		//		m_nJumpCount = 1;
+		//		m_fFirstJumpTime = fNow;
+		//
+		//		XMFLOAT3 v = m_pPlayer->GetVelocity();
+		//		v.y = fFirstJumpVelocity;
+		//		m_pPlayer->SetVelocity(v);
+		//	}
+		//	else if (m_nJumpCount == 1)
+		//	{
+		//		if ((fNow - m_fFirstJumpTime) <= m_fSecondJumpWindow)
+		//		{
+		//			m_nJumpCount = 2;
+		//
+		//			XMFLOAT3 v = m_pPlayer->GetVelocity();
+		//			v.y = fSecondJumpVelocity;
+		//			m_pPlayer->SetVelocity(v);
+		//		}
+		//	}
+		//}
+		//break;
 		case VK_CONTROL:
 			if (m_eHoldItem != ITEM_NONE) {
 				ApplyItemReward(m_eHoldItem);
@@ -1324,7 +1325,6 @@ void CGameFramework::ProcessInputGameStage()
 		return;
 	}
 
-
 	static UCHAR pKeysBuffer[256];
 	::ZeroMemory(pKeysBuffer, sizeof(pKeysBuffer));
 
@@ -1349,18 +1349,17 @@ void CGameFramework::ProcessInputGameStage()
 		XMFLOAT3 vCurrentVelocity = m_pPlayer->GetVelocity();
 		XMVECTOR vVel = XMLoadFloat3(&vCurrentVelocity);
 
+		float fVelocityY = XMVectorGetY(vVel);   
+		vVel = XMVectorSetY(vVel, 0.0f);       
+
 		float fCurrentSpeed = XMVectorGetX(XMVector3Length(vVel));
 		float fMaxSpeed = max(1.0f, m_pPlayer->m_fMaxVelocityXZ);
 
 		float fSpeedRatio = fCurrentSpeed / fMaxSpeed;
 		if (fSpeedRatio > 1.0f) fSpeedRatio = 1.0f;
 
-
 		float fMaxSteeringAngle = 35.0f - (15.0f * fSpeedRatio);
-		if (m_bIsDashing)
-		{
-			fMaxSteeringAngle *= 0.8f;
-		}
+		if (m_bIsDashing) fMaxSteeringAngle *= 0.8f;
 
 		float fTargetSteering = 0.0f;
 		if (bLeft)      fTargetSteering = -fMaxSteeringAngle;
@@ -1371,22 +1370,19 @@ void CGameFramework::ProcessInputGameStage()
 			((CCarPlayer*)m_pPlayer)->UpdateSteering(fTargetSteering, fTimeElapsed);
 		}
 
-	
 		float fSteeringFactor = 1.0f - (fSpeedRatio * 0.55f);
 		if (fSteeringFactor < 0.45f) fSteeringFactor = 0.45f;
-
-		if (m_bIsDashing)
-		{
-			fSteeringFactor *= 0.75f;
-		}
+		if (m_bIsDashing) fSteeringFactor *= 0.75f;
 
 		float fBaseTurnSpeed = 150.0f;
 		float fTurnSpeed = fBaseTurnSpeed * fSteeringFactor;
 
 		XMFLOAT3 vLook = m_pPlayer->GetLookVector();
-		XMVECTOR vForwardDir = XMLoadFloat3(&vLook);
+		XMVECTOR vForwardDir = XMVectorSetY(XMLoadFloat3(&vLook), 0.0f);
+		if (XMVectorGetX(XMVector3LengthSq(vForwardDir)) > 0.0001f)
+			vForwardDir = XMVector3Normalize(vForwardDir);
 
-		float fForwardDirectionSpeed = XMVectorGetX(XMVector3Dot(vVel, XMLoadFloat3(&vLook)));
+		float fForwardDirectionSpeed = XMVectorGetX(XMVector3Dot(vVel, vForwardDir));
 		float fDirMult = (fForwardDirectionSpeed >= 0.0f) ? 1.0f : -1.0f;
 
 		if (fCurrentSpeed > 1.0f)
@@ -1399,13 +1395,9 @@ void CGameFramework::ProcessInputGameStage()
 		XMVECTOR vAcceleration = XMVectorZero();
 
 		if (bForward)
-		{
 			vAcceleration = vForwardDir * fAccelValue;
-		}
 		else if (bBackward)
-		{
 			vAcceleration = -vForwardDir * (fAccelValue * 0.5f);
-		}
 
 		vVel += vAcceleration * fTimeElapsed;
 
@@ -1414,55 +1406,46 @@ void CGameFramework::ProcessInputGameStage()
 		if (fHorizontalSpeed > 0.0f)
 		{
 			XMVECTOR vDir = XMVector3Normalize(vVel);
-
 			float fDecel = 0.0f;
 
 			if (bHasDriveInput)
-			{
-				
 				fDecel = 10.0f;
-			}
 			else
 			{
-				
-				if (fHorizontalSpeed > 250.0f)
-					fDecel = 10.0f;
-				else if (fHorizontalSpeed > 150.0f)
-					fDecel = 10.0f;
-				else if (fHorizontalSpeed > 80.0f)
-					fDecel = 20.0f;
-				else
-					fDecel = 20.0f;
+				if (fHorizontalSpeed > 250.0f) fDecel = 10.0f;
+				else if (fHorizontalSpeed > 150.0f) fDecel = 10.0f;
+				else if (fHorizontalSpeed > 80.0f) fDecel = 20.0f;
+				else fDecel = 20.0f;
 			}
 
 			float fDeltaSpeed = fDecel * fTimeElapsed;
-
 			if (fDeltaSpeed > fHorizontalSpeed)
 				fDeltaSpeed = fHorizontalSpeed;
 
 			vVel -= vDir * fDeltaSpeed;
 		}
 
+		XMVECTOR vRightDir = XMVectorSetY(XMLoadFloat3(&m_pPlayer->GetRightVector()), 0.0f);
+		if (XMVectorGetX(XMVector3LengthSq(vRightDir)) > 0.0001f)
+			vRightDir = XMVector3Normalize(vRightDir);
 
-		XMVECTOR vRightDir = XMLoadFloat3(&m_pPlayer->GetRightVector());
 		float fRightVelocity = XMVectorGetX(XMVector3Dot(vVel, vRightDir));
-
 		float fGripStrength = 8.0f;
 		vVel -= vRightDir * fRightVelocity * fGripStrength * fTimeElapsed;
 
-		float fCurrentMaxSpeed = max(1.0f, m_pPlayer->m_fMaxVelocityXZ);
+		float fCurrentMaxSpeedCap = max(1.0f, m_pPlayer->m_fMaxVelocityXZ);
 		float fSpeedSq = XMVectorGetX(XMVector3LengthSq(vVel));
-		if (fSpeedSq > fCurrentMaxSpeed * fCurrentMaxSpeed)
+		if (fSpeedSq > fCurrentMaxSpeedCap * fCurrentMaxSpeedCap)
 		{
-			vVel = XMVector3Normalize(vVel) * fCurrentMaxSpeed;
+			vVel = XMVector3Normalize(vVel) * fCurrentMaxSpeedCap;
 		}
 
+		vVel = XMVectorSetY(vVel, fVelocityY);
 
 		XMStoreFloat3(&vCurrentVelocity, vVel);
 		m_pPlayer->SetVelocity(vCurrentVelocity);
 
-		m_nPlayerCurrentSpeed = (int)XMVectorGetX(XMVector3Length(vVel));
-
+		m_nPlayerCurrentSpeed = (int)XMVectorGetX(XMVector3Length(XMVectorSetY(vVel, 0.0f)));
 		
 		if (m_nPlayerCurrentSpeed > 20)
 		{
@@ -1760,6 +1743,7 @@ void CGameFramework::BuildGameObjects()
 		m_bRaceStartDelayStarted = false;
 		m_fRaceStartDelayTime = 0.f;
 		m_bRaceStarted = true;
+		m_bCountdownSoundPlayed = false;
 	}
 	else {
 		m_bStartSign = true;
@@ -1767,6 +1751,7 @@ void CGameFramework::BuildGameObjects()
 		m_bRaceStarted = false;
 		m_bRaceStartDelayStarted = false;
 		m_nLoadedPlayersCnt = 0;
+		m_bCountdownSoundPlayed = false;
 	}
 	m_bRaceStarted = !m_bMultiplayerEnabled;
 
@@ -1993,11 +1978,12 @@ void CGameFramework::UpdateDashSystem(float fTimeElapsed, bool bDashKeyDown, boo
 				m_fDashOverheatTime = 0.8f;
 
 				m_SoundManager.PlaySFX("Asset/Audio/Boom.mp3");
-			
 
-		
 				XMFLOAT3 v = m_pPlayer->GetVelocity();
 				XMVECTOR vel = XMLoadFloat3(&v);
+
+				float fVelY = XMVectorGetY(vel);
+				vel = XMVectorSetY(vel, 0.0f);
 
 				float speed = XMVectorGetX(XMVector3Length(vel));
 
@@ -2005,6 +1991,8 @@ void CGameFramework::UpdateDashSystem(float fTimeElapsed, bool bDashKeyDown, boo
 				{
 					XMVECTOR dir = XMVector3Normalize(vel);
 					vel = dir * 50.0f;
+
+					vel = XMVectorSetY(vel, fVelY);
 					XMStoreFloat3(&v, vel);
 					m_pPlayer->SetVelocity(v);
 				}
@@ -2221,7 +2209,7 @@ void CGameFramework::CollisionProcess()
 		{
 			// 점프 조정
 			// 근데 숫자 바꾸면 2단이 잘 안될 때가 있음.
-			m_pPlayer->SetGravity(XMFLOAT3(0, -1.5f, 0));
+			m_pPlayer->SetGravity(XMFLOAT3(0, -5.5f, 0));
 		}
 	}
 

@@ -143,13 +143,10 @@
     <ClInclude Include="Camera.h" />
     <ClInclude Include="d3dx12.h" />
     <ClInclude Include="DDSTextureLoader12.h" />
-    <ClInclude Include="EffectCoreTypes.h" />
     <ClInclude Include="EffectLibrary.h" />
     <ClInclude Include="EffectPCH.h" />
-    <ClInclude Include="EffectRendererDX12.h" />
     <ClInclude Include="GameFramework.h" />
     <ClInclude Include="2026Project.h" />
-    <ClInclude Include="IEffectRenderer.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="MeshEffect.h" />
     <ClInclude Include="miniaudio.h" />
@@ -176,10 +173,6 @@
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">EffectPCH.h</PrecompiledHeaderFile>
     </ClCompile>
     <ClCompile Include="EffectPCH.cpp">
-      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">EffectPCH.h</PrecompiledHeaderFile>
-      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">EffectPCH.h</PrecompiledHeaderFile>
-    </ClCompile>
-    <ClCompile Include="EffectRendererDX12.cpp">
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">EffectPCH.h</PrecompiledHeaderFile>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">EffectPCH.h</PrecompiledHeaderFile>
     </ClCompile>

@@ -78,15 +78,6 @@
     <ClInclude Include="SoundManager.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="IEffectRenderer.h">
-      <Filter>EffectLibrary</Filter>
-    </ClInclude>
-    <ClInclude Include="EffectRendererDX12.h">
-      <Filter>EffectLibrary</Filter>
-    </ClInclude>
-    <ClInclude Include="EffectCoreTypes.h">
-      <Filter>EffectLibrary</Filter>
-    </ClInclude>
     <ClInclude Include="EffectPCH.h">
       <Filter>EffectLibrary</Filter>
     </ClInclude>
@@ -148,9 +139,6 @@
     </ClCompile>
     <ClCompile Include="SoundManager.cpp">
       <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="EffectRendererDX12.cpp">
-      <Filter>EffectLibrary</Filter>
     </ClCompile>
     <ClCompile Include="EffectPCH.cpp">
       <Filter>EffectLibrary</Filter>

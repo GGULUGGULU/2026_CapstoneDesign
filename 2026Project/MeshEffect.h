@@ -30,14 +30,14 @@ class CMeshEffect
 
 	void CreateMesh(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, float fRadius, int nSlices, int nStacks);
 
-	void CreateShaderVariables(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
-	void ReleaseShaderVariables();
+	//void CreateShaderVariables(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+	//void ReleaseShaderVariables();
 
 	void Render(ID3D12GraphicsCommandList* pd3dCommandList);
 
-	void SetPosition(XMFLOAT3& pos) { m_xmf3Position = pos; }
-	void SetRotation(XMFLOAT3& rot) { m_xmf3Rotation = rot; }
-	void SetScale(XMFLOAT3& scale) { m_xmf3Scale = scale; }
+	void SetPosition(const XMFLOAT3& pos) { m_xmf3Position = pos; m_bIsDirty = true;}
+	void SetRotation(const XMFLOAT3& rot) { m_xmf3Rotation = rot; m_bIsDirty = true;}
+	void SetScale(const XMFLOAT3& scale) { m_xmf3Scale = scale; m_bIsDirty = true;}
 
 	void SetActive(bool flag) { m_bActive = flag; }
 	bool IsActive() const { return m_bActive; }
@@ -56,6 +56,8 @@ private:
 	XMFLOAT3 m_xmf3Rotation{ 0,0,0 };
 	XMFLOAT3 m_xmf3Scale{ 1,1,1 };
 	XMFLOAT4X4 m_xmf4x4World;
+
+	bool m_bIsDirty{ true };
 
 	ID3D12Resource* m_pVertexBuffer = nullptr;
 	ID3D12Resource* m_pVertexUploadBuffer = nullptr;

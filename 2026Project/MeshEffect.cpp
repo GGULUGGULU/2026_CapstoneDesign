@@ -171,19 +171,23 @@ void CMeshEffect::Update(float fTimeElapsed)
 
     m_fCurrentTime += fTimeElapsed;
 
-    XMMATRIX mScale = XMMatrixScaling(m_xmf3Scale.x, m_xmf3Scale.y, m_xmf3Scale.z);
+    if (m_bIsDirty) {
+        XMMATRIX mScale = XMMatrixScaling(m_xmf3Scale.x, m_xmf3Scale.y, m_xmf3Scale.z);
 
-    XMMATRIX mRot = XMMatrixRotationRollPitchYaw(
-        XMConvertToRadians(m_xmf3Rotation.x),
-        XMConvertToRadians(m_xmf3Rotation.y),
-        XMConvertToRadians(m_xmf3Rotation.z)
-    );
+        XMMATRIX mRot = XMMatrixRotationRollPitchYaw(
+            XMConvertToRadians(m_xmf3Rotation.x),
+            XMConvertToRadians(m_xmf3Rotation.y),
+            XMConvertToRadians(m_xmf3Rotation.z)
+        );
 
 
-    XMMATRIX mTrans = XMMatrixTranslation(m_xmf3Position.x, m_xmf3Position.y, m_xmf3Position.z);
+        XMMATRIX mTrans = XMMatrixTranslation(m_xmf3Position.x, m_xmf3Position.y, m_xmf3Position.z);
 
-    XMMATRIX mWorld = mScale * mRot * mTrans;
-    XMStoreFloat4x4(&m_xmf4x4World, mWorld);
+        XMMATRIX mWorld = mScale * mRot * mTrans;
+        XMStoreFloat4x4(&m_xmf4x4World, mWorld);
+
+        m_bIsDirty = false;
+    }
 }
 
 void CMeshEffect::Render(ID3D12GraphicsCommandList* pd3dCommandList)
