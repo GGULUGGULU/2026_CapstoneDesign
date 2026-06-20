@@ -334,6 +334,7 @@ void CEffectLibrary::CreateWindEffect(ID3D12Device* pd3dDevice, ID3D12GraphicsCo
 			pEffect->bUseSpread = false;
 			pEffect->pParticleSys = nullptr;
 			pEffect->pMeshEffect = pShield;
+			pEffect->fOffsetDistance = 0.0f;
 
 			m_vActiveEffects.push_back(pEffect);
 			outEffect = pEffect;
@@ -372,6 +373,7 @@ void CEffectLibrary::CreateBoosterEffect(ID3D12Device* pd3dDevice, ID3D12Graphic
 			pEffect->bUseSpread = (pEffect->fSpread > 0.0001f);
 			pEffect->pParticleSys = pBoosterParticles;
 			pEffect->pMeshEffect = pBoosterMesh;
+			pEffect->fOffsetDistance = 0.0f;
 
 			m_vActiveEffects.push_back(pEffect);
 			outEffect = pEffect;
@@ -395,6 +397,7 @@ void CEffectLibrary::CreateParticleEffectPool(EFFECT_TYPE type, ID3D12Device* pd
 			GetConfiguredLoop(type),
 			GetConfiguredSpread(type),
 			(GetConfiguredSpread(type) > 0.0001f),
+			0.0f,
 			pSys,
 			nullptr
 		};
@@ -784,6 +787,8 @@ ActiveEffect* CEffectLibrary::Play(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT2
 	{
 		// 바람저항효과인 경우
 		pEffectData->pMeshEffect->SetPosition(position);
+		pEffectData->pMeshEffect->SetScale(XMFLOAT3(size.x, size.y, size.x));
+		pEffectData->pMeshEffect->SetColor(color);
 		pEffectData->pMeshEffect->SetActive(true);
 	}
 
@@ -1041,32 +1046,51 @@ void CEffectLibrary::Release()
 	if (m_pd3dPostProcessRtvHeap) { m_pd3dPostProcessRtvHeap->Release(); m_pd3dPostProcessRtvHeap = nullptr; }
 	if (m_pd3dCbvSrvUavHeap) { m_pd3dCbvSrvUavHeap->Release(); m_pd3dCbvSrvUavHeap = nullptr; }
 }
-void CEffectLibrary::ToggleLocalBooster(bool flag)
+
+void CEffectLibrary::ToggleLocalBooster(bool flag, XMFLOAT3 scale, XMFLOAT3 color, float boosterOffset, float windOffset)
 {
 	if (m_pLocalWindShieldEffect && m_pLocalWindShieldEffect->pMeshEffect)
 	{
 		m_pLocalWindShieldEffect->bActive = flag;
 		m_pLocalWindShieldEffect->pMeshEffect->SetActive(flag);
+		if (flag)
+		{
+			m_pLocalWindShieldEffect->pMeshEffect->SetScale(XMFLOAT3(scale.x * 1.5f, scale.y * 1.05f, scale.z * 0.75f));
+			m_pLocalWindShieldEffect->fOffsetDistance = windOffset; 
+		}
 	}
 
 	if (m_pLocalBoosterEffect)
 	{
 		m_pLocalBoosterEffect->bActive = flag;
-
 		if (m_pLocalBoosterEffect->pMeshEffect)
+		{
 			m_pLocalBoosterEffect->pMeshEffect->SetActive(flag);
+			if (flag)
+			{
+				m_pLocalBoosterEffect->pMeshEffect->SetScale(scale);   
+				m_pLocalBoosterEffect->pMeshEffect->SetColor(color);   
+				m_pLocalBoosterEffect->fOffsetDistance = boosterOffset; 
+			}
+		}
 
 		if (!flag && m_pLocalBoosterEffect->pParticleSys)
 			m_pLocalBoosterEffect->pParticleSys->Clear();
 	}
 }
 
-void CEffectLibrary::ToggleRemoteBooster(bool flag)
+void CEffectLibrary::ToggleRemoteBooster(bool flag, XMFLOAT3 scale, XMFLOAT3 color, float boosterOffset, float windOffset)
 {
 	if (m_pRemoteWindShieldEffect && m_pRemoteWindShieldEffect->pMeshEffect)
 	{
 		m_pRemoteWindShieldEffect->bActive = flag;
 		m_pRemoteWindShieldEffect->pMeshEffect->SetActive(flag);
+
+		if (flag)
+		{
+			m_pRemoteWindShieldEffect->pMeshEffect->SetScale(XMFLOAT3(scale.x * 1.5f, scale.y * 1.05f, scale.z * 0.75f));
+			m_pRemoteWindShieldEffect->fOffsetDistance = windOffset;
+		}
 	}
 
 	if (m_pRemoteBoosterEffect)
@@ -1074,16 +1098,27 @@ void CEffectLibrary::ToggleRemoteBooster(bool flag)
 		m_pRemoteBoosterEffect->bActive = flag;
 
 		if (m_pRemoteBoosterEffect->pMeshEffect)
+		{
 			m_pRemoteBoosterEffect->pMeshEffect->SetActive(flag);
 
+			if (flag)
+			{
+				m_pRemoteBoosterEffect->pMeshEffect->SetScale(scale);       
+				m_pRemoteBoosterEffect->pMeshEffect->SetColor(color);     
+				m_pRemoteBoosterEffect->fOffsetDistance = boosterOffset;   
+			}
+		}
+
 		if (!flag && m_pRemoteBoosterEffect->pParticleSys)
+		{
 			m_pRemoteBoosterEffect->pParticleSys->Clear();
+		}
 	}
 }
 
-void CEffectLibrary::ToggleBooster(bool flag)
+void CEffectLibrary::ToggleBooster(bool flag, XMFLOAT3 scale, XMFLOAT3 color, float boosterOffset, float windOffset)
 {
-	ToggleLocalBooster(flag);
+	ToggleLocalBooster(flag, scale, color, boosterOffset, windOffset);
 }
 
 
@@ -1113,7 +1148,8 @@ static void UpdateBoosterEffectSet(
 
 	if (pWindShieldEffect && pWindShieldEffect->pMeshEffect)
 	{
-		XMVECTOR vFrontPos = XMLoadFloat3(&pos) - (vLook * 50.0f);
+		float offset = pWindShieldEffect->fOffsetDistance;
+		XMVECTOR vFrontPos = XMLoadFloat3(&pos) - (vLook * offset);
 		XMFLOAT3 fFrontPos;
 		XMStoreFloat3(&fFrontPos, vFrontPos);
 
@@ -1133,7 +1169,8 @@ static void UpdateBoosterEffectSet(
 
 	if (pBoosterEffect)
 	{
-		XMVECTOR vRearPos = XMLoadFloat3(&pos) - (vLook * 40.0f);
+		float offset = pBoosterEffect->fOffsetDistance;
+		XMVECTOR vRearPos = XMLoadFloat3(&pos) - (vLook * offset);
 		XMFLOAT3 fRearPos;
 		XMStoreFloat3(&fRearPos, vRearPos);
 

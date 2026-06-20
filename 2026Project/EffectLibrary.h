@@ -49,6 +49,7 @@ struct ActiveEffect {
 	bool bLoop;
 	float fSpread;
 	bool bUseSpread;
+	float fOffsetDistance;
 
 	CParticleSystem* pParticleSys;
 	CMeshEffect* pMeshEffect;
@@ -183,13 +184,13 @@ public:
 	int GetActiveEffectCount() const;
 	int GetPooledEffectCount(EFFECT_TYPE type) const;
 
-	void ToggleBooster(bool flag);
+	void ToggleBooster(bool flag, XMFLOAT3 scale = XMFLOAT3(2.0f, 10.0f, 2.0f), XMFLOAT3 color = XMFLOAT3(0.1f, 0.5f, 1.0f), float boosterOffset = 40.0f, float windOffset = 50.0f);
 	void UpdateBoosterPosition(const XMFLOAT3&, const XMFLOAT3&);
 
-	void ToggleLocalBooster(bool flag);
+	void ToggleLocalBooster(bool flag, XMFLOAT3 scale = XMFLOAT3(2.0f, 10.0f, 2.0f), XMFLOAT3 color = XMFLOAT3(0.1f, 0.5f, 1.0f), float boosterOffset = 40.0f, float windOffset = 50.0f);
 	void UpdateLocalBoosterPosition(const XMFLOAT3& pos, const XMFLOAT3& lookDir);
 
-	void ToggleRemoteBooster(bool flag);
+	void ToggleRemoteBooster(bool flag, XMFLOAT3 scale = XMFLOAT3(2.0f, 10.0f, 2.0f), XMFLOAT3 color = XMFLOAT3(0.1f, 0.5f, 1.0f), float boosterOffset = 40.0f, float windOffset = 50.0f);
 	void UpdateRemoteBoosterPosition(const XMFLOAT3& pos, const XMFLOAT3& lookDir);
 
 
