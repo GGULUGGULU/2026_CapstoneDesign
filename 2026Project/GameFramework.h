@@ -148,12 +148,10 @@ public:
 	void RenderShadowPass();
 	void SetMainViewport();
 
-	bool StartServer(unsigned short port = NET_DEFAULT_PORT);
 	bool ConnectToServer(const char* pszAddress, unsigned short port = NET_DEFAULT_PORT);
 	void SyncMultiplayer();
 	void SyncRoom();
 	void SyncInGame();
-	void SyncResult();
 	PlayerNetState BuildLocalPlayerState() const;
 	void ApplyRemotePlayerState(const PlayerNetState& state);
 	

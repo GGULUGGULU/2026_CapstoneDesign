@@ -2006,7 +2006,19 @@ void CGameFramework::UpdateDashSystem(float fTimeElapsed, bool bDashKeyDown, boo
 	{
 		if (!m_bDashOverheated)
 		{
-			m_fCurrentDashGauge += (m_fDashGaugeRecoverPerSecond * fTimeElapsed);
+			float actualRecoverPerSecond = m_fDashGaugeRecoverPerSecond;
+
+			int currentRank = CalculateCurrentRank();
+			int totalPlayers = (m_pNetwork && m_pNetwork->IsConnected()) ? m_pNetwork->GetCurrentPlayerCount() : 1;
+
+			if (totalPlayers > 1 && currentRank > 1)
+			{
+				float compensationRate = 0.12f;
+				float bonusMultiplier = 1.0f + (compensationRate * (currentRank - 1));
+				actualRecoverPerSecond *= bonusMultiplier;
+			}
+
+			m_fCurrentDashGauge += (actualRecoverPerSecond * fTimeElapsed);
 
 			if (m_fCurrentDashGauge > m_fMaxDashGauge)
 				m_fCurrentDashGauge = m_fMaxDashGauge;
@@ -2971,53 +2983,7 @@ void CGameFramework::RenderUI()
 		);
 
 		int nTotalActivePlayers = (m_pNetwork && m_pNetwork->IsConnected()) ? m_pNetwork->GetCurrentPlayerCount() : 1;
-		int nMyRank = 1;
-
-		if (m_bMultiplayerEnabled)
-		{
-			float fMyDistToNextCP = 999999.0f;
-			if (m_pScene && m_pScene->m_ppGameObjects)
-			{
-				int nextCPIndex = m_nPassedCheckPoints + 1;
-				int objectIndex = -1;
-
-				if (m_nSelectedMapIndex == 0) objectIndex = nextCPIndex + 2;
-				else if (m_nSelectedMapIndex == 1) objectIndex = nextCPIndex + 1;
-
-				if (objectIndex != -1 && m_pScene->m_ppGameObjects[objectIndex])
-				{
-					XMFLOAT3 nextCPPos = m_pScene->m_ppGameObjects[objectIndex]->GetPosition();
-					XMVECTOR vPlayer = XMLoadFloat3(&m_pPlayer->GetPosition());
-					XMVECTOR vCP = XMLoadFloat3(&nextCPPos);
-					fMyDistToNextCP = XMVectorGetX(XMVector3Length(vCP - vPlayer));
-				}
-			}
-
-			for (const auto& info : m_vRemotePlayers)
-			{
-				if (info.playerID != -1 && info.pPlayer && info.pPlayer->m_bIsActive)
-				{
-					if (info.currentLap > m_nCurrentLap)
-					{
-						nMyRank++;
-					}
-					else if (info.currentLap == m_nCurrentLap)
-					{
-						if (info.passedCheckpoints > m_nPassedCheckPoints)
-						{
-							nMyRank++;
-						}
-						else if (info.passedCheckpoints == m_nPassedCheckPoints)
-						{
-							if (info.distToNextCP < fMyDistToNextCP)
-							{
-								nMyRank++;
-							}
-						}
-					}
-				}
-			}
-		}
+		int nMyRank = CalculateCurrentRank();
 
 		wchar_t rankBuffer[64];
 		swprintf_s(rankBuffer, 64, L"RANK %d / %d", nMyRank, nTotalActivePlayers);
@@ -5492,6 +5458,58 @@ void CGameFramework::DrawSpeedometerUI()
 	);
 
 	m_d2dDeviceContext->SetTransform(oldTransform);
+}
+
+int CGameFramework::CalculateCurrentRank()
+{
+	int nMyRank = 1;
+
+	if (m_bMultiplayerEnabled)
+	{
+		float fMyDistToNextCP = 999999.0f;
+		if (m_pScene && m_pScene->m_ppGameObjects)
+		{
+			int nextCPIndex = m_nPassedCheckPoints + 1;
+			int objectIndex = -1;
+
+			if (m_nSelectedMapIndex == 0) objectIndex = nextCPIndex + 2;
+			else if (m_nSelectedMapIndex == 1) objectIndex = nextCPIndex + 1;
+
+			if (objectIndex != -1 && m_pScene->m_ppGameObjects[objectIndex])
+			{
+				XMFLOAT3 nextCPPos = m_pScene->m_ppGameObjects[objectIndex]->GetPosition();
+				XMVECTOR vPlayer = XMLoadFloat3(&m_pPlayer->GetPosition());
+				XMVECTOR vCP = XMLoadFloat3(&nextCPPos);
+				fMyDistToNextCP = XMVectorGetX(XMVector3Length(vCP - vPlayer));
+			}
+		}
+
+		for (const auto& info : m_vRemotePlayers)
+		{
+			if (info.playerID != -1 && info.pPlayer && info.pPlayer->m_bIsActive)
+			{
+				if (info.currentLap > m_nCurrentLap)
+				{
+					nMyRank++;
+				}
+				else if (info.currentLap == m_nCurrentLap)
+				{
+					if (info.passedCheckpoints > m_nPassedCheckPoints)
+					{
+						nMyRank++;
+					}
+					else if (info.passedCheckpoints == m_nPassedCheckPoints)
+					{
+						if (info.distToNextCP < fMyDistToNextCP)
+						{
+							nMyRank++;
+						}
+					}
+				}
+			}
+		}
+	}
+	return nMyRank;
 }
 
 
