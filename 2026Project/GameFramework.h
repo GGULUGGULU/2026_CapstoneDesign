@@ -142,7 +142,7 @@ public:
 	void DrawPlayerNameTags();
 	bool WorldToScreenPoint(const XMFLOAT3& worldPos, D2D1_POINT_2F& outScreen);
 
-
+	int CalculateCurrentRank();
 
 	void CreateShadowMap();
 	void RenderShadowPass();
