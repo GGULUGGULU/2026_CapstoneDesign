@@ -1693,7 +1693,7 @@ bool CScene::CheckGroundCollision()
 
 	float bestT = FLT_MAX;
 	float bestY = -FLT_MAX;
-
+	XMVECTOR bestNormal = XMVectorSet(0, 1, 0, 0);
 	//{
 	//	XMVECTOR vRayOrigin = XMVectorSet(rayX, playerBottomY + 10.0f, rayZ, 1.0f);
 	//	XMVECTOR vRayDir = XMVectorSet(0.0f, -1.0f, 0.0f, 0.0f);
@@ -1710,7 +1710,7 @@ bool CScene::CheckGroundCollision()
 
 	if (bestT == FLT_MAX)
 	{
-		XMVECTOR vRayOrigin = XMVectorSet(rayX, playerBottomY + 30.0f, rayZ, 1.0f);
+		XMVECTOR vRayOrigin = XMVectorSet(rayX, playerBottomY + 25.0f, rayZ, 1.0f);
 		XMVECTOR vRayDir = XMVectorSet(0.0f, -1.0f, 0.0f, 0.0f);
 		XMVECTOR vRayTarget = vRayOrigin + vRayDir * rayMaxDistance;
 
@@ -1719,7 +1719,7 @@ bool CScene::CheckGroundCollision()
 			CGameObject* pObject = m_ppGameObjects[i];
 			if (!pObject) continue;
 			if (!pObject->m_bIsGround) continue;
-			RaycastDownRecursive(pObject, vRayOrigin, vRayTarget, vRayDir, rayMaxDistance, bestT, bestY);
+			RaycastDownRecursive(pObject, vRayOrigin, vRayTarget, vRayDir, rayMaxDistance, bestT, bestY, bestNormal);
 		}
 	}
 
@@ -1744,7 +1744,7 @@ bool CScene::CheckGroundCollision()
 	return false;
 }
 
-void CScene::RaycastDownRecursive(CGameObject* pObject, const XMVECTOR& vWorldRayOrigin, const XMVECTOR& vWorldRayTarget, const XMVECTOR& vWorldRayDir, float maxDistance, float& bestT, float& bestY)
+void CScene::RaycastDownRecursive(CGameObject* pObject, const XMVECTOR& vWorldRayOrigin, const XMVECTOR& vWorldRayTarget, const XMVECTOR& vWorldRayDir, float maxDistance, float& bestT, float& bestY, XMVECTOR& bestNormal)
 {
 	if (!pObject) return;
 
@@ -1762,6 +1762,7 @@ void CScene::RaycastDownRecursive(CGameObject* pObject, const XMVECTOR& vWorldRa
 		XMStoreFloat3(&fLocalDir, vLocalRayDirection);
 
 		float fHitDistance = 0.0f;
+		XMFLOAT3 fHitNormal;
 		if (pObject->m_pMesh->CheckRayIntersection(fLocalOrigin, fLocalDir, &fHitDistance))
 		{
 			XMVECTOR vLocalHit = vLocalRayOrigin + vLocalRayDirection * fHitDistance;
@@ -1772,12 +1773,15 @@ void CScene::RaycastDownRecursive(CGameObject* pObject, const XMVECTOR& vWorldRa
 			{
 				bestT = t;
 				bestY = XMVectorGetY(vWorldHit);
+
+				XMVECTOR vLocalNormal = XMLoadFloat3(&fHitNormal);
+				bestNormal = XMVector3Normalize(XMVector3TransformNormal(vLocalNormal, matWorld));
 			}
 		}
 	}
 
-	if (pObject->m_pChild) RaycastDownRecursive(pObject->m_pChild, vWorldRayOrigin, vWorldRayTarget, vWorldRayDir, maxDistance, bestT, bestY);
-	if (pObject->m_pSibling) RaycastDownRecursive(pObject->m_pSibling, vWorldRayOrigin, vWorldRayTarget, vWorldRayDir, maxDistance, bestT, bestY);
+	if (pObject->m_pChild) RaycastDownRecursive(pObject->m_pChild, vWorldRayOrigin, vWorldRayTarget, vWorldRayDir, maxDistance, bestT, bestY,bestNormal);
+	if (pObject->m_pSibling) RaycastDownRecursive(pObject->m_pSibling, vWorldRayOrigin, vWorldRayTarget, vWorldRayDir, maxDistance, bestT, bestY, bestNormal);
 }
 
 bool CScene::IsNullTextureName(const char* pstr) 

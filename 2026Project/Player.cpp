@@ -18,6 +18,10 @@ CPlayer::CPlayer()
 	m_xmf3Up = XMFLOAT3(0.0f, 1.0f, 0.0f);
 	m_xmf3Look = XMFLOAT3(0.0f, 0.0f, 1.0f);
 
+	m_xmf3TiltRight = XMFLOAT3(1.0f, 0.0f, 0.0f);
+	m_xmf3TiltUp = XMFLOAT3(0.0f, 1.0f, 0.0f);
+	m_xmf3TiltLook = XMFLOAT3(0.0f, 0.0f, 1.0f);
+
 	m_xmf3Velocity = XMFLOAT3(0.0f, 0.0f, 0.0f);
 	m_xmf3Gravity = XMFLOAT3(0.0f, 0.0f, 0.0f);
 	m_fMaxVelocityXZ = 0.0f;
@@ -220,12 +224,26 @@ CCamera *CPlayer::OnChangeCamera(DWORD nNewCameraMode, DWORD nCurrentCameraMode)
 
 void CPlayer::OnPrepareRender()
 {
+	//XMMATRIX mtxScale = XMMatrixScaling(m_xmf3Scale.x, m_xmf3Scale.y, m_xmf3Scale.z);
+	//XMMATRIX mtxRotate = XMMatrixRotationRollPitchYaw(XMConvertToRadians(m_fPitch), XMConvertToRadians(m_fYaw), XMConvertToRadians(m_fRoll));
+	//XMMATRIX mtxTranslate = XMMatrixTranslation(m_xmf3Position.x, m_xmf3Position.y, m_xmf3Position.z);
+	//
+	//XMStoreFloat4x4(&m_xmf4x4Transform, mtxScale * mtxRotate * mtxTranslate);
+	//
+	//UpdateTransform(NULL);
+
 	XMMATRIX mtxScale = XMMatrixScaling(m_xmf3Scale.x, m_xmf3Scale.y, m_xmf3Scale.z);
-	XMMATRIX mtxRotate = XMMatrixRotationRollPitchYaw(XMConvertToRadians(m_fPitch), XMConvertToRadians(m_fYaw), XMConvertToRadians(m_fRoll));
+
+	XMMATRIX mtxRotate(
+		m_xmf3TiltRight.x, m_xmf3TiltRight.y, m_xmf3TiltRight.z, 0.0f,
+		m_xmf3TiltUp.x, m_xmf3TiltUp.y, m_xmf3TiltUp.z, 0.0f,
+		m_xmf3TiltLook.x, m_xmf3TiltLook.y, m_xmf3TiltLook.z, 0.0f,
+		0.0f, 0.0f, 0.0f, 1.0f
+	);
+
 	XMMATRIX mtxTranslate = XMMatrixTranslation(m_xmf3Position.x, m_xmf3Position.y, m_xmf3Position.z);
 
 	XMStoreFloat4x4(&m_xmf4x4Transform, mtxScale * mtxRotate * mtxTranslate);
-
 	UpdateTransform(NULL);
 }
 

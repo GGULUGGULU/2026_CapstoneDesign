@@ -2216,12 +2216,93 @@ void CGameFramework::CollisionProcess()
 
 			m_nJumpCount = 0;
 			m_bJump = false;
+
+			float fTimeElapsed = m_GameTimer.GetTimeElapsed();
+
+			XMFLOAT3 f3Pos = m_pPlayer->GetPosition();
+			XMVECTOR vPos = XMLoadFloat3(&f3Pos);
+
+			XMVECTOR vLogicalLook = XMLoadFloat3(&m_pPlayer->GetLookVector());
+			vLogicalLook = XMVector3Normalize(XMVectorSetY(vLogicalLook, 0.0f));
+			XMVECTOR vLogicalRight = XMVector3Normalize(XMVector3Cross(XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), vLogicalLook));
+
+			float fOffset = 8.0f;
+			XMVECTOR vRayDir = XMVectorSet(0.0f, -1.0f, 0.0f, 0.0f);
+
+			XMVECTOR vFrontOrigin = vPos + (vLogicalLook * fOffset) + XMVectorSet(0.0f, 20.0f, 0.0f, 0.0f);
+			XMVECTOR vBackOrigin = vPos - (vLogicalLook * fOffset) + XMVectorSet(0.0f, 20.0f, 0.0f, 0.0f);
+			XMVECTOR vRightOrigin = vPos + (vLogicalRight * fOffset) + XMVectorSet(0.0f, 20.0f, 0.0f, 0.0f);
+			XMVECTOR vLeftOrigin = vPos - (vLogicalRight * fOffset) + XMVectorSet(0.0f, 20.0f, 0.0f, 0.0f);
+
+			float fYFront = f3Pos.y, fYBack = f3Pos.y, fYRight = f3Pos.y, fYLeft = f3Pos.y;
+			float bestT = FLT_MAX;
+			XMVECTOR vDummyNormal; 
+			if (m_pScene && m_pScene->m_ppGameObjects && m_pScene->m_ppGameObjects[0])
+			{
+				CGameObject* pMap = m_pScene->m_ppGameObjects[0];
+
+				bestT = FLT_MAX; m_pScene->RaycastDownRecursive(pMap, vFrontOrigin, vFrontOrigin + vRayDir * 100.0f, vRayDir, 100.0f, bestT, fYFront, vDummyNormal);
+				bestT = FLT_MAX; m_pScene->RaycastDownRecursive(pMap, vBackOrigin, vBackOrigin + vRayDir * 100.0f, vRayDir, 100.0f, bestT, fYBack, vDummyNormal);
+				bestT = FLT_MAX; m_pScene->RaycastDownRecursive(pMap, vRightOrigin, vRightOrigin + vRayDir * 100.0f, vRayDir, 100.0f, bestT, fYRight, vDummyNormal);
+				bestT = FLT_MAX; m_pScene->RaycastDownRecursive(pMap, vLeftOrigin, vLeftOrigin + vRayDir * 100.0f, vRayDir, 100.0f, bestT, fYLeft, vDummyNormal);
+			}
+
+			XMVECTOR vHitFront = XMVectorSet(XMVectorGetX(vFrontOrigin), fYFront, XMVectorGetZ(vFrontOrigin), 1.0f);
+			XMVECTOR vHitBack = XMVectorSet(XMVectorGetX(vBackOrigin), fYBack, XMVectorGetZ(vBackOrigin), 1.0f);
+			XMVECTOR vHitRight = XMVectorSet(XMVectorGetX(vRightOrigin), fYRight, XMVectorGetZ(vRightOrigin), 1.0f);
+			XMVECTOR vHitLeft = XMVectorSet(XMVectorGetX(vLeftOrigin), fYLeft, XMVectorGetZ(vLeftOrigin), 1.0f);
+
+			XMVECTOR vDirZ = XMVector3Normalize(vHitFront - vHitBack); 
+			XMVECTOR vDirX = XMVector3Normalize(vHitRight - vHitLeft); 
+
+			XMVECTOR vTerrainNormal = XMVector3Normalize(XMVector3Cross(vDirZ, vDirX));
+
+			if (XMVectorGetX(XMVector3LengthSq(vTerrainNormal)) < 0.1f) vTerrainNormal = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+			XMVECTOR vCurrentTiltUp = XMLoadFloat3(&m_pPlayer->GetTiltUpVector());
+
+			float fRotationSpeed = 8.0f * fTimeElapsed;
+			if (fRotationSpeed > 1.0f) fRotationSpeed = 1.0f; 
+			XMVECTOR vLerpedUp = XMVector3Normalize(XMVectorLerp(vCurrentTiltUp, vTerrainNormal, fRotationSpeed));
+
+			XMVECTOR vNewTiltRight = XMVector3Normalize(XMVector3Cross(vLerpedUp, vLogicalLook));
+
+			XMVECTOR vNewTiltLook = XMVector3Normalize(XMVector3Cross(vNewTiltRight, vLerpedUp));
+
+			m_pPlayer->SetTiltUpVector(vLerpedUp);
+			m_pPlayer->SetTiltRightVector(vNewTiltRight);
+			m_pPlayer->SetTiltLookVector(vNewTiltLook);
 		}
 		else
 		{
 			// 점프 조정
 			// 근데 숫자 바꾸면 2단이 잘 안될 때가 있음.
 			m_pPlayer->SetGravity(XMFLOAT3(0, -5.5f, 0));
+		
+			float fTimeElapsed = m_GameTimer.GetTimeElapsed();
+
+			XMVECTOR vCurrentTiltUp = XMLoadFloat3(&m_pPlayer->GetTiltUpVector());
+			if (XMVectorGetX(XMVector3LengthSq(vCurrentTiltUp)) < 0.1f) vCurrentTiltUp = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+
+			float fRestoreSpeed = 4.0f * fTimeElapsed;
+			if (fRestoreSpeed > 1.0f) fRestoreSpeed = 1.0f;
+
+			XMVECTOR vDefaultUp = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+			XMVECTOR vLerpedUp = XMVector3Normalize(XMVectorLerp(vCurrentTiltUp, vDefaultUp, fRestoreSpeed));
+
+			XMVECTOR vLogicalLook = XMLoadFloat3(&m_pPlayer->GetLookVector());
+			vLogicalLook = XMVectorSetY(vLogicalLook, 0.0f);
+
+			if (XMVectorGetX(XMVector3LengthSq(vLogicalLook)) < 0.001f) {
+				vLogicalLook = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
+			}
+			vLogicalLook = XMVector3Normalize(vLogicalLook);
+
+			XMVECTOR vNewTiltRight = XMVector3Normalize(XMVector3Cross(vLerpedUp, vLogicalLook));
+			XMVECTOR vNewTiltLook = XMVector3Normalize(XMVector3Cross(vNewTiltRight, vLerpedUp));
+
+			m_pPlayer->SetTiltUpVector(vLerpedUp);
+			m_pPlayer->SetTiltRightVector(vNewTiltRight);
+			m_pPlayer->SetTiltLookVector(vNewTiltLook);
 		}
 	}
 
@@ -2290,22 +2371,22 @@ void CGameFramework::CollisionProcess()
 			
 		}
 		else if (pCollidedObject->m_bIsRCP) {
-			int currentRCP = pCollidedObject->m_nCheckPointIndex;
-			if (m_nLastRCPIndex != currentRCP) {
-				if (currentRCP == 1) {
-					m_pPlayer->Rotate(-18, 0, 0);
-				}
-				else if (currentRCP == 2) {
-					m_pPlayer->Rotate(18, 0, 0); 
-				}
-				else if (currentRCP == 3) {
-					m_pPlayer->Rotate(18, 0, 0); 
-				}
-				else if (currentRCP == 4) {
-					m_pPlayer->Rotate(-18, 0, 0);
-				}
-				m_nLastRCPIndex = currentRCP;
-			}
+			//int currentRCP = pCollidedObject->m_nCheckPointIndex;
+			//if (m_nLastRCPIndex != currentRCP) {
+			//	if (currentRCP == 1) {
+			//		m_pPlayer->Rotate(-18, 0, 0);
+			//	}
+			//	else if (currentRCP == 2) {
+			//		m_pPlayer->Rotate(18, 0, 0); 
+			//	}
+			//	else if (currentRCP == 3) {
+			//		m_pPlayer->Rotate(18, 0, 0); 
+			//	}
+			//	else if (currentRCP == 4) {
+			//		m_pPlayer->Rotate(-18, 0, 0);
+			//	}
+			//	m_nLastRCPIndex = currentRCP;
+			//}
 		}
 		else if (pCollidedObject->m_bIsInvisibleWall)
 		{
@@ -4299,12 +4380,8 @@ void CGameFramework::CheckResult()
 
 void CGameFramework::FrameAdvance()
 {
-
 	m_GameTimer.Tick(0.0f);
 
-
-
-	
 	static bool bPrevHelpUI = false;
 
 	if (m_nStage == -2 || m_nStage == 2)
@@ -4325,12 +4402,8 @@ void CGameFramework::FrameAdvance()
 		bPrevHelpUI = false;
 	}
 
-	
-
 	if (m_bPlayingIntroVideo)
 	{
-	
-
 		if (!m_pVideoPlayer || m_pVideoPlayer->IsFinished())
 		{
 			FinishIntroVideo();

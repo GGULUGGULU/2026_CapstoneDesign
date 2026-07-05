@@ -105,7 +105,7 @@ public:
 
 	bool CheckGroundCollision();
 
-	void RaycastDownRecursive(CGameObject* pObject, const XMVECTOR& vWorldRayOrigin, const XMVECTOR& vWorldRayTarget, const XMVECTOR& vWorldRayDir, float maxDistance, float& bestT, float& bestY);
+	void RaycastDownRecursive(CGameObject* pObject, const XMVECTOR& vWorldRayOrigin, const XMVECTOR& vWorldRayTarget, const XMVECTOR& vWorldRayDir, float maxDistance, float& bestT, float& bestY, XMVECTOR& bestNormal);
 
 	bool IsNullTextureName(const char* pstr);
 

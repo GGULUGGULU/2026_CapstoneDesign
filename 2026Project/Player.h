@@ -34,7 +34,9 @@ protected:
 	CCamera						*m_pCamera = NULL;
 
 	XMFLOAT3 m_xmf3Scale;
-
+	XMFLOAT3 m_xmf3TiltRight;
+	XMFLOAT3 m_xmf3TiltUp;
+	XMFLOAT3 m_xmf3TiltLook;
 public:
 	float           			m_fMaxVelocityXZ;
 public:
@@ -86,6 +88,19 @@ public:
 	virtual void Render(ID3D12GraphicsCommandList *pd3dCommandList, CGameObject* pDebugBox = NULL, CCamera *pCamera = NULL);
 
 	virtual void SetScale(float x, float y, float z);
+void SetRightVector(const XMVECTOR& vRight) { XMStoreFloat3(&m_xmf3Right, vRight); }
+	void SetUpVector(const XMVECTOR& vUp) { XMStoreFloat3(&m_xmf3Up, vUp); }
+	void SetLookVector(const XMVECTOR& vLook) { XMStoreFloat3(&m_xmf3Look, vLook); }
+
+	void SetRightVector(const XMFLOAT3& f3Right) { m_xmf3Right = f3Right; }
+	void SetUpVector(const XMFLOAT3& f3Up) { m_xmf3Up = f3Up; }
+	void SetLookVector(const XMFLOAT3& f3Look) { m_xmf3Look = f3Look; }
+
+	XMFLOAT3 GetTiltUpVector() { return m_xmf3TiltUp; }
+
+	void SetTiltRightVector(const XMVECTOR& vRight) { XMStoreFloat3(&m_xmf3TiltRight, vRight); }
+	void SetTiltUpVector(const XMVECTOR& vUp) { XMStoreFloat3(&m_xmf3TiltUp, vUp); }
+	void SetTiltLookVector(const XMVECTOR& vLook) { XMStoreFloat3(&m_xmf3TiltLook, vLook); }
 };
 
 class CAirplanePlayer : public CPlayer
