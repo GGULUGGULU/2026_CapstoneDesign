@@ -70,6 +70,15 @@ CGameFramework::CGameFramework()
 	m_bRemoteLockEffectActive = false;
 	m_fRemoteLockEffectTime = 0.0f;
 
+
+	// 드리프트
+	m_bIsDrifting = false;
+	m_fDriftSteeringMultiplier = 2.0f;
+	m_fDriftTurnMultiplier = 1.45f;
+	m_fDriftGripStrength = 0.7f;
+	m_fDriftDecel = 90.0f;
+
+
 	_tcscpy_s(m_pszFrameRate, _T("2026Project ("));
 
 	wcscpy_s(m_szMyPlayerName, L"Player");
@@ -1338,11 +1347,27 @@ void CGameFramework::ProcessInputGameStage()
 	const bool bRight = ((pKeysBuffer[VK_RIGHT] & 0xF0) != 0);
 	const bool bHasDriveInput = (bForward || bBackward);
 	const bool bDashKeyDown = ((::GetAsyncKeyState('Z') & 0x8000) != 0);
+	const bool bDriftKeyDown = ((::GetAsyncKeyState('X') & 0x8000) != 0);
+
 
 
 	const float fTimeElapsed = m_GameTimer.GetTimeElapsed();
 
 	UpdateDashSystem(fTimeElapsed, bDashKeyDown, bHasDriveInput);
+
+	m_bIsDrifting =
+		(bDriftKeyDown &&
+			bHasDriveInput &&
+			(bLeft || bRight) &&
+			!m_bIsDashing); 
+
+	if (m_bIsDrifting)
+		m_fDriftHoldTime += fTimeElapsed;
+	else
+		m_fDriftHoldTime = 0.0f;
+
+
+
 
 	if (!bProcessedByScene)
 	{
@@ -1359,7 +1384,13 @@ void CGameFramework::ProcessInputGameStage()
 		if (fSpeedRatio > 1.0f) fSpeedRatio = 1.0f;
 
 		float fMaxSteeringAngle = 35.0f - (15.0f * fSpeedRatio);
-		if (m_bIsDashing) fMaxSteeringAngle *= 0.8f;
+
+		if (m_bIsDashing)
+			fMaxSteeringAngle *= 0.8f;
+
+
+		if (m_bIsDrifting)
+			fMaxSteeringAngle *= m_fDriftSteeringMultiplier;
 
 		float fTargetSteering = 0.0f;
 		if (bLeft)      fTargetSteering = -fMaxSteeringAngle;
@@ -1376,6 +1407,14 @@ void CGameFramework::ProcessInputGameStage()
 
 		float fBaseTurnSpeed = 150.0f;
 		float fTurnSpeed = fBaseTurnSpeed * fSteeringFactor;
+
+		if (m_bIsDrifting)
+		{
+			fTurnSpeed *= m_fDriftTurnMultiplier;
+
+			if (fTurnSpeed < 220.0f)
+				fTurnSpeed = 220.0f; // 드리프트
+		}
 
 		XMFLOAT3 vLook = m_pPlayer->GetLookVector();
 		XMVECTOR vForwardDir = XMVectorSetY(XMLoadFloat3(&vLook), 0.0f);
@@ -1400,7 +1439,6 @@ void CGameFramework::ProcessInputGameStage()
 			vAcceleration = -vForwardDir * (fAccelValue * 0.5f);
 
 		vVel += vAcceleration * fTimeElapsed;
-
 		float fHorizontalSpeed = XMVectorGetX(XMVector3Length(vVel));
 
 		if (fHorizontalSpeed > 0.0f)
@@ -1408,17 +1446,28 @@ void CGameFramework::ProcessInputGameStage()
 			XMVECTOR vDir = XMVector3Normalize(vVel);
 			float fDecel = 0.0f;
 
-			if (bHasDriveInput)
-				fDecel = 10.0f;
+			if (m_bIsDrifting)
+			{
+				fDecel = m_fDriftDecel + (m_fDriftHoldTime * 90.0f);
+
+				if (fDecel > 320.0f)
+					fDecel = 320.0f;
+			}
 			else
 			{
-				if (fHorizontalSpeed > 250.0f) fDecel = 10.0f;
-				else if (fHorizontalSpeed > 150.0f) fDecel = 10.0f;
-				else if (fHorizontalSpeed > 80.0f) fDecel = 20.0f;
-				else fDecel = 20.0f;
+				if (bHasDriveInput)
+					fDecel = 10.0f;
+				else
+				{
+					if (fHorizontalSpeed > 250.0f) fDecel = 10.0f;
+					else if (fHorizontalSpeed > 150.0f) fDecel = 10.0f;
+					else if (fHorizontalSpeed > 80.0f) fDecel = 20.0f;
+					else fDecel = 20.0f;
+				}
 			}
 
 			float fDeltaSpeed = fDecel * fTimeElapsed;
+
 			if (fDeltaSpeed > fHorizontalSpeed)
 				fDeltaSpeed = fHorizontalSpeed;
 
@@ -1430,7 +1479,7 @@ void CGameFramework::ProcessInputGameStage()
 			vRightDir = XMVector3Normalize(vRightDir);
 
 		float fRightVelocity = XMVectorGetX(XMVector3Dot(vVel, vRightDir));
-		float fGripStrength = 8.0f;
+		float fGripStrength = m_bIsDrifting ? m_fDriftGripStrength : 8.0f;
 		vVel -= vRightDir * fRightVelocity * fGripStrength * fTimeElapsed;
 
 		float fCurrentMaxSpeedCap = max(1.0f, m_pPlayer->m_fMaxVelocityXZ);
@@ -1717,6 +1766,13 @@ void CGameFramework::BuildGameObjects()
 	m_bDashLocked = false;
 	m_fDashLockTime = 0.0f;
 
+
+	m_bIsDashing = false;
+	m_bDashOverheated = false;
+	m_fDashOverheatTime = 0.0f;
+	// 드리프트 초기화
+	m_bIsDrifting = false;
+	m_fDriftHoldTime = 0.0f;
 
 	m_pPlayer->m_fMaxVelocityXZ = GetPlayerEffectiveMaxSpeed();
 

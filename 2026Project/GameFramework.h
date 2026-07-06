@@ -339,6 +339,17 @@ private:
 	// 아이템 + 대시
 
 
+
+	// 드리프트
+
+	bool  m_bIsDrifting = false;
+
+	float m_fDriftSteeringMultiplier = 2.0f;
+	float m_fDriftTurnMultiplier = 1.45f;
+	float m_fDriftGripStrength = 0.7f;
+	float m_fDriftDecel = 90.0f;
+	float m_fDriftHoldTime = 0.0f;
+\
 	// // ===== 미니맵
 	ComPtr<ID2D1Bitmap> m_pMinimapBitmaps[2];
 
