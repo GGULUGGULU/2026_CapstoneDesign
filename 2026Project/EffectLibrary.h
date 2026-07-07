@@ -18,27 +18,28 @@ class CMeshEffect;
 
 enum class EFFECT_TYPE
 {
-	COLLISION, // √Êµπ
-	DUST, // »Î∏’¡ˆ
-	ITEM1, // æ∆¿Ã≈€ »πµÊ
-	ITEM2, // æ∆¿Ã≈€ »πµÊ
-	ITEM3, // æ∆¿Ã≈€ »πµÊ
-	ITEM4, // æ∆¿Ã≈€ »πµÊ
-	ITEM5, // æ∆¿Ã≈€ »πµÊ
-	ITEM6, // æ∆¿Ã≈€ »πµÊ
-	ITEM7, // æ∆¿Ã≈€ »πµÊ
-	ITEM8, // æ∆¿Ã≈€ »πµÊ
-	ITEM9, // æ∆¿Ã≈€ »πµÊ
+	COLLISION, // ˙Ù
+	DUST, // 
+	ITEM1, //  ?
+	ITEM2, //  ?
+	ITEM3, //  ?
+	ITEM4, //  ?
+	ITEM5, //  ?
+	ITEM6, //  ?
+	ITEM7, //  ?
+	ITEM8, //  ?
+	ITEM9, //  ?
 
-	ITEM10, // æ∆¿Ã≈€ ªÁøÎ
-	ITEM11, // æ∆¿Ã≈€ ªÁøÎ
+	ITEM10, //  
+	ITEM11, //  
 
 
-	BOOSTER, // ∫ŒΩ∫≈Õ
+	BOOSTER, // •Ì
 	WIND_EFFECT,
 	SPEED_LINE,
 	LOCK_ORBIT,
-	COUNT, // ∞≥ºˆ
+	DRIFT_SPARK, // µÂ∏Æ«¡∆Æ Ω∫∆ƒ≈©
+	COUNT, // 
 };
 
 struct ActiveEffect {
@@ -161,7 +162,7 @@ public:
 
 	void Update(float fTimeElapsed);
 	void Render(ID3D12GraphicsCommandList* pd3dCommandList, const XMFLOAT4X4& view, const XMFLOAT4X4& proj);
-	
+
 	ActiveEffect* Play(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT2 size, XMFLOAT3 color = XMFLOAT3(1.0f, 1.0f, 1.0f));
 	void PlayCarDustParticle(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT3 right, XMFLOAT3 look, XMFLOAT2 size, XMFLOAT2 offset, XMFLOAT3 color = XMFLOAT3(1.0f, 1.0f, 1.0f));
 
@@ -235,7 +236,8 @@ private:
 		L"Asset/DDS_File/Booster.dds",
 		L"Asset/DDS_File/WindShield.dds",
 		L"Asset/DDS_File/SpeedLine1.dds",
-		L"Asset/DDS_File/LockOrbit.dds"
+		L"Asset/DDS_File/LockOrbit.dds",
+		L"Asset/DDS_File/DriftSpark01.dds"
 	};
 
 	UINT m_nSrvDescriptorIncrementSize = 0;
@@ -243,8 +245,8 @@ private:
 	ID3D12RootSignature* m_pRootSignature = nullptr;
 	ID3D12PipelineState* m_pPipelineState = nullptr;
 	ID3D12PipelineState* m_pMeshEffectPSO = nullptr;
-	ID3D12PipelineState* m_pParticleDepthPSO = nullptr; // »Î∏’¡ˆøÎ
-	ID3D12PipelineState* m_pBoosterPSO = nullptr; // ∫ŒΩ∫≈ÕøÎ
+	ID3D12PipelineState* m_pParticleDepthPSO = nullptr; // 
+	ID3D12PipelineState* m_pBoosterPSO = nullptr; // •Ì?
 
 
 	void BuildRootSignature(ID3D12Device* pd3dDevice);
@@ -262,7 +264,7 @@ private:
 	void InitializeDefaultMeshConfigs();
 	bool IsValidEffectType(EFFECT_TYPE type) const;
 	bool IsItemEffect(EFFECT_TYPE type) const;
-	
+
 	float GetConfiguredSpread(EFFECT_TYPE type) const;
 	float GetConfiguredLifeTime(EFFECT_TYPE type) const;
 	bool GetConfiguredLoop(EFFECT_TYPE type) const;

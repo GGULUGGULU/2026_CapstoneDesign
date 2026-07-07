@@ -158,7 +158,7 @@ bool CGameFramework::OnCreate(HINSTANCE hInstance, HWND hMainWnd)
 	BuildObjectGameStart();
 
 	CEffectLibrary::Instance()->InitializePostProcess(m_pd3dDevice, m_nWndClientWidth, m_nWndClientHeight);
-	
+
 	for (int i = 0; i < 2; ++i) {
 		m_RoomButtons[i].shape = static_cast<UIButton::ButtonShape>(UIButton::ButtonShape::TRI_LEFT + i);
 		m_MapButtons[i].shape = static_cast<UIButton::ButtonShape>(UIButton::ButtonShape::TRI_LEFT + i);
@@ -533,7 +533,7 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 				{
 					m_fSFXVolume = Clamp01((m_ptMousePos.x - sliderLeft) / (sliderRight - sliderLeft));
 					m_SoundManager.SetSFXVolume(m_fSFXVolume);
-					m_SoundManager.PlaySFX("Asset/Audio/Claxon.mp3"); 
+					m_SoundManager.PlaySFX("Asset/Audio/Claxon.mp3");
 				}
 
 				return;
@@ -608,11 +608,11 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 				m_bIPInputActive = true;
 				m_bNameInputActive = false;
 				wcscpy_s(m_wszServerIP, L"");
-				
+
 				//ConnectToServer("127.0.0.1");
 			}
-				//m_nStage = 1; // 임시, 인게임으로 바로 들어가는 경로
-			
+			//m_nStage = 1; // 임시, 인게임으로 바로 들어가는 경로
+
 			else if (m_nHoveredButtonIndex == 2) {
 				::PostQuitMessage(0);
 			}
@@ -633,7 +633,7 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 
 		for (int i = 0; i < 2; ++i) {
 			if (m_MapButtons[i].IsMouseOver(m_ptMousePos)) {
-				m_nHoveredButtonIndex = 10 + i; 
+				m_nHoveredButtonIndex = 10 + i;
 				break;
 			}
 		}
@@ -726,7 +726,7 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 					m_nPlayerIndices[m_nMyPlayerId - 1] = m_nSelectedCarIndex;
 				}
 			}
-			
+
 		}
 	}
 	else if (100 == m_nStage) {
@@ -853,42 +853,42 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 	case WM_KEYDOWN:
 		switch (wParam)
 		{
-		//case VK_SPACE:
-		//{
-		//	if (lParam & 0x40000000) break;
-		//
-		//	if (m_nStage != 2 || !m_pPlayer || !m_pScene) break;
-		//
-		//	const float fFirstJumpVelocity = 150.0f;
-		//	const float fSecondJumpVelocity = 200.0f;
-		//	const float fNow = m_GameTimer.GetTotalTime();
-		//
-		//	const bool bOnGround = m_pScene->CheckGroundCollision();
-		//
-		//	if (m_nJumpCount == 0)
-		//	{
-		//		if (!bOnGround) break;
-		//
-		//		m_nJumpCount = 1;
-		//		m_fFirstJumpTime = fNow;
-		//
-		//		XMFLOAT3 v = m_pPlayer->GetVelocity();
-		//		v.y = fFirstJumpVelocity;
-		//		m_pPlayer->SetVelocity(v);
-		//	}
-		//	else if (m_nJumpCount == 1)
-		//	{
-		//		if ((fNow - m_fFirstJumpTime) <= m_fSecondJumpWindow)
-		//		{
-		//			m_nJumpCount = 2;
-		//
-		//			XMFLOAT3 v = m_pPlayer->GetVelocity();
-		//			v.y = fSecondJumpVelocity;
-		//			m_pPlayer->SetVelocity(v);
-		//		}
-		//	}
-		//}
-		//break;
+			//case VK_SPACE:
+			//{
+			//	if (lParam & 0x40000000) break;
+			//
+			//	if (m_nStage != 2 || !m_pPlayer || !m_pScene) break;
+			//
+			//	const float fFirstJumpVelocity = 150.0f;
+			//	const float fSecondJumpVelocity = 200.0f;
+			//	const float fNow = m_GameTimer.GetTotalTime();
+			//
+			//	const bool bOnGround = m_pScene->CheckGroundCollision();
+			//
+			//	if (m_nJumpCount == 0)
+			//	{
+			//		if (!bOnGround) break;
+			//
+			//		m_nJumpCount = 1;
+			//		m_fFirstJumpTime = fNow;
+			//
+			//		XMFLOAT3 v = m_pPlayer->GetVelocity();
+			//		v.y = fFirstJumpVelocity;
+			//		m_pPlayer->SetVelocity(v);
+			//	}
+			//	else if (m_nJumpCount == 1)
+			//	{
+			//		if ((fNow - m_fFirstJumpTime) <= m_fSecondJumpWindow)
+			//		{
+			//			m_nJumpCount = 2;
+			//
+			//			XMFLOAT3 v = m_pPlayer->GetVelocity();
+			//			v.y = fSecondJumpVelocity;
+			//			m_pPlayer->SetVelocity(v);
+			//		}
+			//	}
+			//}
+			//break;
 		case VK_CONTROL:
 			if (m_eHoldItem != ITEM_NONE) {
 				ApplyItemReward(m_eHoldItem);
@@ -972,7 +972,7 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 			break;
 		case 'U':
 			XMFLOAT3 t = m_pPlayer->GetPosition();
-			
+
 			m_pPlayer->SetPosition(XMFLOAT3(t.x, t.y + 10, t.z));
 			break;
 		case 'J':
@@ -1059,7 +1059,7 @@ LRESULT CALLBACK CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMess
 			return 0;
 		}
 
-		if (m_nStage == 0 )
+		if (m_nStage == 0)
 		{
 			if (m_bNameInputActive) {
 				if (wParam == VK_BACK || wParam == VK_RETURN)
@@ -1094,15 +1094,15 @@ LRESULT CALLBACK CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMess
 				{
 					HandleIPCharInput(wParam);
 				}
-				else if (wParam >= '0' && wParam <= '9') 
+				else if (wParam >= '0' && wParam <= '9')
 				{
 					HandleIPCharInput(wParam);
 				}
-				else if (wParam >= VK_NUMPAD0 && wParam <= VK_NUMPAD9) 
+				else if (wParam >= VK_NUMPAD0 && wParam <= VK_NUMPAD9)
 				{
 					HandleIPCharInput((wParam - VK_NUMPAD0) + '0');
 				}
-				else if (wParam == VK_OEM_PERIOD || wParam == VK_DECIMAL) 
+				else if (wParam == VK_OEM_PERIOD || wParam == VK_DECIMAL)
 				{
 					HandleIPCharInput('.');
 				}
@@ -1116,11 +1116,11 @@ LRESULT CALLBACK CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMess
 		break;
 
 	case WM_KEYUP:
-	/*	if (wParam == VK_ESCAPE)
-		{
-			m_bShowGameMenu = false;
-			return 0;
-		}*/
+		/*	if (wParam == VK_ESCAPE)
+			{
+				m_bShowGameMenu = false;
+				return 0;
+			}*/
 
 		if (m_nStage == 0 && m_bNameInputActive)
 		{
@@ -1151,7 +1151,7 @@ void CGameFramework::OnDestroy()
 
 	ReleaseObjects();
 
-	if (m_pNetwork){
+	if (m_pNetwork) {
 		m_pNetwork->Shutdown();
 		delete m_pNetwork;
 		m_pNetwork = NULL;
@@ -1191,30 +1191,30 @@ void CGameFramework::OnDestroy()
 void CGameFramework::BuildObjectGameStart()
 {
 	m_pd3dCommandList->Reset(m_d3dCommandAllocators[0].Get(), NULL);
-	
+
 	m_pScene = new CScene();
-	
+
 	if (m_pScene) m_pScene->BuildObjectsGameStart(m_pd3dDevice, m_pd3dCommandList);
-	
+
 	//CCarPlayer* pCarPlayer = new CCarPlayer(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature());
 	CCarPlayer* pCarPlayer;
 	switch (m_nSelectedCarIndex)
 	{
-		case 0: pCarPlayer = new CCar1Player(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature()); break;
-		case 1: pCarPlayer = new CCar2Player(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature()); break;
-		case 2: pCarPlayer = new CCar3Player(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature()); break;
-		default: pCarPlayer = new CCar1Player(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature()); break;
+	case 0: pCarPlayer = new CCar1Player(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature()); break;
+	case 1: pCarPlayer = new CCar2Player(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature()); break;
+	case 2: pCarPlayer = new CCar3Player(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature()); break;
+	default: pCarPlayer = new CCar1Player(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature()); break;
 	}
 	pCarPlayer->SetPosition(XMFLOAT3(.0f, .0f, .0f));
 	m_pScene->m_pPlayer = m_pPlayer = pCarPlayer;
 	m_pCamera = m_pPlayer->GetCamera();
-	
+
 	m_pd3dCommandList->Close();
 	ID3D12CommandList* ppd3dCommandLists[] = { m_pd3dCommandList };
 	m_pd3dCommandQueue->ExecuteCommandLists(1, ppd3dCommandLists);
-	
+
 	WaitForGpuComplete();
-	
+
 	if (m_pScene) m_pScene->ReleaseUploadBuffers();
 	if (m_pPlayer) m_pPlayer->ReleaseUploadBuffers();
 
@@ -1359,7 +1359,7 @@ void CGameFramework::ProcessInputGameStage()
 		(bDriftKeyDown &&
 			bHasDriveInput &&
 			(bLeft || bRight) &&
-			!m_bIsDashing); 
+			!m_bIsDashing);
 
 	if (m_bIsDrifting)
 		m_fDriftHoldTime += fTimeElapsed;
@@ -1374,8 +1374,8 @@ void CGameFramework::ProcessInputGameStage()
 		XMFLOAT3 vCurrentVelocity = m_pPlayer->GetVelocity();
 		XMVECTOR vVel = XMLoadFloat3(&vCurrentVelocity);
 
-		float fVelocityY = XMVectorGetY(vVel);   
-		vVel = XMVectorSetY(vVel, 0.0f);       
+		float fVelocityY = XMVectorGetY(vVel);
+		vVel = XMVectorSetY(vVel, 0.0f);
 
 		float fCurrentSpeed = XMVectorGetX(XMVector3Length(vVel));
 		float fMaxSpeed = max(1.0f, m_pPlayer->m_fMaxVelocityXZ);
@@ -1495,7 +1495,43 @@ void CGameFramework::ProcessInputGameStage()
 		m_pPlayer->SetVelocity(vCurrentVelocity);
 
 		m_nPlayerCurrentSpeed = (int)XMVectorGetX(XMVector3Length(XMVectorSetY(vVel, 0.0f)));
-		
+
+		// 드리프트 스파크 이펙트
+
+		static float s_fDriftSparkTimer = 0.0f;
+		s_fDriftSparkTimer += fTimeElapsed;
+
+		if (m_bIsDrifting && m_nPlayerCurrentSpeed > 35 && s_fDriftSparkTimer >= 0.06f)
+		{
+			s_fDriftSparkTimer = 0.0f;
+
+			XMFLOAT3 pos = m_pPlayer->GetPosition();
+			XMFLOAT3 right = m_pPlayer->GetRightVector();
+			XMFLOAT3 look = m_pPlayer->GetLookVector();
+
+			float side = bLeft ? -1.0f : 1.0f;
+
+			XMFLOAT3 sparkPos(
+				pos.x - look.x * 28.0f + right.x * side * 18.0f,
+				pos.y + 3.0f,
+				pos.z - look.z * 28.0f + right.z * side * 18.0f
+			);
+
+			PlayAndSyncEffect(EFFECT_TYPE::COLLISION, sparkPos, XMFLOAT2(18.0f, 18.0f), XMFLOAT3(1.0f, 0.45f, 0.05f));
+			PlayAndSyncEffect(EFFECT_TYPE::COLLISION, sparkPos, XMFLOAT2(10.0f, 10.0f), XMFLOAT3(1.0f, 0.9f, 0.15f));
+
+			//PlayAndSyncEffect(
+			//	EFFECT_TYPE::DRIFT_SPARK,
+			//	sparkPos,
+			//	XMFLOAT2(18.f, 18.f),
+			//	XMFLOAT3(1.f, 0.6f, 0.1f)
+			//);
+		}
+		else if (!m_bIsDrifting)
+		{
+			s_fDriftSparkTimer = 0.06f;
+		}
+
 		if (m_nPlayerCurrentSpeed > 20)
 		{
 			if (2 < m_cnt)
@@ -1504,7 +1540,7 @@ void CGameFramework::ProcessInputGameStage()
 				XMFLOAT3 right = m_pPlayer->GetRightVector();
 				XMFLOAT3 look = m_pPlayer->GetLookVector();
 
-				
+
 				CEffectLibrary::Instance()->PlayCarDustParticle(
 					EFFECT_TYPE::DUST,
 					pos,
@@ -1514,7 +1550,7 @@ void CGameFramework::ProcessInputGameStage()
 					XMFLOAT2(10, 20)
 				);
 
-			
+
 				if (m_pNetwork && m_pNetwork->IsConnected())
 				{
 					EffectEventNet ev{};
@@ -1525,12 +1561,12 @@ void CGameFramework::ProcessInputGameStage()
 					ev.y = pos.y;
 					ev.z = pos.z;
 
-					
+
 					ev.lx = look.x;
 					ev.ly = look.y;
 					ev.lz = look.z;
 
-					
+
 					ev.r = right.x;
 					ev.g = right.y;
 					ev.b = right.z;
@@ -1701,7 +1737,7 @@ void CGameFramework::BuildGameObjects()
 	}
 
 	ReleaseRemotePlayers();
-	
+
 	if (m_pScene)
 	{
 		m_pScene->ReleaseObjects();
@@ -1789,7 +1825,7 @@ void CGameFramework::BuildGameObjects()
 
 	if (m_pScene) m_pScene->ReleaseUploadBuffers();
 	if (m_pPlayer) m_pPlayer->ReleaseUploadBuffers();
-	
+
 	//m_GameTimer.Reset();
 	//m_bRaceStartDelayStarted = false;
 	//m_fRaceStartDelayTime = 0.0f;
@@ -1854,44 +1890,44 @@ void CGameFramework::ApplyItemReward(ITEM_TYPE eItemType)
 
 	XMFLOAT3 effectColor(1.0f, 1.0f, 1.0f);
 
-switch (eItemType)
-{
-case ITEM_DASH_POTION:
-{
-	effectColor = XMFLOAT3(1.0f, 0.2f, 0.2f);
-
-	float beforeGauge = m_fCurrentDashGauge;
-
-	float afterGauge = beforeGauge + 30.0f;
-
-	if (afterGauge > m_fMaxDashGauge)
-		afterGauge = m_fMaxDashGauge;
-
-	if (afterGauge > beforeGauge)
+	switch (eItemType)
 	{
-		m_fDashPotionFlashStartGauge = beforeGauge;
-		m_fDashPotionFlashEndGauge = afterGauge;
-		m_fDashPotionFlashTime = m_fDashPotionFlashDuration;
+	case ITEM_DASH_POTION:
+	{
+		effectColor = XMFLOAT3(1.0f, 0.2f, 0.2f);
+
+		float beforeGauge = m_fCurrentDashGauge;
+
+		float afterGauge = beforeGauge + 30.0f;
+
+		if (afterGauge > m_fMaxDashGauge)
+			afterGauge = m_fMaxDashGauge;
+
+		if (afterGauge > beforeGauge)
+		{
+			m_fDashPotionFlashStartGauge = beforeGauge;
+			m_fDashPotionFlashEndGauge = afterGauge;
+			m_fDashPotionFlashTime = m_fDashPotionFlashDuration;
+		}
+		break;
 	}
-	break;
-}
 
-case ITEM_MAX_SPEED_UP:
-	// effectColor = XMFLOAT3(0.2f, 1.0f, 0.3f);
-	// effectColor = XMFLOAT3(0.2f, 0.7f, 1.0f);
-	effectColor = XMFLOAT3(0.2f, 1.0f, 0.3f);
-	break;
+	case ITEM_MAX_SPEED_UP:
+		// effectColor = XMFLOAT3(0.2f, 1.0f, 0.3f);
+		// effectColor = XMFLOAT3(0.2f, 0.7f, 1.0f);
+		effectColor = XMFLOAT3(0.2f, 1.0f, 0.3f);
+		break;
 
-case ITEM_MAX_DASH_GAUGE_UP:
-	// effectColor = XMFLOAT3(0.2f, 0.7f, 1.0f);
-	//effectColor = XMFLOAT3(0.2f, 1.0f, 0.3f);
-	effectColor = XMFLOAT3(0.2f, 0.7f, 1.0f);
-	break;
+	case ITEM_MAX_DASH_GAUGE_UP:
+		// effectColor = XMFLOAT3(0.2f, 0.7f, 1.0f);
+		//effectColor = XMFLOAT3(0.2f, 1.0f, 0.3f);
+		effectColor = XMFLOAT3(0.2f, 0.7f, 1.0f);
+		break;
 
-case ITEM_LOCK:
-	effectColor = XMFLOAT3(0.75f, 0.4f, 1.0f);
-	break;
-}
+	case ITEM_LOCK:
+		effectColor = XMFLOAT3(0.75f, 0.4f, 1.0f);
+		break;
+	}
 	PlayAndSyncEffect(EFFECT_TYPE::ITEM10, effectPos, XMFLOAT2(65.f, 65.f), effectColor);
 	PlayAndSyncEffect(EFFECT_TYPE::ITEM11, effectPos, XMFLOAT2(120.f, 120.f), effectColor);
 
@@ -1955,7 +1991,7 @@ void CGameFramework::UpdateDashSystem(float fTimeElapsed, bool bDashKeyDown, boo
 		CEffectLibrary::Instance()->ToggleLocalBooster(false);
 		return;
 	}
-	
+
 	if (m_bDashOverheated)
 	{
 		m_fDashOverheatTime -= fTimeElapsed;
@@ -1979,7 +2015,7 @@ void CGameFramework::UpdateDashSystem(float fTimeElapsed, bool bDashKeyDown, boo
 		}
 	}
 
-	
+
 	if (m_fNoDashGaugeConsumeTime > 0.0f)
 	{
 		m_fNoDashGaugeConsumeTime -= fTimeElapsed;
@@ -2085,7 +2121,7 @@ void CGameFramework::UpdateDashSystem(float fTimeElapsed, bool bDashKeyDown, boo
 
 	float fTargetMaxSpeed = GetPlayerEffectiveMaxSpeed();
 
-	
+
 	float fCurrentMaxSpeed = m_pPlayer->m_fMaxVelocityXZ;
 
 
@@ -2160,7 +2196,7 @@ void CGameFramework::CollisionProcess()
 		for (auto& info : m_vRemotePlayers) {
 			CPlayer* pTargetPlayer = info.pPlayer;
 			if (info.playerID == -1 || !pTargetPlayer || !pTargetPlayer->m_bIsActive) continue;
-		
+
 			BoundingBox remoteAABB = pTargetPlayer->GetCombinedAABB();
 			BoundingBox worldAABB_Remote;
 			remoteAABB.Transform(worldAABB_Remote, XMLoadFloat4x4(&pTargetPlayer->GetWorldMatrix()));
@@ -2292,7 +2328,7 @@ void CGameFramework::CollisionProcess()
 
 			float fYFront = f3Pos.y, fYBack = f3Pos.y, fYRight = f3Pos.y, fYLeft = f3Pos.y;
 			float bestT = FLT_MAX;
-			XMVECTOR vDummyNormal; 
+			XMVECTOR vDummyNormal;
 			if (m_pScene && m_pScene->m_ppGameObjects && m_pScene->m_ppGameObjects[0])
 			{
 				CGameObject* pMap = m_pScene->m_ppGameObjects[0];
@@ -2308,8 +2344,8 @@ void CGameFramework::CollisionProcess()
 			XMVECTOR vHitRight = XMVectorSet(XMVectorGetX(vRightOrigin), fYRight, XMVectorGetZ(vRightOrigin), 1.0f);
 			XMVECTOR vHitLeft = XMVectorSet(XMVectorGetX(vLeftOrigin), fYLeft, XMVectorGetZ(vLeftOrigin), 1.0f);
 
-			XMVECTOR vDirZ = XMVector3Normalize(vHitFront - vHitBack); 
-			XMVECTOR vDirX = XMVector3Normalize(vHitRight - vHitLeft); 
+			XMVECTOR vDirZ = XMVector3Normalize(vHitFront - vHitBack);
+			XMVECTOR vDirX = XMVector3Normalize(vHitRight - vHitLeft);
 
 			XMVECTOR vTerrainNormal = XMVector3Normalize(XMVector3Cross(vDirZ, vDirX));
 
@@ -2317,7 +2353,7 @@ void CGameFramework::CollisionProcess()
 			XMVECTOR vCurrentTiltUp = XMLoadFloat3(&m_pPlayer->GetTiltUpVector());
 
 			float fRotationSpeed = 8.0f * fTimeElapsed;
-			if (fRotationSpeed > 1.0f) fRotationSpeed = 1.0f; 
+			if (fRotationSpeed > 1.0f) fRotationSpeed = 1.0f;
 			XMVECTOR vLerpedUp = XMVector3Normalize(XMVectorLerp(vCurrentTiltUp, vTerrainNormal, fRotationSpeed));
 
 			XMVECTOR vNewTiltRight = XMVector3Normalize(XMVector3Cross(vLerpedUp, vLogicalLook));
@@ -2333,7 +2369,7 @@ void CGameFramework::CollisionProcess()
 			// 점프 조정
 			// 근데 숫자 바꾸면 2단이 잘 안될 때가 있음.
 			m_pPlayer->SetGravity(XMFLOAT3(0, -5.5f, 0));
-		
+
 			float fTimeElapsed = m_GameTimer.GetTimeElapsed();
 
 			XMVECTOR vCurrentTiltUp = XMLoadFloat3(&m_pPlayer->GetTiltUpVector());
@@ -2424,7 +2460,7 @@ void CGameFramework::CollisionProcess()
 				else if (randItem == 2) m_eHoldItem = ITEM_MAX_DASH_GAUGE_UP;
 				else if (randItem == 3) m_eHoldItem = ITEM_LOCK;
 			}
-			
+
 		}
 		else if (pCollidedObject->m_bIsRCP) {
 			//int currentRCP = pCollidedObject->m_nCheckPointIndex;
@@ -2682,7 +2718,7 @@ void CGameFramework::CreateTextResources()
 	);
 
 	m_textSpeedFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
- 	m_textSpeedFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
+	m_textSpeedFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
 
 	m_d2dDeviceContext->CreateSolidColorBrush(
 		D2D1::ColorF(D2D1::ColorF::Yellow),
@@ -2910,7 +2946,7 @@ void CGameFramework::RenderUI()
 				D2D1_BITMAP_INTERPOLATION_MODE_LINEAR
 			);
 
-			if (m_pScene && m_pCarImages[m_nSelectedCarIndex]){
+			if (m_pScene && m_pCarImages[m_nSelectedCarIndex]) {
 				float boxLeft = m_nWndClientWidth * 0.62f;   // 우측 62% 지점
 				float boxTop = m_nWndClientHeight * 0.2f;   // 상단 2% 지점
 				float boxRight = m_nWndClientWidth * 0.88f;  // 우측 88% 지점
@@ -2927,9 +2963,9 @@ void CGameFramework::RenderUI()
 			}
 
 			if (m_pScene && m_pMapImages[m_nSelectedMapIndex]) {
-				float boxLeft = m_nWndClientWidth * 0.11f;   
-				float boxTop = m_nWndClientHeight * 0.61f;  
-				float boxRight = m_nWndClientWidth * 0.50f;  
+				float boxLeft = m_nWndClientWidth * 0.11f;
+				float boxTop = m_nWndClientHeight * 0.61f;
+				float boxRight = m_nWndClientWidth * 0.50f;
 				float boxBottom = m_nWndClientHeight * 0.96f;
 
 				D2D1_RECT_F mapRect = D2D1::RectF(boxLeft, boxTop, boxRight, boxBottom);
@@ -2956,10 +2992,10 @@ void CGameFramework::RenderUI()
 					0.27, 0.32, 0.49, 0.57
 				}; //0123 ->p1, 4567 -> p2, 891011 ->p3, 12131415 ->p4
 
-				float boxLeft = m_nWndClientWidth * carBoxRatio[i*4 + 0];
-				float boxTop = m_nWndClientHeight * carBoxRatio[i*4 + 1]; 
-				float boxRight = m_nWndClientWidth * carBoxRatio[i*4 + 2];
-				float boxBottom = m_nWndClientHeight * carBoxRatio[i*4 + 3];
+				float boxLeft = m_nWndClientWidth * carBoxRatio[i * 4 + 0];
+				float boxTop = m_nWndClientHeight * carBoxRatio[i * 4 + 1];
+				float boxRight = m_nWndClientWidth * carBoxRatio[i * 4 + 2];
+				float boxBottom = m_nWndClientHeight * carBoxRatio[i * 4 + 3];
 
 				D2D1_RECT_F carRect = D2D1::RectF(boxLeft, boxTop, boxRight, boxBottom);
 
@@ -2982,13 +3018,13 @@ void CGameFramework::RenderUI()
 				const wchar_t* name = m_szPlayerNames[i];
 				if (wcslen(name) > 0) {
 					float textHeight = 35.0f;
-					float marginX = (boxRight - boxLeft) * 0.03f; 
+					float marginX = (boxRight - boxLeft) * 0.03f;
 					float marginBottom = 4.0f;
 
 					float leftCorrection = (i == 1 || i == 3) ? 10.0f : 0.0f;
 
 					D2D1_RECT_F nameRect = D2D1::RectF(
-						boxLeft + marginX + leftCorrection, 
+						boxLeft + marginX + leftCorrection,
 						boxBottom - textHeight - marginBottom,
 						boxRight - marginX,
 						boxBottom - marginBottom
@@ -3029,7 +3065,7 @@ void CGameFramework::RenderUI()
 						m_pSink->EndFigure(D2D1_FIGURE_END_CLOSED);
 						m_pSink->Close();
 
-						m_d2dDeviceContext->FillGeometry(m_pPathGeometry.Get(), m_pTriBtnHoverBrush.Get());		
+						m_d2dDeviceContext->FillGeometry(m_pPathGeometry.Get(), m_pTriBtnHoverBrush.Get());
 					}
 				}
 			}
@@ -3069,7 +3105,7 @@ void CGameFramework::RenderUI()
 			}
 		}
 	}
-	else if(2 == m_nStage)
+	else if (2 == m_nStage)
 	{
 		int minutes = static_cast<int>(m_fTotalTime / 60);
 		int seconds = static_cast<int>(m_fTotalTime) % 60;
@@ -3150,7 +3186,7 @@ void CGameFramework::RenderUI()
 		float dashFrameHeight = dashFrameWidth * (1024.0f / 1536.0f);
 
 		float dashFrameLeft = 25.0f;
-		float dashFrameBottom = (float)m_nWndClientHeight +15.0f;
+		float dashFrameBottom = (float)m_nWndClientHeight + 15.0f;
 		float dashFrameTop = dashFrameBottom - dashFrameHeight;
 		float dashFrameRight = dashFrameLeft + dashFrameWidth;
 
@@ -3260,7 +3296,7 @@ void CGameFramework::RenderUI()
 		float screenW = (float)m_nWndClientWidth;
 		float screenH = (float)m_nWndClientHeight;
 
-			
+
 		float minimapH = screenH * 0.25f;
 		float minimapW = minimapH;
 
@@ -3289,13 +3325,13 @@ void CGameFramework::RenderUI()
 			(float)m_nWndClientHeight - margin
 		);
 
-			
+
 		m_d2dDeviceContext->FillRoundedRectangle(
 			D2D1::RoundedRect(frameRect, 12, 12),
 			m_minimapFrameBrush.Get()
 		);
 
-			
+
 		if (m_pMinimapBitmaps[m_nSelectedMapIndex])
 		{
 			m_d2dDeviceContext->DrawBitmap(
@@ -3339,7 +3375,7 @@ void CGameFramework::RenderUI()
 				}
 			}
 		}
-		
+
 		// 카운트다운
 		if (m_nStage == 2 &&
 			m_bMultiplayerEnabled &&
@@ -3368,13 +3404,13 @@ void CGameFramework::RenderUI()
 					m_textCountdownFormat.Get(),
 					rect,
 					m_textCountdownBrush.Get()
-					
+
 				);
 			}
 		}
 
 
-	
+
 	}
 
 	if (m_nStage == 1)
@@ -3472,8 +3508,8 @@ void CGameFramework::RenderUI()
 		}
 	}
 
-		
-		
+
+
 	if (m_nStage == 2 && m_pDashVignetteBitmap && m_fDashVignetteAlpha > 0.01f)
 	{
 		D2D1_RECT_F fullScreenRect = D2D1::RectF(
@@ -3699,7 +3735,7 @@ void CGameFramework::ApplyMultiplayerSpawn()
 				// 3, 4 번 플레이어 위치 추가해야함
 			}
 		}
-		
+
 		SetupPlayerTransform(m_pPlayer, xmf3LocalSpawn, PLAYER_SPAWN_YAW);
 		m_nPlayerCurrentSpeed = 0;
 	}
@@ -3721,7 +3757,7 @@ bool CGameFramework::ConnectToServer(const char* pszAddress, unsigned short port
 		delete m_pNetwork;
 	}
 
-	m_pNetwork = new CNetworkManager(); 
+	m_pNetwork = new CNetworkManager();
 
 	bool bConnectSuccess = m_pNetwork->ConnectToServer(pszAddress, port);
 
@@ -3767,7 +3803,7 @@ PlayerNetState CGameFramework::BuildLocalPlayerState() const
 	state.currentLap = static_cast<std::uint32_t>(m_nCurrentLap);
 	state.passedCheckpoints = static_cast<std::uint32_t>(m_nPassedCheckPoints);
 
-	float fDistToNext = 999999.0f; 
+	float fDistToNext = 999999.0f;
 
 	if (m_pScene && m_pScene->m_ppGameObjects)
 	{
@@ -3801,12 +3837,12 @@ PlayerNetState CGameFramework::BuildLocalPlayerState() const
 void CGameFramework::ApplyRemotePlayerState(const PlayerNetState& state)
 {
 	if (state.playerId == m_nMyPlayerId) return;
-	
+
 	RemotePlayerInfo* pInfo = FindOrAllocateRemotePlayer(state.playerId);
 	if (!pInfo || !pInfo->pPlayer) return;
 
 	CPlayer* pTargetPlayer = pInfo->pPlayer;
-	
+
 	pTargetPlayer->m_bIsActive = true;
 	pTargetPlayer->SetVelocity(XMFLOAT3(0, 0, 0));
 	pTargetPlayer->SetPosition(XMFLOAT3(state.x, state.y, state.z));
@@ -3836,11 +3872,11 @@ void CGameFramework::SyncMultiplayer()
 
 	if (m_nStage <= 0)
 	{
-		SyncRoom();   
+		SyncRoom();
 	}
-	else if(m_nStage<100)
+	else if (m_nStage < 100)
 	{
-		SyncInGame();  
+		SyncInGame();
 	}
 }
 
@@ -3921,7 +3957,7 @@ void CGameFramework::SyncRoom()
 
 		if (readyCount == currentTotalPlayers)
 		{
-			m_nStage = 1; 
+			m_nStage = 1;
 		}
 	}
 }
@@ -3935,7 +3971,7 @@ void CGameFramework::SyncInGame()
 		loadEv.playerId = m_nMyPlayerId;
 		m_pNetwork->SendLoadCompleteEvent(loadEv);
 
-		m_bStartSign = false; 
+		m_bStartSign = false;
 
 		if (m_bIsHostPlayer) {
 			m_nLoadedPlayersCnt++;
@@ -3944,7 +3980,7 @@ void CGameFramework::SyncInGame()
 				GameStartSignNet startEv{};
 				startEv.startSign = true;
 				m_pNetwork->SendGameStartSignal(startEv);
-				m_bServerStartSign = true; 
+				m_bServerStartSign = true;
 			}
 		}
 	}
@@ -3958,7 +3994,7 @@ void CGameFramework::SyncInGame()
 				GameStartSignNet startEv{};
 				startEv.startSign = true;
 				m_pNetwork->SendGameStartSignal(startEv);
-				m_bServerStartSign = true; 
+				m_bServerStartSign = true;
 			}
 		}
 	}
@@ -3992,7 +4028,7 @@ void CGameFramework::PlayAndSyncEffect(EFFECT_TYPE eType, const XMFLOAT3& xmf3Po
 void CGameFramework::SendEffectEvent(EFFECT_TYPE eType, const XMFLOAT3& xmf3Position, const XMFLOAT2& xmf2Size, const XMFLOAT3& xmf3Color)
 {
 	if (!m_pNetwork || !m_pNetwork->IsConnected()) return;
-	
+
 	EffectEventNet ev{};
 	ev.effectType = static_cast<int>(eType);
 	ev.x = xmf3Position.x;
@@ -4035,7 +4071,7 @@ void CGameFramework::ConsumeNetworkEffectEvents()
 			XMFLOAT3 pos(ev.x, ev.y, ev.z);
 			XMFLOAT3 look(ev.lx, ev.ly, ev.lz);
 
-			
+
 			XMFLOAT3 right(ev.r, ev.g, ev.b);
 
 			CEffectLibrary::Instance()->PlayCarDustParticle(
@@ -4065,7 +4101,7 @@ void CGameFramework::LoadLobbyUIResource()
 
 	ComPtr<IWICBitmapDecoder> pDecoder;
 	hr = m_pWICFactory->CreateDecoderFromFilename(
-		L"Asset/image/GameLobbyRemoved.png", 
+		L"Asset/image/GameLobbyRemoved.png",
 		NULL,
 		GENERIC_READ,
 		WICDecodeMetadataCacheOnLoad,
@@ -4080,7 +4116,7 @@ void CGameFramework::LoadLobbyUIResource()
 
 	hr = pConverter->Initialize(
 		pFrame.Get(),
-		GUID_WICPixelFormat32bppPBGRA, 
+		GUID_WICPixelFormat32bppPBGRA,
 		WICBitmapDitherTypeNone,
 		NULL,
 		0.0f,
@@ -4090,7 +4126,7 @@ void CGameFramework::LoadLobbyUIResource()
 	hr = m_d2dDeviceContext->CreateBitmapFromWicBitmap(
 		pConverter.Get(),
 		NULL,
-		&m_pLobbyD2DBitmap 
+		&m_pLobbyD2DBitmap
 	);
 }
 
@@ -4215,8 +4251,8 @@ void CGameFramework::CreateRemotePlayers()
 		m_pScene->ApplyMeshTextures(m_pd3dDevice, m_pd3dCommandList, pRemotePlayer);
 		pRemotePlayer->ComputeNewLocalAABB();
 
-		pRemotePlayer->m_bIsActive = false ;
-	
+		pRemotePlayer->m_bIsActive = false;
+
 		RemotePlayerInfo info;
 		info.playerID = playerId;
 		info.pPlayer = pRemotePlayer;
@@ -4257,7 +4293,7 @@ D2D1_POINT_2F CGameFramework::WorldToMinimap(
 	const XMFLOAT3& worldPos,
 	const D2D1_RECT_F& minimapRect)
 {
-	float worldMinX; 
+	float worldMinX;
 	float worldMaxX;
 	float worldMinZ;
 	float worldMaxZ;
@@ -4269,12 +4305,12 @@ D2D1_POINT_2F CGameFramework::WorldToMinimap(
 		worldMaxZ = 3250.0f;
 	}
 	else if (1 == m_nSelectedMapIndex) {
-		 worldMinX = -9350.0f; // 맵 사이즈 맞게 조정 
-		 worldMaxX = -4000.0f;
-		 worldMinZ = 2600.0f;
-		 worldMaxZ = 7820.0f;
+		worldMinX = -9350.0f; // 맵 사이즈 맞게 조정 
+		worldMaxX = -4000.0f;
+		worldMinZ = 2600.0f;
+		worldMaxZ = 7820.0f;
 	}
-	
+
 	float u = (worldPos.x - worldMinX) / (worldMaxX - worldMinX);
 	float v = (worldPos.z - worldMinZ) / (worldMaxZ - worldMinZ);
 
@@ -4548,12 +4584,12 @@ void CGameFramework::FrameAdvance()
 		CollisionProcess();
 		//m_pPlayer->SetGravity(XMFLOAT3(0, 0, 0));
 		const float fTimeElapsed = m_GameTimer.GetTimeElapsed();
-	
+
 		if (m_bDashLocked && m_pPlayer)
 		{
 			XMFLOAT3 pos = m_pPlayer->GetPosition();
 			pos.y += 0.0f;
-			
+
 			CEffectLibrary::Instance()->UpdateLockOrbitPosition(pos);
 		}
 
@@ -4568,8 +4604,8 @@ void CGameFramework::FrameAdvance()
 			}
 			else
 			{
-				for (auto& info : m_vRemotePlayers){
-					if (info.playerID != -1 && info.pPlayer && info.pPlayer->m_bIsActive){
+				for (auto& info : m_vRemotePlayers) {
+					if (info.playerID != -1 && info.pPlayer && info.pPlayer->m_bIsActive) {
 						XMFLOAT3 pos = info.pPlayer->GetPosition();
 						pos.y += 0.0f;
 						CEffectLibrary::Instance()->UpdateLockOrbitPosition(pos);
@@ -4618,14 +4654,14 @@ void CGameFramework::FrameAdvance()
 		}
 		m_pPlayer->Update(fTimeElapsed);
 	}
-	
+
 	if (m_pNetwork)
 	{
 		m_pNetwork->Update(m_GameTimer.GetTimeElapsed(), NULL);
 	}
 
 	CheckResult();
-	
+
 	if (99 == m_nStage)
 	{
 		m_fFinishAfterTime += m_GameTimer.GetTimeElapsed();
@@ -5200,7 +5236,7 @@ void CGameFramework::DrawGameMenuUI()
 			m_menuButtonBrush.Get()
 		);
 
-	
+
 		if (i != 1)
 		{
 			if (m_nGameMenuSelectedIndex == i || m_nGameMenuHoveredIndex == i)

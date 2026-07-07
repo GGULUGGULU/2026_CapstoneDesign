@@ -83,6 +83,14 @@ void CEffectLibrary::InitializeDefaultEffectConfigs()
 	m_EffectConfigs[(int)EFFECT_TYPE::ITEM11].particleCount = 1;
 	m_EffectConfigs[(int)EFFECT_TYPE::ITEM11].lifeTime = 0.35f;
 
+
+	m_EffectConfigs[(int)EFFECT_TYPE::DRIFT_SPARK].poolSize = 100;
+	m_EffectConfigs[(int)EFFECT_TYPE::DRIFT_SPARK].particleCount = 3;
+	m_EffectConfigs[(int)EFFECT_TYPE::DRIFT_SPARK].lifeTime = 0.15f;
+	m_EffectConfigs[(int)EFFECT_TYPE::DRIFT_SPARK].spread = 8.0f;
+	m_EffectConfigs[(int)EFFECT_TYPE::DRIFT_SPARK].useDepth = true;
+
+
 }
 
 void CEffectLibrary::InitializeDefaultMeshConfigs()
