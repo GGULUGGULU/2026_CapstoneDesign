@@ -1517,15 +1517,15 @@ void CGameFramework::ProcessInputGameStage()
 				pos.z - look.z * 28.0f + right.z * side * 18.0f
 			);
 
-			PlayAndSyncEffect(EFFECT_TYPE::COLLISION, sparkPos, XMFLOAT2(18.0f, 18.0f), XMFLOAT3(1.0f, 0.45f, 0.05f));
-			PlayAndSyncEffect(EFFECT_TYPE::COLLISION, sparkPos, XMFLOAT2(10.0f, 10.0f), XMFLOAT3(1.0f, 0.9f, 0.15f));
+			//PlayAndSyncEffect(EFFECT_TYPE::COLLISION, sparkPos, XMFLOAT2(18.0f, 18.0f), XMFLOAT3(1.0f, 0.45f, 0.05f));
+			//PlayAndSyncEffect(EFFECT_TYPE::COLLISION, sparkPos, XMFLOAT2(10.0f, 10.0f), XMFLOAT3(1.0f, 0.9f, 0.15f));
 
-			//PlayAndSyncEffect(
-			//	EFFECT_TYPE::DRIFT_SPARK,
-			//	sparkPos,
-			//	XMFLOAT2(18.f, 18.f),
-			//	XMFLOAT3(1.f, 0.6f, 0.1f)
-			//);
+			PlayAndSyncEffect(
+				EFFECT_TYPE::DRIFT_SPARK,
+				sparkPos,
+				XMFLOAT2(45.f, 45.f),
+				XMFLOAT3(1.f, 0.6f, 0.1f)
+			);
 		}
 		else if (!m_bIsDrifting)
 		{

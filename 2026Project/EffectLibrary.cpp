@@ -90,7 +90,6 @@ void CEffectLibrary::InitializeDefaultEffectConfigs()
 	m_EffectConfigs[(int)EFFECT_TYPE::DRIFT_SPARK].spread = 8.0f;
 	m_EffectConfigs[(int)EFFECT_TYPE::DRIFT_SPARK].useDepth = true;
 
-
 }
 
 void CEffectLibrary::InitializeDefaultMeshConfigs()
