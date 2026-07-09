@@ -38,7 +38,8 @@ enum class EFFECT_TYPE
 	WIND_EFFECT,
 	SPEED_LINE,
 	LOCK_ORBIT,
-	DRIFT_SPARK, // 드리프트 스파크
+	DRIFT_SPARK_LEFT,
+	DRIFT_SPARK_RIGHT, // 드리프트 스파크
 	COUNT, // 
 };
 
@@ -237,7 +238,8 @@ private:
 		L"Asset/DDS_File/WindShield.dds",
 		L"Asset/DDS_File/SpeedLine1.dds",
 		L"Asset/DDS_File/LockOrbit.dds",
-		L"Asset/DDS_File/DriftSpark01.dds"
+		L"Asset/DDS_File/DriftSpark_Left.dds",
+		L"Asset/DDS_File/DriftSpark_Right.dds"
 	};
 
 	UINT m_nSrvDescriptorIncrementSize = 0;

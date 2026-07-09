@@ -84,11 +84,19 @@ void CEffectLibrary::InitializeDefaultEffectConfigs()
 	m_EffectConfigs[(int)EFFECT_TYPE::ITEM11].lifeTime = 0.35f;
 
 
-	m_EffectConfigs[(int)EFFECT_TYPE::DRIFT_SPARK].poolSize = 100;
-	m_EffectConfigs[(int)EFFECT_TYPE::DRIFT_SPARK].particleCount = 3;
-	m_EffectConfigs[(int)EFFECT_TYPE::DRIFT_SPARK].lifeTime = 0.15f;
-	m_EffectConfigs[(int)EFFECT_TYPE::DRIFT_SPARK].spread = 8.0f;
-	m_EffectConfigs[(int)EFFECT_TYPE::DRIFT_SPARK].useDepth = true;
+	// ¿ÞÂÊ
+	m_EffectConfigs[(int)EFFECT_TYPE::DRIFT_SPARK_LEFT].poolSize = 100;
+	m_EffectConfigs[(int)EFFECT_TYPE::DRIFT_SPARK_LEFT].particleCount = 3;
+	m_EffectConfigs[(int)EFFECT_TYPE::DRIFT_SPARK_LEFT].lifeTime = 0.15f;
+	m_EffectConfigs[(int)EFFECT_TYPE::DRIFT_SPARK_LEFT].spread = 8.0f;
+	m_EffectConfigs[(int)EFFECT_TYPE::DRIFT_SPARK_LEFT].useDepth = true;
+
+	// ¿À¸¥ÂÊ
+	m_EffectConfigs[(int)EFFECT_TYPE::DRIFT_SPARK_RIGHT].poolSize = 100;
+	m_EffectConfigs[(int)EFFECT_TYPE::DRIFT_SPARK_RIGHT].particleCount = 3;
+	m_EffectConfigs[(int)EFFECT_TYPE::DRIFT_SPARK_RIGHT].lifeTime = 0.15f;
+	m_EffectConfigs[(int)EFFECT_TYPE::DRIFT_SPARK_RIGHT].spread = 8.0f;
+	m_EffectConfigs[(int)EFFECT_TYPE::DRIFT_SPARK_RIGHT].useDepth = true;
 
 }
 
