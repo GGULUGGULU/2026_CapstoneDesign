@@ -1770,7 +1770,7 @@ void CGameFramework::BuildGameObjects()
 		}
 		else if (1 == m_nSelectedMapIndex) {
 			m_pScene->m_nCurrentMapStage = 1;
-			m_pScene->BuildGameStage2(m_pd3dDevice, m_pd3dCommandList);
+			m_pScene->BuildGameStage3(m_pd3dDevice, m_pd3dCommandList);
 		}
 	}
 	CreateShadowMap();
@@ -1877,6 +1877,9 @@ void CGameFramework::BuildGameObjects()
 
 
 	m_SoundManager.SetBGMVolume(m_fBGMVolume);
+
+	pCarPlayer->SetPosition(XMFLOAT3(-2700, 0, -3400));
+	//pCarPlayer->SetPosition(XMFLOAT3(-950, 0, -900));
 }
 
 float CGameFramework::GetPlayerEffectiveMaxSpeed() const
@@ -3825,7 +3828,7 @@ PlayerNetState CGameFramework::BuildLocalPlayerState() const
 	{
 		int nextCPIndex = m_nPassedCheckPoints + 1;
 		int objectIndex = -1;
-
+		
 		if (m_nSelectedMapIndex == 0)
 		{
 			objectIndex = nextCPIndex + 2;
@@ -3834,11 +3837,11 @@ PlayerNetState CGameFramework::BuildLocalPlayerState() const
 		{
 			objectIndex = nextCPIndex + 1;
 		}
-
+		
 		if (objectIndex != -1 && m_pScene->m_ppGameObjects[objectIndex])
 		{
 			XMFLOAT3 nextCPPos = m_pScene->m_ppGameObjects[objectIndex]->GetPosition();
-
+		
 			XMVECTOR vPlayer = XMLoadFloat3(&position);
 			XMVECTOR vCP = XMLoadFloat3(&nextCPPos);
 			fDistToNext = XMVectorGetX(XMVector3Length(vCP - vPlayer));
