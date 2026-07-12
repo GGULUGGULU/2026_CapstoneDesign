@@ -310,7 +310,7 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 	BuildUIResources(pd3dDevice, pd3dCommandList);
 
 	// 
-	m_nGameObjects = 35 + 1 + 6;
+	m_nGameObjects = 35 + 1 + 6 + 1; // 바나나
 	m_ppGameObjects = new CGameObject * [m_nGameObjects];
 
 	// 맵 모델링
@@ -743,6 +743,48 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		pRLObject6->m_fInactiveTime = 0.0f;
 		pRLObject6->m_fRespawnDelay = 10.0f;
 		m_ppGameObjects[41] = pRLObject6;
+	}
+
+	// 바나나 오브젝트
+	{
+		CGameObject* pBananaModel =
+			CGameObject::LoadGeometryFromFile(
+				pd3dDevice,
+				pd3dCommandList,
+				m_pd3dGraphicsRootSignature,
+				"Model/banana.bin"
+			);
+
+		ApplyMeshTextures(
+			pd3dDevice,
+			pd3dCommandList,
+			pBananaModel
+		);
+
+		CGameObject* pBananaObject = new CGameObject();
+
+		pBananaObject->SetChild(pBananaModel);
+
+		pBananaObject->SetPosition(-900.0f, 0.0f, -840.0f);
+
+		pBananaObject->SetScale(
+			10.0f,
+			10.0f,
+			10.0f
+		);
+
+		pBananaObject->Rotate(
+			0.0f,
+			0.0f,
+			0.0f
+		);
+
+		pBananaObject->ComputeNewLocalAABB();
+
+	
+		pBananaObject->m_bCanRespawn = false;
+
+		m_ppGameObjects[42] = pBananaObject;
 	}
 
 	CreateWireFrameBox(pd3dDevice, pd3dCommandList);

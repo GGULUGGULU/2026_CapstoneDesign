@@ -1878,8 +1878,8 @@ void CGameFramework::BuildGameObjects()
 
 	m_SoundManager.SetBGMVolume(m_fBGMVolume);
 
-	pCarPlayer->SetPosition(XMFLOAT3(-2700, 0, -3400));
-	//pCarPlayer->SetPosition(XMFLOAT3(-950, 0, -900));
+	//pCarPlayer->SetPosition(XMFLOAT3(-2700, 0, -3400));
+	pCarPlayer->SetPosition(XMFLOAT3(-950, 0, -900));
 }
 
 float CGameFramework::GetPlayerEffectiveMaxSpeed() const
