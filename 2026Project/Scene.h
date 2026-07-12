@@ -12,6 +12,7 @@
 #include "Player.h"
 
 #define MAX_LIGHTS			16 
+#define MAX_BANANA_OBJECTS 32
 
 #define POINT_LIGHT			1
 #define SPOT_LIGHT			2
@@ -108,6 +109,27 @@ public:
 
 	bool CheckGroundCollision();
 
+
+
+	CGameObject* InstallBanana(
+		int bananaId,
+		int ownerPlayerId,
+		const XMFLOAT3& position,
+		float yaw
+	);
+
+	void RemoveBanana(int bananaId);
+
+	CGameObject* FindBanana(int bananaId);
+
+	void ClearBananas();
+
+	CGameObject* m_ppBananaObjects[MAX_BANANA_OBJECTS]{};
+	int m_nBananaObjectStartIndex = -1;
+
+
+
+
 	void RaycastDownRecursive(CGameObject* pObject, const XMVECTOR& vWorldRayOrigin, const XMVECTOR& vWorldRayTarget, const XMVECTOR& vWorldRayDir, float maxDistance, float& bestT, float& bestY, XMVECTOR& bestNormal);
 
 	bool IsNullTextureName(const char* pstr);
@@ -165,9 +187,12 @@ public:
 	CUIShader* m_pUIShader = nullptr;
 	CUIMesh* m_pUIMesh = nullptr;
 
-	D3D12_GPU_DESCRIPTOR_HANDLE m_pd3dUIItemSrvHandles[4];
+	// D3D12_GPU_DESCRIPTOR_HANDLE m_pd3dUIItemSrvHandles[4];
+	D3D12_GPU_DESCRIPTOR_HANDLE m_pd3dUIItemSrvHandles[5];
 
 	//CGameObject* m_pRoomCars[1]; // 모델링 파일 추가하면 더 늘려야 함
+
+
 
 	//
 public:

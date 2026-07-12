@@ -309,9 +309,32 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 
 	BuildUIResources(pd3dDevice, pd3dCommandList);
 
-	// 
-	m_nGameObjects = 35 + 1 + 6 + 1; // 바나나
-	m_ppGameObjects = new CGameObject * [m_nGameObjects];
+	//// 
+	//m_nGameObjects = 35 + 1 + 6; // 바나나
+
+	//const int nNormalObjectCount = 42;
+	//m_nBananaObjectStartIndex = nNormalObjectCount;
+	//m_nGameObjects = nNormalObjectCount + MAX_BANANA_OBJECTS;
+
+	//m_ppGameObjects = new CGameObject * [m_nGameObjects];
+
+	//for (int i = 0; i < m_nGameObjects; ++i)
+	//{
+	//	m_ppGameObjects[i] = nullptr;
+	//}
+	//m_ppGameObjects = new CGameObject * [m_nGameObjects];
+
+	const int nNormalObjectCount = 42;
+
+	m_nBananaObjectStartIndex = nNormalObjectCount;
+	m_nGameObjects = nNormalObjectCount + MAX_BANANA_OBJECTS;
+
+	m_ppGameObjects = new CGameObject * [m_nGameObjects] {};
+
+	for (int i = 0; i < MAX_BANANA_OBJECTS; ++i)
+	{
+		m_ppBananaObjects[i] = nullptr;
+	}
 
 	// 맵 모델링
 	CGameObject* pGroundModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/untitled.bin");
@@ -745,7 +768,8 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		m_ppGameObjects[41] = pRLObject6;
 	}
 
-	// 바나나 오브젝트
+	// 바나나 오브젝트 풀
+	for (int i = 0; i < MAX_BANANA_OBJECTS; ++i)
 	{
 		CGameObject* pBananaModel =
 			CGameObject::LoadGeometryFromFile(
@@ -754,6 +778,12 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 				m_pd3dGraphicsRootSignature,
 				"Model/banana.bin"
 			);
+
+		if (!pBananaModel)
+		{
+			m_ppGameObjects[m_nBananaObjectStartIndex + i] = nullptr;
+			continue;
+		}
 
 		ApplyMeshTextures(
 			pd3dDevice,
@@ -764,28 +794,24 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 		CGameObject* pBananaObject = new CGameObject();
 
 		pBananaObject->SetChild(pBananaModel);
+		pBananaObject->SetPosition(0.0f, -10000.0f, 0.0f);
+		pBananaObject->SetScale(10.0f, 10.0f, 10.0f);
 
-		pBananaObject->SetPosition(-900.0f, 0.0f, -840.0f);
+		pBananaObject->m_bIsBanana = true;
+		pBananaObject->m_bIsActive = false;
+		pBananaObject->m_bCanRespawn = false;
 
-		pBananaObject->SetScale(
-			10.0f,
-			10.0f,
-			10.0f
-		);
-
-		pBananaObject->Rotate(
-			0.0f,
-			0.0f,
-			0.0f
-		);
+		pBananaObject->m_nBananaId = -1;
+		pBananaObject->m_nBananaOwnerPlayerId = -1;
 
 		pBananaObject->ComputeNewLocalAABB();
 
+		m_ppGameObjects[m_nBananaObjectStartIndex + i] =
+			pBananaObject;
 	
-		pBananaObject->m_bCanRespawn = false;
-
-		m_ppGameObjects[42] = pBananaObject;
+		m_ppBananaObjects[i] = pBananaObject;
 	}
+
 
 	CreateWireFrameBox(pd3dDevice, pd3dCommandList);
 	CreateAABBWireFrameBox(pd3dDevice, pd3dCommandList);
@@ -1270,6 +1296,9 @@ void CScene::BuildGameStage2(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 		pRLObject6->m_fRespawnDelay = 10.0f;
 		m_ppGameObjects[42] = pRLObject6;
 	}
+
+
+
 
 	CreateWireFrameBox(pd3dDevice, pd3dCommandList);
 	CreateAABBWireFrameBox(pd3dDevice, pd3dCommandList);
@@ -2410,20 +2439,21 @@ void CScene::BuildUIResources(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 	m_pUIShader = new CUIShader();
 	m_pUIShader->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dUIRootSignature);
 
-	const wchar_t* texPaths[4] = {
+	const wchar_t* texPaths[5] = {
 		L"Asset/DDS_File/Item_Dash_02.dds",
 		L"Asset/DDS_File/Item_Gauge_02.dds",
 		L"Asset/DDS_File/Item_Speed_02.dds",
-		L"Asset/DDS_File/Item_Lock_02.dds" 
+		L"Asset/DDS_File/Item_Lock_02.dds" ,
+		L"Asset/DDS_File/Item_Banana.dds"
 	};
 
 	UINT uiSrvStartIndex = m_nNextSrvTableIndex;
-	m_nNextSrvTableIndex += 4;
+	m_nNextSrvTableIndex += 5;
 
 	D3D12_CPU_DESCRIPTOR_HANDLE d3dCpuSrvHandleStart = m_pd3dCbvSrvHeap->GetCPUDescriptorHandleForHeapStart();
 	D3D12_GPU_DESCRIPTOR_HANDLE d3dGpuSrvHandleStart = m_pd3dCbvSrvHeap->GetGPUDescriptorHandleForHeapStart();
 
-	for (int i = 0; i < 4; ++i)
+	for (int i = 0; i < 5; ++i)
 	{
 		std::unique_ptr<uint8_t[]> ddsData;
 		std::vector<D3D12_SUBRESOURCE_DATA> subresources;
@@ -2473,7 +2503,7 @@ void CScene::BuildUIResources(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 void CScene::RenderItemUI(ID3D12GraphicsCommandList* pd3dCommandList, int nItemIndex, int screenW, int screenH)
 {
 	if (!m_pd3dUIRootSignature || !m_pUIShader || !m_pUIMesh) return;
-	if (nItemIndex < 0 || nItemIndex >= 4) return;
+	if (nItemIndex < 0 || nItemIndex >= 5) return;
 
 	float baseW = 1280.0f;
 	float baseH = 720.0f;
@@ -2587,5 +2617,109 @@ void CScene::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera
 				if (m_pCombinedAABBBoxObject->m_pMesh) m_pCombinedAABBBoxObject->m_pMesh->Render(pd3dCommandList);
 			}
 		}
+	}
+}
+
+CGameObject* CScene::InstallBanana(
+	int bananaId,
+	int ownerPlayerId,
+	const XMFLOAT3& position,
+	float yaw
+)
+{
+
+	CGameObject* pExistingBanana = FindBanana(bananaId);
+
+	if (pExistingBanana)
+		return pExistingBanana;
+
+	for (int i = 0; i < MAX_BANANA_OBJECTS; ++i)
+	{
+		CGameObject* pBanana = m_ppBananaObjects[i];
+
+		if (!pBanana)
+			continue;
+
+		if (pBanana->m_bIsActive)
+			continue;
+
+		pBanana->m_nBananaId = bananaId;
+		pBanana->m_nBananaOwnerPlayerId = ownerPlayerId;
+
+		pBanana->SetPosition(position);
+
+	
+	//	pBanana->Rotate(0.0f, yaw, 0.0f);
+
+		pBanana->m_bIsActive = true;
+		pBanana->UpdateTransform(nullptr);
+
+		return pBanana;
+	}
+
+	OutputDebugStringA(
+		"[Banana] No available banana object in pool.\n"
+	);
+
+	return nullptr;
+}
+CGameObject* CScene::FindBanana(int bananaId)
+{
+	for (int i = 0; i < MAX_BANANA_OBJECTS; ++i)
+	{
+		CGameObject* pBanana = m_ppBananaObjects[i];
+
+		if (!pBanana)
+			continue;
+
+		if (!pBanana->m_bIsActive)
+			continue;
+
+		if (pBanana->m_nBananaId == bananaId)
+			return pBanana;
+	}
+
+	return nullptr;
+}
+
+void CScene::RemoveBanana(int bananaId)
+{
+	CGameObject* pBanana = FindBanana(bananaId);
+
+	if (!pBanana)
+		return;
+
+	pBanana->m_bIsActive = false;
+	pBanana->m_nBananaId = -1;
+	pBanana->m_nBananaOwnerPlayerId = -1;
+
+
+	pBanana->SetPosition(
+		0.0f,
+		-10000.0f,
+		0.0f
+	);
+
+	pBanana->UpdateTransform(nullptr);
+}
+
+void CScene::ClearBananas()
+{
+	for (int i = 0; i < MAX_BANANA_OBJECTS; ++i)
+	{
+		CGameObject* pBanana = m_ppBananaObjects[i];
+
+		if (!pBanana)
+			continue;
+
+		pBanana->m_bIsActive = false;
+		pBanana->m_nBananaId = -1;
+		pBanana->m_nBananaOwnerPlayerId = -1;
+
+		pBanana->SetPosition(
+			0.0f,
+			-10000.0f,
+			0.0f
+		);
 	}
 }

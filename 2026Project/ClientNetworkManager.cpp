@@ -115,6 +115,7 @@ bool CNetworkManager::ConnectToServer(const char* pszAddress, unsigned short por
     m_pImpl->pendingSendBuffer.clear();
     m_loadCompleteEvents.clear();
     m_gameStartEvents.clear();
+    m_bananaEvents.clear();
 
     OutputDebugStringA("[Network] Connected to host.\n");
     return true;
@@ -136,6 +137,7 @@ void CNetworkManager::Shutdown()
     m_roomSyncEvents.clear();
     m_loadCompleteEvents.clear();
     m_gameStartEvents.clear();
+    m_bananaEvents.clear();
 
     m_eMode = MODE::NONE;
     if (m_pImpl && m_pImpl->wsaStarted)
@@ -164,6 +166,8 @@ void CNetworkManager::DisconnectPeer()
     m_roomSyncEvents.clear();
     m_loadCompleteEvents.clear();
     m_gameStartEvents.clear();
+    m_bananaEvents.clear();
+
 }
 
 void CNetworkManager::TryAcceptClient()
@@ -196,6 +200,7 @@ void CNetworkManager::TryAcceptClient()
     m_pImpl->pendingSendBuffer.clear();
     m_loadCompleteEvents.clear();
     m_gameStartEvents.clear();
+    m_bananaEvents.clear();
 
     OutputDebugStringA("[Network] Client connected.\n");
 }
@@ -346,6 +351,25 @@ void CNetworkManager::TryReceivePackets()
                 m_gameStartEvents.push_back(packet.eventData);
             }
             break;
+        case NET_MESSAGE_TYPE::BANANA_EVENT:
+        {
+            if (header.size == sizeof(BananaEventPacket))
+            {
+                BananaEventPacket packet{};
+
+                std::memcpy(
+                    &packet,
+                    m_recvBuffer.data(),
+                    sizeof(packet)
+                );
+
+                m_bananaEvents.push_back(
+                    packet.eventData
+                );
+            }
+            break;
+        }
+
         default:
             OutputDebugStringA("[Network] Unknown packet type.\n");
             break;
@@ -446,6 +470,42 @@ void CNetworkManager::SendMapItemEvent(const MapItemEventNet& ev)
     m_pImpl->pendingSendBuffer.insert(m_pImpl->pendingSendBuffer.end(), bytes, bytes + sizeof(packet));
     FlushPendingSends();
 }
+
+void CNetworkManager::SendBananaEvent(
+    const BananaEventNet& ev
+)
+{
+    if (!m_pImpl ||
+        !m_bConnected ||
+        m_pImpl->peerSocket == INVALID_SOCKET)
+    {
+        return;
+    }
+
+    BananaEventPacket packet{};
+
+    packet.header.type =
+        static_cast<unsigned int>(
+            NET_MESSAGE_TYPE::BANANA_EVENT
+            );
+
+    packet.header.size =
+        sizeof(BananaEventPacket);
+
+    packet.eventData = ev;
+
+    const char* bytes =
+        reinterpret_cast<const char*>(&packet);
+
+    m_pImpl->pendingSendBuffer.insert(
+        m_pImpl->pendingSendBuffer.end(),
+        bytes,
+        bytes + sizeof(packet)
+    );
+
+    FlushPendingSends();
+}
+
 
 void CNetworkManager::SendRoomSyncEvent(const RoomSyncEventNet& ev)
 {
@@ -603,6 +663,23 @@ bool CNetworkManager::ConsumeMapItemEvent(MapItemEventNet& outEvent)
 
     return true;
 }
+
+bool CNetworkManager::ConsumeBananaEvent(
+    BananaEventNet& outEvent
+)
+{
+    if (m_bananaEvents.empty())
+        return false;
+
+    outEvent = m_bananaEvents.front();
+
+    m_bananaEvents.erase(
+        m_bananaEvents.begin()
+    );
+
+    return true;
+}
+
 
 bool CNetworkManager::ConsumeRoomSyncEvent(RoomSyncEventNet& outEvent)
 {

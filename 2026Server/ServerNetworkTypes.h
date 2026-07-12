@@ -19,10 +19,19 @@ enum class NET_MESSAGE_TYPE
     MAP_ITEM_EVENT = 8,
     ROOM_SYNC_EVENT = 9,
     LOAD_COMPLETE = 10,
-    GAME_START_SIGN = 11
+    GAME_START_SIGN = 11,
+    BANANA_EVENT = 12
+};
+
+enum BANANA_EVENT_ACTION
+{
+    BANANA_EVENT_SPAWN = 0,
+    BANANA_EVENT_HIT = 1,
+    BANANA_EVENT_REMOVE = 2
 };
 
 #pragma pack(push, 1)
+
 struct PlayerNetState
 {
     std::uint32_t playerId = 0;
@@ -108,6 +117,21 @@ struct GameStartSignNet
     bool startSign;
 };
 
+struct BananaEventNet
+{
+    int action = BANANA_EVENT_SPAWN;
+    int bananaId = -1;
+    int ownerPlayerId = -1;
+    int hitPlayerId = -1;
+
+    float x = 0.0f;
+    float y = 0.0f;
+    float z = 0.0f;
+
+    float yaw = 0.0f;
+};
+
+
 /////
 struct NetMessageHeader
 {
@@ -187,6 +211,12 @@ struct GameStartSignPacket
 {
     NetMessageHeader header{};
     GameStartSignNet eventData{};
+};
+
+struct BananaEventPacket
+{
+    NetMessageHeader header{};
+    BananaEventNet eventData{};
 };
 
 #pragma pack(pop)

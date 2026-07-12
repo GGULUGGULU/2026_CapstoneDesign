@@ -13,6 +13,7 @@
 
 #include "ClientNetworkTypes.h"
 
+
 class CNetworkManagerImpl;
 
 class CNetworkManager
@@ -47,6 +48,9 @@ public:
     bool ConsumeLoadCompleteEvent(LoadCompleteNet& outEvent);
     bool ConsumeGameStartSignal(GameStartSignNet& outEvent);
 
+    bool ConsumeBananaEvent(BananaEventNet& outEvent);
+    void SendBananaEvent(const BananaEventNet& ev);
+
     void SendCollisionEvent(const CollisionEventNet& ev);
     void SendEffectEvent(const EffectEventNet& ev);
     void SendRaceFinish(const RaceRecordNet& ev);
@@ -80,6 +84,8 @@ private:
     void FlushPendingSends();
 
     //
+
+    std::vector<BananaEventNet> m_bananaEvents;
 
     std::vector<ItemEventNet> m_itemEvents;
     std::vector<MapItemEventNet> m_mapItemEvents;

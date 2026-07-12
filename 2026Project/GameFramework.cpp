@@ -552,7 +552,19 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 		return;
 	} // 사운드 설정
 
+	if (m_bBananaSpinning)
+	{
+		m_bIsDrifting = false;
+		m_bIsDashing = false;
 
+		UpdateDashSystem(
+			m_GameTimer.GetTimeElapsed(),
+			false,
+			false
+		);
+
+		return;
+	}
 
 	if (0 == m_nStage)
 	{
@@ -908,6 +920,10 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 
 		case '4':
 			m_eHoldItem = ITEM_LOCK;
+			break;
+
+		case '5':
+			m_eHoldItem = ITEM_BANANA;
 			break;
 
 		default:
@@ -1610,6 +1626,9 @@ void CGameFramework::AnimateObjects()
 {
 	float fTimeElapsed = m_GameTimer.GetTimeElapsed();
 
+	UpdateBananaSpin(fTimeElapsed);
+
+
 	if (m_pScene) m_pScene->AnimateObjects(fTimeElapsed);
 
 	m_pPlayer->Animate(fTimeElapsed, NULL);
@@ -1826,6 +1845,14 @@ void CGameFramework::BuildGameObjects()
 	m_bIsDrifting = false;
 	m_fDriftHoldTime = 0.0f;
 
+
+	// 바나나
+	m_nNextBananaSequence = 1;
+	m_bBananaSpinning = false;
+	m_fBananaSpinRemainTime = 0.0f;
+	m_fBananaSpinSpeed = 720.0f;
+	m_fBananaCollisionCooldown = 0.0f;
+
 	m_pPlayer->m_fMaxVelocityXZ = GetPlayerEffectiveMaxSpeed();
 
 	//
@@ -1930,6 +1957,13 @@ void CGameFramework::ApplyItemReward(ITEM_TYPE eItemType)
 		}
 		break;
 	}
+	case ITEM_BANANA:
+		effectColor = XMFLOAT3(
+			1.0f,
+			0.9f,
+			0.1f
+		);
+		break;
 
 	case ITEM_MAX_SPEED_UP:
 		// effectColor = XMFLOAT3(0.2f, 1.0f, 0.3f);
@@ -1947,8 +1981,22 @@ void CGameFramework::ApplyItemReward(ITEM_TYPE eItemType)
 		effectColor = XMFLOAT3(0.75f, 0.4f, 1.0f);
 		break;
 	}
-	PlayAndSyncEffect(EFFECT_TYPE::ITEM10, effectPos, XMFLOAT2(65.f, 65.f), effectColor);
-	PlayAndSyncEffect(EFFECT_TYPE::ITEM11, effectPos, XMFLOAT2(120.f, 120.f), effectColor);
+	if (eItemType != ITEM_BANANA)
+	{
+		PlayAndSyncEffect(
+			EFFECT_TYPE::ITEM10,
+			effectPos,
+			XMFLOAT2(65.f, 65.f),
+			effectColor
+		);
+
+		PlayAndSyncEffect(
+			EFFECT_TYPE::ITEM11,
+			effectPos,
+			XMFLOAT2(120.f, 120.f),
+			effectColor
+		);
+	}
 
 
 	switch (eItemType)
@@ -1990,6 +2038,11 @@ void CGameFramework::ApplyItemReward(ITEM_TYPE eItemType)
 		m_fRemoteLockEffectTime = fLockDuration;
 	}
 	break;
+	case ITEM_BANANA:
+	{
+		InstallBananaItem();
+		break;
+	}
 
 	default:
 		break;
@@ -2000,6 +2053,83 @@ void CGameFramework::ApplyItemReward(ITEM_TYPE eItemType)
 	/*if ((float)m_nPlayerCurrentSpeed > m_pPlayer->m_fMaxVelocityXZ)
 		m_nPlayerCurrentSpeed = (int)m_pPlayer->m_fMaxVelocityXZ;*/
 }
+
+
+void CGameFramework::InstallBananaItem()
+{
+	if (!m_pPlayer || !m_pScene)
+		return;
+
+	XMFLOAT3 playerPosition =
+		m_pPlayer->GetPosition();
+
+	XMFLOAT3 look =
+		m_pPlayer->GetLookVector();
+
+	look.y = 0.0f;
+
+	XMVECTOR vLook =
+		XMLoadFloat3(&look);
+
+	const float lookLengthSq =
+		XMVectorGetX(
+			XMVector3LengthSq(vLook)
+		);
+
+	if (lookLengthSq < 0.0001f)
+	{
+		vLook = XMVectorSet(
+			0.0f,
+			0.0f,
+			1.0f,
+			0.0f
+		);
+	}
+	else
+	{
+		vLook = XMVector3Normalize(vLook);
+	}
+
+	XMStoreFloat3(&look, vLook);
+
+	constexpr float BACK_DISTANCE = 55.0f;
+
+	XMFLOAT3 bananaPosition(
+		playerPosition.x - look.x * BACK_DISTANCE,
+		playerPosition.y,
+		playerPosition.z - look.z * BACK_DISTANCE
+	);
+
+	const int bananaId =
+		(m_nMyPlayerId * 100000)
+		+ m_nNextBananaSequence++;
+
+	const float yaw =
+		m_pPlayer->GetYaw();
+
+	const bool installed =
+		m_pScene->InstallBanana(
+			bananaId,
+			m_nMyPlayerId,
+			bananaPosition,
+			yaw
+		);
+
+	if (!installed)
+	{
+		return;
+	}
+
+	if (m_bMultiplayerEnabled)
+	{
+		SendBananaSpawnEvent(
+			bananaId,
+			bananaPosition,
+			yaw
+		);
+	}
+}
+
 
 // 아이템 + 대시 
 void CGameFramework::UpdateDashSystem(float fTimeElapsed, bool bDashKeyDown, bool bHasDriveInput)
@@ -2421,6 +2551,51 @@ void CGameFramework::CollisionProcess()
 	{
 		CGameObject* pCollidedObject = m_pScene->m_pCollidedObject;
 
+		if (m_pScene->CheckCollision())
+		{
+			CGameObject* pCollidedObject =
+				m_pScene->m_pCollidedObject;
+
+			if (pCollidedObject &&
+				pCollidedObject->m_bIsBanana)
+			{
+				const int bananaId =
+					pCollidedObject->m_nBananaId;
+
+				const int ownerPlayerId =
+					pCollidedObject->m_nBananaOwnerPlayerId;
+
+				if (ownerPlayerId == m_nMyPlayerId)
+				{
+					return;
+				}
+
+			
+				if (m_fBananaCollisionCooldown > 0.0f)
+				{
+					return;
+				}
+
+				m_fBananaCollisionCooldown = 0.3f;
+
+			
+				StartBananaSpin(1.2f);
+
+			
+				m_pScene->RemoveBanana(bananaId);
+
+				SendBananaHitEvent(
+					bananaId,
+					ownerPlayerId,
+					m_nMyPlayerId
+				);
+
+				return;
+			}
+
+			
+		}
+
 		// 체크포인트
 		if (pCollidedObject->m_bIsCheckPoint) {
 			int hitIndex = pCollidedObject->m_nCheckPointIndex;
@@ -2471,13 +2646,14 @@ void CGameFramework::CollisionProcess()
 				pCollidedObject->Disable();
 				++m_nScore;
 
-				int randItem = rand() % 4;
+				int randItem = rand() % 5;
 
 
 				if (randItem == 0) m_eHoldItem = ITEM_DASH_POTION;
 				else if (randItem == 1) m_eHoldItem = ITEM_MAX_SPEED_UP;
 				else if (randItem == 2) m_eHoldItem = ITEM_MAX_DASH_GAUGE_UP;
 				else if (randItem == 3) m_eHoldItem = ITEM_LOCK;
+				else if (randItem == 4) m_eHoldItem = ITEM_BANANA;
 			}
 
 		}
@@ -4036,6 +4212,7 @@ void CGameFramework::SyncInGame()
 	ConsumeNetworkEffectEvents();
 	ConsumeNetworkItemEvents();
 	ConsumeNetworkMapItemEvents();
+	ConsumeNetworkBananaEvents();
 }
 
 void CGameFramework::PlayAndSyncEffect(EFFECT_TYPE eType, const XMFLOAT3& xmf3Position, const XMFLOAT2& xmf2Size, const XMFLOAT3& xmf3Color)
@@ -4822,6 +4999,7 @@ void CGameFramework::FrameAdvance()
 			else if (m_eHoldItem == ITEM_MAX_SPEED_UP) itemIdx = 1;
 			else if (m_eHoldItem == ITEM_MAX_DASH_GAUGE_UP) itemIdx = 2;
 			else if (m_eHoldItem == ITEM_LOCK) itemIdx = 3;
+			else if (m_eHoldItem == ITEM_BANANA) itemIdx = 4;
 
 			m_pScene->RenderItemUI(
 				m_pd3dCommandList,
@@ -4943,11 +5121,12 @@ void CGameFramework::ConsumeNetworkMapItemEvents()
 
 				++m_nScore;
 
-				int randItem = rand() % 4;
+				int randItem = rand() % 5;
 				if (randItem == 0) m_eHoldItem = ITEM_DASH_POTION;
 				else if (randItem == 1) m_eHoldItem = ITEM_MAX_SPEED_UP;
 				else if (randItem == 2) m_eHoldItem = ITEM_MAX_DASH_GAUGE_UP;
 				else if (randItem == 3) m_eHoldItem = ITEM_LOCK;
+				else if (randItem == 4) m_eHoldItem = ITEM_BANANA;
 			}
 		}
 	}
@@ -6090,4 +6269,178 @@ void CGameFramework::LoadRankingWaitImage()
 		nullptr,
 		m_pRankingWaitImage.GetAddressOf()
 	);
+}
+
+void CGameFramework::SendBananaSpawnEvent(
+	int bananaId,
+	const XMFLOAT3& position,
+	float yaw
+)
+{
+	if (!m_pNetwork ||
+		!m_pNetwork->IsConnected())
+	{
+		return;
+	}
+
+	BananaEventNet ev{};
+
+	ev.action = BANANA_EVENT_SPAWN;
+	ev.bananaId = bananaId;
+	ev.ownerPlayerId = m_nMyPlayerId;
+	ev.hitPlayerId = -1;
+
+	ev.x = position.x;
+	ev.y = position.y;
+	ev.z = position.z;
+
+	ev.yaw = yaw;
+
+	m_pNetwork->SendBananaEvent(ev);
+}
+
+void CGameFramework::SendBananaHitEvent(
+	int bananaId,
+	int ownerPlayerId,
+	int hitPlayerId
+)
+{
+	if (!m_pNetwork ||
+		!m_pNetwork->IsConnected())
+	{
+		return;
+	}
+
+	BananaEventNet ev{};
+
+	ev.action = BANANA_EVENT_HIT;
+
+	ev.bananaId = bananaId;
+	ev.ownerPlayerId = ownerPlayerId;
+	ev.hitPlayerId = hitPlayerId;
+
+	m_pNetwork->SendBananaEvent(ev);
+}
+
+void CGameFramework::StartBananaSpin(
+	float duration
+)
+{
+	if (!m_pPlayer)
+		return;
+
+	m_bBananaSpinning = true;
+	m_fBananaSpinRemainTime = duration;
+
+	m_bIsDrifting = false;
+	m_bIsDashing = false;
+
+
+	m_pPlayer->SetVelocity(
+		XMFLOAT3(
+			0.0f,
+			0.0f,
+			0.0f
+		)
+	);
+}
+
+void CGameFramework::UpdateBananaSpin(
+	float fTimeElapsed
+)
+{
+	if (m_fBananaCollisionCooldown > 0.0f)
+	{
+		m_fBananaCollisionCooldown -=
+			fTimeElapsed;
+
+		if (m_fBananaCollisionCooldown < 0.0f)
+			m_fBananaCollisionCooldown = 0.0f;
+	}
+
+	if (!m_bBananaSpinning ||
+		!m_pPlayer)
+	{
+		return;
+	}
+
+	m_fBananaSpinRemainTime -=
+		fTimeElapsed;
+
+	m_pPlayer->Rotate(
+		0.0f,
+		m_fBananaSpinSpeed * fTimeElapsed,
+		0.0f
+	);
+
+	if (m_fBananaSpinRemainTime <= 0.0f)
+	{
+		m_fBananaSpinRemainTime = 0.0f;
+		m_bBananaSpinning = false;
+	}
+}
+
+void CGameFramework::ConsumeNetworkBananaEvents()
+{
+	if (!m_pNetwork ||
+		!m_pScene)
+	{
+		return;
+	}
+
+	BananaEventNet ev{};
+
+	while (m_pNetwork->ConsumeBananaEvent(ev))
+	{
+		switch (ev.action)
+		{
+
+		case BANANA_EVENT_SPAWN:
+		{
+		
+			if (ev.ownerPlayerId == m_nMyPlayerId)
+			{
+				break;
+			}
+
+			m_pScene->InstallBanana(
+				ev.bananaId,
+				ev.ownerPlayerId,
+				XMFLOAT3(
+					ev.x,
+					ev.y,
+					ev.z
+				),
+				ev.yaw
+			);
+
+			break;
+		}
+
+		case BANANA_EVENT_HIT:
+		{
+	
+			m_pScene->RemoveBanana(
+				ev.bananaId
+			);
+
+			if (ev.hitPlayerId ==
+				m_nMyPlayerId)
+			{
+				StartBananaSpin(1.2f);
+			}
+
+			break;
+		}
+
+		case BANANA_EVENT_REMOVE:
+		{
+			m_pScene->RemoveBanana(
+				ev.bananaId
+			);
+
+			break;
+		}
+		}
+	}
 }

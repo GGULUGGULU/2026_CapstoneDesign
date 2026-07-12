@@ -384,7 +384,8 @@ private:
 		ITEM_DASH_POTION,
 		ITEM_MAX_SPEED_UP,
 		ITEM_MAX_DASH_GAUGE_UP,
-		ITEM_LOCK
+		ITEM_LOCK,
+		ITEM_BANANA
 	};
 
 	void ApplyItemReward(ITEM_TYPE eItemType);
@@ -397,6 +398,26 @@ private:
 	void PlayLockEffectOnPlayer(CPlayer* pTargetPlayer, float fDuration);
 
 	void ConsumeNetworkMapItemEvents();
+
+	void InstallBananaItem();
+
+	void SendBananaSpawnEvent(
+		int bananaId,
+		const XMFLOAT3& position,
+		float yaw
+	);
+
+	void SendBananaHitEvent(
+		int bananaId,
+		int ownerPlayerId,
+		int hitPlayerId
+	);
+
+	void ConsumeNetworkBananaEvents();
+
+	void StartBananaSpin(float duration);
+	void UpdateBananaSpin(float fTimeElapsed);
+
 
 private:
 	float m_fBasePlayerMaxSpeed;
@@ -421,6 +442,16 @@ private:
 
 	int m_nLastRCPIndex{ 0 };
 	float m_fCheckRotationTime = 0;
+
+
+
+	int m_nNextBananaSequence = 1;
+	bool m_bBananaSpinning = false;
+	float m_fBananaSpinRemainTime = 0.0f;
+	float m_fBananaSpinSpeed = 720.0f;
+	float m_fBananaCollisionCooldown = 0.0f;
+
+
 public:
 	// UI
 	TCHAR m_timeBuffer[1024];
