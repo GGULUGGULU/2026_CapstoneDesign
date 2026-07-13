@@ -309,20 +309,6 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 
 	BuildUIResources(pd3dDevice, pd3dCommandList);
 
-	//// 
-	//m_nGameObjects = 35 + 1 + 6; // 바나나
-
-	//const int nNormalObjectCount = 42;
-	//m_nBananaObjectStartIndex = nNormalObjectCount;
-	//m_nGameObjects = nNormalObjectCount + MAX_BANANA_OBJECTS;
-
-	//m_ppGameObjects = new CGameObject * [m_nGameObjects];
-
-	//for (int i = 0; i < m_nGameObjects; ++i)
-	//{
-	//	m_ppGameObjects[i] = nullptr;
-	//}
-	//m_ppGameObjects = new CGameObject * [m_nGameObjects];
 
 	const int nNormalObjectCount = 42;
 
@@ -836,8 +822,22 @@ void CScene::BuildGameStage2(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 	BuildUIResources(pd3dDevice, pd3dCommandList);
 
 	// 
-	m_nGameObjects = 1 + 1 + 10 + 4 + 21 + 6;
-	m_ppGameObjects = new CGameObject * [m_nGameObjects];
+	
+	const int nNormalObjectCount = 43;
+
+	m_nBananaObjectStartIndex = nNormalObjectCount;
+	m_nGameObjects = nNormalObjectCount + MAX_BANANA_OBJECTS;
+
+	m_ppGameObjects = new CGameObject * [m_nGameObjects] {};
+
+	for (int i = 0; i < MAX_BANANA_OBJECTS; ++i)
+	{
+		m_ppBananaObjects[i] = nullptr;
+	}
+
+
+
+
 
 	CGameObject* pMapModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/FORTR.bin");
 	ApplyMeshTextures(pd3dDevice, pd3dCommandList, pMapModel);
@@ -1298,6 +1298,49 @@ void CScene::BuildGameStage2(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 	}
 
 
+	// 바나나 오브젝트 풀
+	for (int i = 0; i < MAX_BANANA_OBJECTS; ++i)
+	{
+		CGameObject* pBananaModel =
+			CGameObject::LoadGeometryFromFile(
+				pd3dDevice,
+				pd3dCommandList,
+				m_pd3dGraphicsRootSignature,
+				"Model/banana.bin"
+			);
+
+		if (!pBananaModel)
+		{
+			m_ppGameObjects[m_nBananaObjectStartIndex + i] = nullptr;
+			continue;
+		}
+
+		ApplyMeshTextures(
+			pd3dDevice,
+			pd3dCommandList,
+			pBananaModel
+		);
+
+		CGameObject* pBananaObject = new CGameObject();
+
+		pBananaObject->SetChild(pBananaModel);
+		pBananaObject->SetPosition(0.0f, -10000.0f, 0.0f);
+		pBananaObject->SetScale(10.0f, 10.0f, 10.0f);
+
+		pBananaObject->m_bIsBanana = true;
+		pBananaObject->m_bIsActive = false;
+		pBananaObject->m_bCanRespawn = false;
+
+		pBananaObject->m_nBananaId = -1;
+		pBananaObject->m_nBananaOwnerPlayerId = -1;
+
+		pBananaObject->ComputeNewLocalAABB();
+
+		m_ppGameObjects[m_nBananaObjectStartIndex + i] = pBananaObject;
+		m_ppBananaObjects[i] = pBananaObject;
+	}
+
+
 
 
 	CreateWireFrameBox(pd3dDevice, pd3dCommandList);
@@ -1324,8 +1367,18 @@ void CScene::BuildGameStage3(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 	BuildUIResources(pd3dDevice, pd3dCommandList);
 
 	// 
-	m_nGameObjects = 1 + 1 + 10;
-	m_ppGameObjects = new CGameObject * [m_nGameObjects];
+	const int nNormalObjectCount = 12;
+
+	m_nBananaObjectStartIndex = nNormalObjectCount;
+	m_nGameObjects = nNormalObjectCount + MAX_BANANA_OBJECTS;
+
+	m_ppGameObjects = new CGameObject * [m_nGameObjects] {};
+
+	for (int i = 0; i < MAX_BANANA_OBJECTS; ++i)
+	{
+		m_ppBananaObjects[i] = nullptr;
+	}
+
 
 	CGameObject* pMapModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/circus.bin");
 	ApplyMeshTextures(pd3dDevice, pd3dCommandList, pMapModel);
@@ -1439,6 +1492,53 @@ void CScene::BuildGameStage3(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 		m_ppGameObjects[12-1] = pCPObject9;
 	}
 	
+	// 바나나 오브젝트 풀
+	for (int i = 0; i < MAX_BANANA_OBJECTS; ++i)
+	{
+		const int objectIndex = m_nBananaObjectStartIndex + i;
+
+		CGameObject* pBananaModel =
+			CGameObject::LoadGeometryFromFile(
+				pd3dDevice,
+				pd3dCommandList,
+				m_pd3dGraphicsRootSignature,
+				"Model/banana.bin"
+			);
+
+		if (!pBananaModel)
+		{
+			m_ppGameObjects[objectIndex] = nullptr;
+			m_ppBananaObjects[i] = nullptr;
+			continue;
+		}
+
+		ApplyMeshTextures(
+			pd3dDevice,
+			pd3dCommandList,
+			pBananaModel
+		);
+
+		CGameObject* pBananaObject = new CGameObject();
+
+		pBananaObject->SetChild(pBananaModel);
+		pBananaObject->SetPosition(0.0f, -10000.0f, 0.0f);
+		pBananaObject->SetScale(10.0f, 10.0f, 10.0f);
+
+		pBananaObject->m_bIsBanana = true;
+		pBananaObject->m_bIsActive = false;
+		pBananaObject->m_bCanRespawn = false;
+
+		pBananaObject->m_nBananaId = -1;
+		pBananaObject->m_nBananaOwnerPlayerId = -1;
+
+		pBananaObject->ComputeNewLocalAABB();
+
+		m_ppGameObjects[objectIndex] = pBananaObject;
+		m_ppBananaObjects[i] = pBananaObject;
+	}
+
+
+
 	CreateWireFrameBox(pd3dDevice, pd3dCommandList);
 	CreateAABBWireFrameBox(pd3dDevice, pd3dCommandList);
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
@@ -2564,14 +2664,26 @@ void CScene::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera
 	{
 		if (m_ppGameObjects[i])
 		{
-			if (i >= 1 && i <= 12) continue; // 스테이지 1,2 공통 index 1~12번은 체크포인트&벽
-			//if (i == 1) continue; // 스테이지 1 index 1~12번은 체크포인트&벽
-			if (m_nCurrentMapStage == 1) { // 스테이지 2 회전 충돌체
-				if (i >= 13 && i <= 15) continue;
+			if (m_nCurrentMapStage == 0)
+			{
+				// 맵1: 1~12번은 바닥/벽/체크포인트
+				if (i >= 1 && i <= 12)
+					continue;
 			}
+			else if (m_nCurrentMapStage == 1)
+			{
+				// 맵2(BuildGameStage3): 1~11번은 벽/체크포인트
+				if (i >= 1 && i <= 11)
+					continue;
+			}
+
 			m_ppGameObjects[i]->Animate(m_fElapsedTime, NULL);
 			m_ppGameObjects[i]->UpdateTransform(NULL);
-			m_ppGameObjects[i]->Render(pd3dCommandList, pDebugBoxToRender, pCamera);
+			m_ppGameObjects[i]->Render(
+				pd3dCommandList,
+				pDebugBoxToRender,
+				pCamera
+			);
 		}
 	} // 인게임 내부 루프
 
