@@ -68,6 +68,8 @@ public:
 	void Move(const XMFLOAT3& xmf3Shift, bool bVelocity = false);
 	void Move(float fxOffset = 0.0f, float fyOffset = 0.0f, float fzOffset = 0.0f);
 	void Rotate(float x, float y, float z);
+	void RotateBodyOnly(float y); // 바나나용
+
 
 	void Update(float fTimeElapsed);
 

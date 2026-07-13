@@ -2444,107 +2444,402 @@ void CGameFramework::CollisionProcess()
 
 	bool bOnGround = false;
 
-	if (2 == m_nStage) // 게임 스테이지에서
+	if (2 == m_nStage)
 	{
 		bOnGround = m_pScene->CheckGroundCollision();
 
-		if (bOnGround) // 바닥 충돌
+		if (bOnGround)
 		{
 			m_pPlayer->SetGravity(XMFLOAT3(0, 0, 0));
 
 			XMFLOAT3 currentVel = m_pPlayer->GetVelocity();
-			if (currentVel.y != 0.0f) m_pPlayer->SetVelocity(XMFLOAT3(currentVel.x, 0.0f, currentVel.z));
+
+			if (currentVel.y != 0.0f)
+			{
+				m_pPlayer->SetVelocity(
+					XMFLOAT3(
+						currentVel.x,
+						0.0f,
+						currentVel.z
+					)
+				);
+			}
 
 			m_nJumpCount = 0;
 			m_bJump = false;
 
-			float fTimeElapsed = m_GameTimer.GetTimeElapsed();
-
-			XMFLOAT3 f3Pos = m_pPlayer->GetPosition();
-			XMVECTOR vPos = XMLoadFloat3(&f3Pos);
-
-			XMVECTOR vLogicalLook = XMLoadFloat3(&m_pPlayer->GetLookVector());
-			vLogicalLook = XMVector3Normalize(XMVectorSetY(vLogicalLook, 0.0f));
-			XMVECTOR vLogicalRight = XMVector3Normalize(XMVector3Cross(XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), vLogicalLook));
-
-			float fOffset = 8.0f;
-			XMVECTOR vRayDir = XMVectorSet(0.0f, -1.0f, 0.0f, 0.0f);
-
-			XMVECTOR vFrontOrigin = vPos + (vLogicalLook * fOffset) + XMVectorSet(0.0f, 20.0f, 0.0f, 0.0f);
-			XMVECTOR vBackOrigin = vPos - (vLogicalLook * fOffset) + XMVectorSet(0.0f, 20.0f, 0.0f, 0.0f);
-			XMVECTOR vRightOrigin = vPos + (vLogicalRight * fOffset) + XMVectorSet(0.0f, 20.0f, 0.0f, 0.0f);
-			XMVECTOR vLeftOrigin = vPos - (vLogicalRight * fOffset) + XMVectorSet(0.0f, 20.0f, 0.0f, 0.0f);
-
-			float fYFront = f3Pos.y, fYBack = f3Pos.y, fYRight = f3Pos.y, fYLeft = f3Pos.y;
-			float bestT = FLT_MAX;
-			XMVECTOR vDummyNormal;
-			if (m_pScene && m_pScene->m_ppGameObjects && m_pScene->m_ppGameObjects[0])
+	
+			if (!m_bBananaSpinning)
 			{
-				CGameObject* pMap = m_pScene->m_ppGameObjects[0];
+				float fTimeElapsed =
+					m_GameTimer.GetTimeElapsed();
 
-				bestT = FLT_MAX; m_pScene->RaycastDownRecursive(pMap, vFrontOrigin, vFrontOrigin + vRayDir * 100.0f, vRayDir, 100.0f, bestT, fYFront, vDummyNormal);
-				bestT = FLT_MAX; m_pScene->RaycastDownRecursive(pMap, vBackOrigin, vBackOrigin + vRayDir * 100.0f, vRayDir, 100.0f, bestT, fYBack, vDummyNormal);
-				bestT = FLT_MAX; m_pScene->RaycastDownRecursive(pMap, vRightOrigin, vRightOrigin + vRayDir * 100.0f, vRayDir, 100.0f, bestT, fYRight, vDummyNormal);
-				bestT = FLT_MAX; m_pScene->RaycastDownRecursive(pMap, vLeftOrigin, vLeftOrigin + vRayDir * 100.0f, vRayDir, 100.0f, bestT, fYLeft, vDummyNormal);
+				XMFLOAT3 f3Pos =
+					m_pPlayer->GetPosition();
+
+				XMVECTOR vPos =
+					XMLoadFloat3(&f3Pos);
+
+				XMVECTOR vLogicalLook =
+					XMLoadFloat3(
+						&m_pPlayer->GetLookVector()
+					);
+
+				vLogicalLook =
+					XMVector3Normalize(
+						XMVectorSetY(
+							vLogicalLook,
+							0.0f
+						)
+					);
+
+				XMVECTOR vLogicalRight =
+					XMVector3Normalize(
+						XMVector3Cross(
+							XMVectorSet(
+								0.0f,
+								1.0f,
+								0.0f,
+								0.0f
+							),
+							vLogicalLook
+						)
+					);
+
+				float fOffset = 8.0f;
+
+				XMVECTOR vRayDir =
+					XMVectorSet(
+						0.0f,
+						-1.0f,
+						0.0f,
+						0.0f
+					);
+
+				XMVECTOR vFrontOrigin =
+					vPos +
+					(vLogicalLook * fOffset) +
+					XMVectorSet(
+						0.0f,
+						20.0f,
+						0.0f,
+						0.0f
+					);
+
+				XMVECTOR vBackOrigin =
+					vPos -
+					(vLogicalLook * fOffset) +
+					XMVectorSet(
+						0.0f,
+						20.0f,
+						0.0f,
+						0.0f
+					);
+
+				XMVECTOR vRightOrigin =
+					vPos +
+					(vLogicalRight * fOffset) +
+					XMVectorSet(
+						0.0f,
+						20.0f,
+						0.0f,
+						0.0f
+					);
+
+				XMVECTOR vLeftOrigin =
+					vPos -
+					(vLogicalRight * fOffset) +
+					XMVectorSet(
+						0.0f,
+						20.0f,
+						0.0f,
+						0.0f
+					);
+
+				float fYFront = f3Pos.y;
+				float fYBack = f3Pos.y;
+				float fYRight = f3Pos.y;
+				float fYLeft = f3Pos.y;
+
+				float bestT = FLT_MAX;
+				XMVECTOR vDummyNormal;
+
+				if (m_pScene &&
+					m_pScene->m_ppGameObjects &&
+					m_pScene->m_ppGameObjects[0])
+				{
+					CGameObject* pMap =
+						m_pScene->m_ppGameObjects[0];
+
+					bestT = FLT_MAX;
+					m_pScene->RaycastDownRecursive(
+						pMap,
+						vFrontOrigin,
+						vFrontOrigin + vRayDir * 100.0f,
+						vRayDir,
+						100.0f,
+						bestT,
+						fYFront,
+						vDummyNormal
+					);
+
+					bestT = FLT_MAX;
+					m_pScene->RaycastDownRecursive(
+						pMap,
+						vBackOrigin,
+						vBackOrigin + vRayDir * 100.0f,
+						vRayDir,
+						100.0f,
+						bestT,
+						fYBack,
+						vDummyNormal
+					);
+
+					bestT = FLT_MAX;
+					m_pScene->RaycastDownRecursive(
+						pMap,
+						vRightOrigin,
+						vRightOrigin + vRayDir * 100.0f,
+						vRayDir,
+						100.0f,
+						bestT,
+						fYRight,
+						vDummyNormal
+					);
+
+					bestT = FLT_MAX;
+					m_pScene->RaycastDownRecursive(
+						pMap,
+						vLeftOrigin,
+						vLeftOrigin + vRayDir * 100.0f,
+						vRayDir,
+						100.0f,
+						bestT,
+						fYLeft,
+						vDummyNormal
+					);
+				}
+
+				XMVECTOR vHitFront =
+					XMVectorSet(
+						XMVectorGetX(vFrontOrigin),
+						fYFront,
+						XMVectorGetZ(vFrontOrigin),
+						1.0f
+					);
+
+				XMVECTOR vHitBack =
+					XMVectorSet(
+						XMVectorGetX(vBackOrigin),
+						fYBack,
+						XMVectorGetZ(vBackOrigin),
+						1.0f
+					);
+
+				XMVECTOR vHitRight =
+					XMVectorSet(
+						XMVectorGetX(vRightOrigin),
+						fYRight,
+						XMVectorGetZ(vRightOrigin),
+						1.0f
+					);
+
+				XMVECTOR vHitLeft =
+					XMVectorSet(
+						XMVectorGetX(vLeftOrigin),
+						fYLeft,
+						XMVectorGetZ(vLeftOrigin),
+						1.0f
+					);
+
+				XMVECTOR vDirZ =
+					XMVector3Normalize(
+						vHitFront - vHitBack
+					);
+
+				XMVECTOR vDirX =
+					XMVector3Normalize(
+						vHitRight - vHitLeft
+					);
+
+				XMVECTOR vTerrainNormal =
+					XMVector3Normalize(
+						XMVector3Cross(
+							vDirZ,
+							vDirX
+						)
+					);
+
+				if (XMVectorGetX(
+					XMVector3LengthSq(vTerrainNormal)
+				) < 0.1f)
+				{
+					vTerrainNormal =
+						XMVectorSet(
+							0.0f,
+							1.0f,
+							0.0f,
+							0.0f
+						);
+				}
+
+				XMVECTOR vCurrentTiltUp =
+					XMLoadFloat3(
+						&m_pPlayer->GetTiltUpVector()
+					);
+
+				float fRotationSpeed =
+					8.0f * fTimeElapsed;
+
+				if (fRotationSpeed > 1.0f)
+					fRotationSpeed = 1.0f;
+
+				XMVECTOR vLerpedUp =
+					XMVector3Normalize(
+						XMVectorLerp(
+							vCurrentTiltUp,
+							vTerrainNormal,
+							fRotationSpeed
+						)
+					);
+
+				XMVECTOR vNewTiltRight =
+					XMVector3Normalize(
+						XMVector3Cross(
+							vLerpedUp,
+							vLogicalLook
+						)
+					);
+
+				XMVECTOR vNewTiltLook =
+					XMVector3Normalize(
+						XMVector3Cross(
+							vNewTiltRight,
+							vLerpedUp
+						)
+					);
+
+				m_pPlayer->SetTiltUpVector(
+					vLerpedUp
+				);
+
+				m_pPlayer->SetTiltRightVector(
+					vNewTiltRight
+				);
+
+				m_pPlayer->SetTiltLookVector(
+					vNewTiltLook
+				);
 			}
-
-			XMVECTOR vHitFront = XMVectorSet(XMVectorGetX(vFrontOrigin), fYFront, XMVectorGetZ(vFrontOrigin), 1.0f);
-			XMVECTOR vHitBack = XMVectorSet(XMVectorGetX(vBackOrigin), fYBack, XMVectorGetZ(vBackOrigin), 1.0f);
-			XMVECTOR vHitRight = XMVectorSet(XMVectorGetX(vRightOrigin), fYRight, XMVectorGetZ(vRightOrigin), 1.0f);
-			XMVECTOR vHitLeft = XMVectorSet(XMVectorGetX(vLeftOrigin), fYLeft, XMVectorGetZ(vLeftOrigin), 1.0f);
-
-			XMVECTOR vDirZ = XMVector3Normalize(vHitFront - vHitBack);
-			XMVECTOR vDirX = XMVector3Normalize(vHitRight - vHitLeft);
-
-			XMVECTOR vTerrainNormal = XMVector3Normalize(XMVector3Cross(vDirZ, vDirX));
-
-			if (XMVectorGetX(XMVector3LengthSq(vTerrainNormal)) < 0.1f) vTerrainNormal = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-			XMVECTOR vCurrentTiltUp = XMLoadFloat3(&m_pPlayer->GetTiltUpVector());
-
-			float fRotationSpeed = 8.0f * fTimeElapsed;
-			if (fRotationSpeed > 1.0f) fRotationSpeed = 1.0f;
-			XMVECTOR vLerpedUp = XMVector3Normalize(XMVectorLerp(vCurrentTiltUp, vTerrainNormal, fRotationSpeed));
-
-			XMVECTOR vNewTiltRight = XMVector3Normalize(XMVector3Cross(vLerpedUp, vLogicalLook));
-
-			XMVECTOR vNewTiltLook = XMVector3Normalize(XMVector3Cross(vNewTiltRight, vLerpedUp));
-
-			m_pPlayer->SetTiltUpVector(vLerpedUp);
-			m_pPlayer->SetTiltRightVector(vNewTiltRight);
-			m_pPlayer->SetTiltLookVector(vNewTiltLook);
 		}
-		else
+else
+{
+	
+	m_pPlayer->SetGravity(XMFLOAT3(0, -5.5f, 0));
+
+	
+	if (!m_bBananaSpinning)
+	{
+		float fTimeElapsed =
+			m_GameTimer.GetTimeElapsed();
+
+		XMVECTOR vCurrentTiltUp =
+			XMLoadFloat3(
+				&m_pPlayer->GetTiltUpVector()
+			);
+
+		if (XMVectorGetX(
+			XMVector3LengthSq(vCurrentTiltUp)
+		) < 0.1f)
 		{
-			// 점프 조정
-			// 근데 숫자 바꾸면 2단이 잘 안될 때가 있음.
-			m_pPlayer->SetGravity(XMFLOAT3(0, -5.5f, 0));
-
-			float fTimeElapsed = m_GameTimer.GetTimeElapsed();
-
-			XMVECTOR vCurrentTiltUp = XMLoadFloat3(&m_pPlayer->GetTiltUpVector());
-			if (XMVectorGetX(XMVector3LengthSq(vCurrentTiltUp)) < 0.1f) vCurrentTiltUp = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-
-			float fRestoreSpeed = 4.0f * fTimeElapsed;
-			if (fRestoreSpeed > 1.0f) fRestoreSpeed = 1.0f;
-
-			XMVECTOR vDefaultUp = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-			XMVECTOR vLerpedUp = XMVector3Normalize(XMVectorLerp(vCurrentTiltUp, vDefaultUp, fRestoreSpeed));
-
-			XMVECTOR vLogicalLook = XMLoadFloat3(&m_pPlayer->GetLookVector());
-			vLogicalLook = XMVectorSetY(vLogicalLook, 0.0f);
-
-			if (XMVectorGetX(XMVector3LengthSq(vLogicalLook)) < 0.001f) {
-				vLogicalLook = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
-			}
-			vLogicalLook = XMVector3Normalize(vLogicalLook);
-
-			XMVECTOR vNewTiltRight = XMVector3Normalize(XMVector3Cross(vLerpedUp, vLogicalLook));
-			XMVECTOR vNewTiltLook = XMVector3Normalize(XMVector3Cross(vNewTiltRight, vLerpedUp));
-
-			m_pPlayer->SetTiltUpVector(vLerpedUp);
-			m_pPlayer->SetTiltRightVector(vNewTiltRight);
-			m_pPlayer->SetTiltLookVector(vNewTiltLook);
+			vCurrentTiltUp =
+				XMVectorSet(
+					0.0f,
+					1.0f,
+					0.0f,
+					0.0f
+				);
 		}
+
+		float fRestoreSpeed =
+			4.0f * fTimeElapsed;
+
+		if (fRestoreSpeed > 1.0f)
+			fRestoreSpeed = 1.0f;
+
+		XMVECTOR vDefaultUp =
+			XMVectorSet(
+				0.0f,
+				1.0f,
+				0.0f,
+				0.0f
+			);
+
+		XMVECTOR vLerpedUp =
+			XMVector3Normalize(
+				XMVectorLerp(
+					vCurrentTiltUp,
+					vDefaultUp,
+					fRestoreSpeed
+				)
+			);
+
+		XMVECTOR vLogicalLook =
+			XMLoadFloat3(
+				&m_pPlayer->GetLookVector()
+			);
+
+		vLogicalLook =
+			XMVectorSetY(
+				vLogicalLook,
+				0.0f
+			);
+
+		if (XMVectorGetX(
+			XMVector3LengthSq(vLogicalLook)
+		) < 0.001f)
+		{
+			vLogicalLook =
+				XMVectorSet(
+					0.0f,
+					0.0f,
+					1.0f,
+					0.0f
+				);
+		}
+
+		vLogicalLook =
+			XMVector3Normalize(vLogicalLook);
+
+		XMVECTOR vNewTiltRight =
+			XMVector3Normalize(
+				XMVector3Cross(
+					vLerpedUp,
+					vLogicalLook
+				)
+			);
+
+		XMVECTOR vNewTiltLook =
+			XMVector3Normalize(
+				XMVector3Cross(
+					vNewTiltRight,
+					vLerpedUp
+				)
+			);
+
+		m_pPlayer->SetTiltUpVector(
+			vLerpedUp
+		);
+
+		m_pPlayer->SetTiltRightVector(
+			vNewTiltRight
+		);
+
+		m_pPlayer->SetTiltLookVector(
+			vNewTiltLook
+		);
+	}
+	}
 	}
 
 	if (2 == m_nStage && m_pScene->CheckCollision() && !m_bIsStun)
@@ -6345,14 +6640,14 @@ void CGameFramework::StartBananaSpin(
 	);
 }
 
+
 void CGameFramework::UpdateBananaSpin(
 	float fTimeElapsed
 )
 {
 	if (m_fBananaCollisionCooldown > 0.0f)
 	{
-		m_fBananaCollisionCooldown -=
-			fTimeElapsed;
+		m_fBananaCollisionCooldown -= fTimeElapsed;
 
 		if (m_fBananaCollisionCooldown < 0.0f)
 			m_fBananaCollisionCooldown = 0.0f;
@@ -6364,22 +6659,25 @@ void CGameFramework::UpdateBananaSpin(
 		return;
 	}
 
-	m_fBananaSpinRemainTime -=
-		fTimeElapsed;
+	float fSpinDeltaTime =
+		min(fTimeElapsed, m_fBananaSpinRemainTime);
 
-	m_pPlayer->Rotate(
-		0.0f,
-		m_fBananaSpinSpeed * fTimeElapsed,
-		0.0f
-	);
+	float fSpinDeltaAngle =
+		m_fBananaSpinSpeed * fSpinDeltaTime;
+
+	m_pPlayer->RotateBodyOnly(fSpinDeltaAngle);
+	m_pPlayer->OnPrepareRender();
+
+	m_fBananaSpinRemainTime -= fSpinDeltaTime;
 
 	if (m_fBananaSpinRemainTime <= 0.0f)
 	{
 		m_fBananaSpinRemainTime = 0.0f;
 		m_bBananaSpinning = false;
+
+		m_pPlayer->OnPrepareRender();
 	}
 }
-
 void CGameFramework::ConsumeNetworkBananaEvents()
 {
 	if (!m_pNetwork ||
@@ -6427,7 +6725,7 @@ void CGameFramework::ConsumeNetworkBananaEvents()
 			if (ev.hitPlayerId ==
 				m_nMyPlayerId)
 			{
-				StartBananaSpin(1.2f);
+				StartBananaSpin(1.0f);
 			}
 
 			break;

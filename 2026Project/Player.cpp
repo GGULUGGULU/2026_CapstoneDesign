@@ -147,6 +147,50 @@ void CPlayer::Rotate(float x, float y, float z)
 	m_xmf3Up = Vector3::CrossProduct(m_xmf3Look, m_xmf3Right, true);
 }
 
+void CPlayer::RotateBodyOnly(float y)
+{
+	if (fabsf(y) <= 0.0001f)
+		return;
+
+
+	XMMATRIX xmmtxRotate =
+		XMMatrixRotationAxis(
+			XMLoadFloat3(&m_xmf3TiltUp),
+			XMConvertToRadians(y)
+		);
+
+	m_xmf3TiltLook =
+		Vector3::TransformNormal(
+			m_xmf3TiltLook,
+			xmmtxRotate
+		);
+
+	m_xmf3TiltRight =
+		Vector3::TransformNormal(
+			m_xmf3TiltRight,
+			xmmtxRotate
+		);
+
+	m_xmf3TiltLook =
+		Vector3::Normalize(m_xmf3TiltLook);
+
+	m_xmf3TiltRight =
+		Vector3::CrossProduct(
+			m_xmf3TiltUp,
+			m_xmf3TiltLook,
+			true
+		);
+
+	m_xmf3TiltUp =
+		Vector3::CrossProduct(
+			m_xmf3TiltLook,
+			m_xmf3TiltRight,
+			true
+		);
+
+}
+
+
 void CPlayer::Update(float fTimeElapsed)
 {
 	m_xmf3Velocity = Vector3::Add(m_xmf3Velocity, m_xmf3Gravity);
