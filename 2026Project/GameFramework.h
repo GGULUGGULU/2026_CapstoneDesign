@@ -73,7 +73,8 @@ struct UIButton {
 	}
 };
 
-struct RemotePlayerInfo {
+struct RemotePlayerInfo
+{
 	int playerID{ -1 };
 	CPlayer* pPlayer{ nullptr };
 	float yaw{ 180 };
@@ -82,6 +83,12 @@ struct RemotePlayerInfo {
 	std::uint32_t passedCheckpoints = 0;
 
 	float distToNextCP = 0.0f;
+
+
+	bool bananaSpinning = false;
+	float bananaSpinRemainTime = 0.0f;
+
+	ActiveEffect* pBananaSpinEffect = nullptr;
 };
 
 class CGameFramework
@@ -417,7 +424,8 @@ private:
 
 	void StartBananaSpin(float duration);
 	void UpdateBananaSpin(float fTimeElapsed);
-
+	void StartRemoteBananaSpin(int playerId,float duration);
+	void UpdateRemoteBananaSpins(float fTimeElapsed);
 
 private:
 	float m_fBasePlayerMaxSpeed;
@@ -450,6 +458,7 @@ private:
 	float m_fBananaSpinRemainTime = 0.0f;
 	float m_fBananaSpinSpeed = 720.0f;
 	float m_fBananaCollisionCooldown = 0.0f;
+	ActiveEffect* m_pLocalBananaSpinEffect = nullptr;
 
 
 public:

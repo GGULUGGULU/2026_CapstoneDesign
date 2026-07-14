@@ -40,6 +40,7 @@ enum class EFFECT_TYPE
 	LOCK_ORBIT,
 	DRIFT_SPARK_LEFT,
 	DRIFT_SPARK_RIGHT, // 드리프트 스파크
+	BANANA_SPIN,
 	COUNT, // 
 };
 
@@ -201,6 +202,16 @@ public:
 	bool IsDepthParticleEffect(EFFECT_TYPE type) const;
 
 	void UpdateLockOrbitPosition(const XMFLOAT3& position);
+	void UpdateBananaSpinPosition(const XMFLOAT3& position);
+	void UpdateEffectPosition(
+		ActiveEffect* pEffect,
+		const XMFLOAT3& position
+	);
+
+	void StopEffect(
+		ActiveEffect*& pEffect
+	);
+
 
 private:
 	CEffectLibrary();
@@ -239,7 +250,8 @@ private:
 		L"Asset/DDS_File/SpeedLine1.dds",
 		L"Asset/DDS_File/LockOrbit.dds",
 		L"Asset/DDS_File/DriftSpark_Left.dds",
-		L"Asset/DDS_File/DriftSpark_Right.dds"
+		L"Asset/DDS_File/DriftSpark_Right.dds",
+		L"Asset/DDS_File/GreenStar.dds"
 	};
 
 	UINT m_nSrvDescriptorIncrementSize = 0;

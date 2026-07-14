@@ -1627,7 +1627,7 @@ void CGameFramework::AnimateObjects()
 	float fTimeElapsed = m_GameTimer.GetTimeElapsed();
 
 	UpdateBananaSpin(fTimeElapsed);
-
+	UpdateRemoteBananaSpins(fTimeElapsed);
 
 	if (m_pScene) m_pScene->AnimateObjects(fTimeElapsed);
 
@@ -5084,6 +5084,17 @@ void CGameFramework::FrameAdvance()
 			CEffectLibrary::Instance()->UpdateLockOrbitPosition(pos);
 		}
 
+		if (m_bBananaSpinning && m_pPlayer)
+		{
+			XMFLOAT3 pos =
+				m_pPlayer->GetPosition();
+
+			pos.y += 18.0f;
+
+			CEffectLibrary::Instance()
+				->UpdateBananaSpinPosition(pos);
+		}
+
 		if (m_bRemoteLockEffectActive)
 		{
 			m_fRemoteLockEffectTime -= fTimeElapsed;
@@ -6616,7 +6627,6 @@ void CGameFramework::SendBananaHitEvent(
 
 	m_pNetwork->SendBananaEvent(ev);
 }
-
 void CGameFramework::StartBananaSpin(
 	float duration
 )
@@ -6630,16 +6640,117 @@ void CGameFramework::StartBananaSpin(
 	m_bIsDrifting = false;
 	m_bIsDashing = false;
 
-
 	m_pPlayer->SetVelocity(
-		XMFLOAT3(
-			0.0f,
-			0.0f,
-			0.0f
-		)
+		XMFLOAT3(0.0f, 0.0f, 0.0f)
 	);
+
+
+	CEffectLibrary::Instance()->StopEffect(
+		m_pLocalBananaSpinEffect
+	);
+
+	XMFLOAT3 effectPosition =
+		m_pPlayer->GetPosition();
+
+	effectPosition.y += 18.0f;
+
+
+	m_pLocalBananaSpinEffect =
+		CEffectLibrary::Instance()->Play(
+			EFFECT_TYPE::BANANA_SPIN,
+			effectPosition,
+			XMFLOAT2(12.0f, 12.0f), 
+			XMFLOAT3(1.0f, 1.0f, 1.0f)
+		);
 }
 
+void CGameFramework::StartRemoteBananaSpin(
+	int playerId,
+	float duration
+)
+{
+	RemotePlayerInfo* pInfo =
+		FindOrAllocateRemotePlayer(playerId);
+
+	if (!pInfo || !pInfo->pPlayer)
+		return;
+
+	pInfo->bananaSpinning = true;
+	pInfo->bananaSpinRemainTime = duration;
+
+	CEffectLibrary::Instance()->StopEffect(
+		pInfo->pBananaSpinEffect
+	);
+
+	XMFLOAT3 effectPosition =
+		pInfo->pPlayer->GetPosition();
+
+	effectPosition.y += 18.0f;
+
+	pInfo->pBananaSpinEffect =
+		CEffectLibrary::Instance()->Play(
+			EFFECT_TYPE::BANANA_SPIN,
+			effectPosition,
+			XMFLOAT2(12.0f, 12.0f),
+			XMFLOAT3(1.0f, 1.0f, 1.0f)
+		);
+}
+
+void CGameFramework::UpdateRemoteBananaSpins(
+	float fTimeElapsed
+)
+{
+	for (auto& info : m_vRemotePlayers)
+	{
+		if (!info.bananaSpinning ||
+			!info.pPlayer ||
+			!info.pPlayer->m_bIsActive)
+		{
+			continue;
+		}
+
+		float spinDeltaTime =
+			min(
+				fTimeElapsed,
+				info.bananaSpinRemainTime
+			);
+
+		float spinDeltaAngle =
+			m_fBananaSpinSpeed * spinDeltaTime;
+
+	
+		info.pPlayer->RotateBodyOnly(
+			spinDeltaAngle
+		);
+
+		info.pPlayer->OnPrepareRender();
+
+		
+		XMFLOAT3 effectPosition =
+			info.pPlayer->GetPosition();
+
+		effectPosition.y += 18.0f;
+
+		CEffectLibrary::Instance()->UpdateEffectPosition(
+			info.pBananaSpinEffect,
+			effectPosition
+		);
+
+		info.bananaSpinRemainTime -= spinDeltaTime;
+
+		if (info.bananaSpinRemainTime <= 0.0f)
+		{
+			info.bananaSpinRemainTime = 0.0f;
+			info.bananaSpinning = false;
+
+			CEffectLibrary::Instance()->StopEffect(
+				info.pBananaSpinEffect
+			);
+
+			info.pPlayer->OnPrepareRender();
+		}
+	}
+}
 
 void CGameFramework::UpdateBananaSpin(
 	float fTimeElapsed
@@ -6668,12 +6779,24 @@ void CGameFramework::UpdateBananaSpin(
 	m_pPlayer->RotateBodyOnly(fSpinDeltaAngle);
 	m_pPlayer->OnPrepareRender();
 
+	XMFLOAT3 effectPosition =
+		m_pPlayer->GetPosition();
+
+	effectPosition.y += 18.0f;
+
+	CEffectLibrary::Instance()->UpdateEffectPosition(
+		m_pLocalBananaSpinEffect,
+		effectPosition
+	);
+
+
 	m_fBananaSpinRemainTime -= fSpinDeltaTime;
 
 	if (m_fBananaSpinRemainTime <= 0.0f)
 	{
 		m_fBananaSpinRemainTime = 0.0f;
 		m_bBananaSpinning = false;
+
 
 		m_pPlayer->OnPrepareRender();
 	}
@@ -6717,15 +6840,20 @@ void CGameFramework::ConsumeNetworkBananaEvents()
 
 		case BANANA_EVENT_HIT:
 		{
-	
 			m_pScene->RemoveBanana(
 				ev.bananaId
 			);
 
-			if (ev.hitPlayerId ==
-				m_nMyPlayerId)
+			if (ev.hitPlayerId == m_nMyPlayerId)
 			{
 				StartBananaSpin(1.0f);
+			}
+			else
+			{
+				StartRemoteBananaSpin(
+					ev.hitPlayerId,
+					1.0f
+				);
 			}
 
 			break;

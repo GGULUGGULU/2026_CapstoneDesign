@@ -98,6 +98,15 @@ void CEffectLibrary::InitializeDefaultEffectConfigs()
 	m_EffectConfigs[(int)EFFECT_TYPE::DRIFT_SPARK_RIGHT].spread = 8.0f;
 	m_EffectConfigs[(int)EFFECT_TYPE::DRIFT_SPARK_RIGHT].useDepth = true;
 
+
+	m_EffectConfigs[(int)EFFECT_TYPE::BANANA_SPIN].poolSize = 10;
+	m_EffectConfigs[(int)EFFECT_TYPE::BANANA_SPIN].particleCount = 5;
+	m_EffectConfigs[(int)EFFECT_TYPE::BANANA_SPIN].lifeTime = 1.2f;
+	m_EffectConfigs[(int)EFFECT_TYPE::BANANA_SPIN].spread = 0.0f;
+	m_EffectConfigs[(int)EFFECT_TYPE::BANANA_SPIN].loop = false;
+	m_EffectConfigs[(int)EFFECT_TYPE::BANANA_SPIN].useDepth = true;
+
+
 }
 
 void CEffectLibrary::InitializeDefaultMeshConfigs()
@@ -134,7 +143,10 @@ bool CEffectLibrary::IsValidEffectType(EFFECT_TYPE type) const
 
 bool CEffectLibrary::IsItemEffect(EFFECT_TYPE type) const
 {
-	return type >= EFFECT_TYPE::ITEM1 && type <= EFFECT_TYPE::ITEM11;
+	return (
+		type >= EFFECT_TYPE::ITEM1 &&
+		type <= EFFECT_TYPE::ITEM11
+		);
 }
 
 bool CEffectLibrary::IsDepthParticleEffect(EFFECT_TYPE type) const
@@ -788,15 +800,22 @@ ActiveEffect* CEffectLibrary::Play(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT2
 		float fSpread = pEffectData->fSpread;
 		pEffectData->bUseSpread = !IsZero(fSpread);
 
-		if (type == EFFECT_TYPE::LOCK_ORBIT)
+		if (
+			type == EFFECT_TYPE::LOCK_ORBIT ||
+			type == EFFECT_TYPE::BANANA_SPIN
+			)
 		{
 			pEffectData->pParticleSys->ResetLockOrbit(size, color);
 		}
 		else
 		{
-			pEffectData->pParticleSys->ResetParticles(size, fSpread, pEffectData->bUseSpread, color);
+			pEffectData->pParticleSys->ResetParticles(
+				size,
+				fSpread,
+				pEffectData->bUseSpread,
+				color
+			);
 		}
-
 	}
 	else if (pEffectData->pMeshEffect)
 	{
@@ -925,7 +944,10 @@ void CEffectLibrary::UpdateParticleEffect(ActiveEffect* eff, float fTimeElapsed)
 	{
 		eff->pParticleSys->DustAnimate(fTimeElapsed, eff->bUseSpread);
 	}
-	else if (eff->type == EFFECT_TYPE::LOCK_ORBIT)
+	else if (
+		eff->type == EFFECT_TYPE::LOCK_ORBIT ||
+		eff->type == EFFECT_TYPE::BANANA_SPIN
+		)
 	{
 		eff->pParticleSys->LockOrbitAnimate(fTimeElapsed);
 	}
@@ -1151,6 +1173,79 @@ void CEffectLibrary::UpdateLockOrbitPosition(const XMFLOAT3& position)
 		}
 	}
 }
+
+void CEffectLibrary::UpdateBananaSpinPosition(
+	const XMFLOAT3& position
+)
+{
+	for (ActiveEffect* eff : m_vActiveEffects)
+	{
+		if (!eff || !eff->bActive)
+			continue;
+
+		if (eff->type != EFFECT_TYPE::BANANA_SPIN)
+			continue;
+
+		if (eff->pParticleSys)
+		{
+			eff->pParticleSys->SetPosition(position);
+		}
+	}
+}
+
+
+void CEffectLibrary::UpdateEffectPosition(
+	ActiveEffect* pEffect,
+	const XMFLOAT3& position
+)
+{
+	if (!pEffect || !pEffect->bActive)
+		return;
+
+	if (pEffect->pParticleSys)
+	{
+		pEffect->pParticleSys->SetPosition(position);
+	}
+
+	if (pEffect->pMeshEffect)
+	{
+		pEffect->pMeshEffect->SetPosition(position);
+	}
+}
+
+void CEffectLibrary::StopEffect(
+	ActiveEffect*& pEffect
+)
+{
+	if (!pEffect)
+		return;
+
+	auto it = std::find(
+		m_vActiveEffects.begin(),
+		m_vActiveEffects.end(),
+		pEffect
+	);
+
+	if (it != m_vActiveEffects.end())
+	{
+		if (pEffect->pMeshEffect)
+		{
+			pEffect->pMeshEffect->SetActive(false);
+		}
+
+		if (pEffect->pParticleSys)
+		{
+			pEffect->pParticleSys->Clear();
+		}
+
+		RecycleEffect(pEffect);
+		m_vActiveEffects.erase(it);
+	}
+
+	pEffect = nullptr;
+}
+
+
 
 static void UpdateBoosterEffectSet(
 	ActiveEffect* pWindShieldEffect,
