@@ -757,13 +757,7 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 	// 바나나 오브젝트 풀
 	for (int i = 0; i < MAX_BANANA_OBJECTS; ++i)
 	{
-		CGameObject* pBananaModel =
-			CGameObject::LoadGeometryFromFile(
-				pd3dDevice,
-				pd3dCommandList,
-				m_pd3dGraphicsRootSignature,
-				"Model/banana.bin"
-			);
+		CGameObject* pBananaModel = CGameObject::LoadGeometryFromFile(pd3dDevice,pd3dCommandList,m_pd3dGraphicsRootSignature,"Model/banana.bin");
 
 		if (!pBananaModel)
 		{
@@ -771,11 +765,7 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 			continue;
 		}
 
-		ApplyMeshTextures(
-			pd3dDevice,
-			pd3dCommandList,
-			pBananaModel
-		);
+		ApplyMeshTextures(pd3dDevice,pd3dCommandList,pBananaModel);
 
 		CGameObject* pBananaObject = new CGameObject();
 
@@ -834,10 +824,6 @@ void CScene::BuildGameStage2(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 	{
 		m_ppBananaObjects[i] = nullptr;
 	}
-
-
-
-
 
 	CGameObject* pMapModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/FORTR.bin");
 	ApplyMeshTextures(pd3dDevice, pd3dCommandList, pMapModel);
@@ -1301,13 +1287,7 @@ void CScene::BuildGameStage2(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 	// 바나나 오브젝트 풀
 	for (int i = 0; i < MAX_BANANA_OBJECTS; ++i)
 	{
-		CGameObject* pBananaModel =
-			CGameObject::LoadGeometryFromFile(
-				pd3dDevice,
-				pd3dCommandList,
-				m_pd3dGraphicsRootSignature,
-				"Model/banana.bin"
-			);
+		CGameObject* pBananaModel =CGameObject::LoadGeometryFromFile(pd3dDevice,pd3dCommandList,m_pd3dGraphicsRootSignature,"Model/banana.bin");
 
 		if (!pBananaModel)
 		{
@@ -1315,11 +1295,7 @@ void CScene::BuildGameStage2(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 			continue;
 		}
 
-		ApplyMeshTextures(
-			pd3dDevice,
-			pd3dCommandList,
-			pBananaModel
-		);
+		ApplyMeshTextures(pd3dDevice,pd3dCommandList,pBananaModel);
 
 		CGameObject* pBananaObject = new CGameObject();
 
@@ -1339,9 +1315,6 @@ void CScene::BuildGameStage2(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 		m_ppGameObjects[m_nBananaObjectStartIndex + i] = pBananaObject;
 		m_ppBananaObjects[i] = pBananaObject;
 	}
-
-
-
 
 	CreateWireFrameBox(pd3dDevice, pd3dCommandList);
 	CreateAABBWireFrameBox(pd3dDevice, pd3dCommandList);
@@ -1367,7 +1340,7 @@ void CScene::BuildGameStage3(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 	BuildUIResources(pd3dDevice, pd3dCommandList);
 
 	// 
-	const int nNormalObjectCount = 12;
+	const int nNormalObjectCount = 12 + 1;
 
 	m_nBananaObjectStartIndex = nNormalObjectCount;
 	m_nGameObjects = nNormalObjectCount + MAX_BANANA_OBJECTS;
@@ -1378,7 +1351,6 @@ void CScene::BuildGameStage3(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 	{
 		m_ppBananaObjects[i] = nullptr;
 	}
-
 
 	CGameObject* pMapModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/circus.bin");
 	ApplyMeshTextures(pd3dDevice, pd3dCommandList, pMapModel);
@@ -1491,19 +1463,22 @@ void CScene::BuildGameStage3(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 		pCPObject9->m_nCheckPointIndex = 9;
 		m_ppGameObjects[12-1] = pCPObject9;
 	}
+
+	CGameObject* pboosterZoneModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/GameStart.bin");
+	ApplyMeshTextures(pd3dDevice, pd3dCommandList, pboosterZoneModel);
+	CGameObject* pboosterZone = new CGameObject();
+	pboosterZone->SetChild(pboosterZoneModel);
+	pboosterZone->SetPosition(-3013,-81,-1328);
+	pboosterZone->SetScale(.5f, .5f, .5f);
+	pboosterZone->m_bIsBoosterZone = true;
+	m_ppGameObjects[12] = pboosterZone;
 	
 	// 바나나 오브젝트 풀
 	for (int i = 0; i < MAX_BANANA_OBJECTS; ++i)
 	{
 		const int objectIndex = m_nBananaObjectStartIndex + i;
 
-		CGameObject* pBananaModel =
-			CGameObject::LoadGeometryFromFile(
-				pd3dDevice,
-				pd3dCommandList,
-				m_pd3dGraphicsRootSignature,
-				"Model/banana.bin"
-			);
+		CGameObject* pBananaModel =CGameObject::LoadGeometryFromFile(pd3dDevice,pd3dCommandList,m_pd3dGraphicsRootSignature,"Model/banana.bin");
 
 		if (!pBananaModel)
 		{
@@ -1512,11 +1487,7 @@ void CScene::BuildGameStage3(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 			continue;
 		}
 
-		ApplyMeshTextures(
-			pd3dDevice,
-			pd3dCommandList,
-			pBananaModel
-		);
+		ApplyMeshTextures(pd3dDevice,pd3dCommandList,pBananaModel);
 
 		CGameObject* pBananaObject = new CGameObject();
 
@@ -1536,9 +1507,6 @@ void CScene::BuildGameStage3(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 		m_ppGameObjects[objectIndex] = pBananaObject;
 		m_ppBananaObjects[i] = pBananaObject;
 	}
-
-
-
 	CreateWireFrameBox(pd3dDevice, pd3dCommandList);
 	CreateAABBWireFrameBox(pd3dDevice, pd3dCommandList);
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);

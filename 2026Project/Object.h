@@ -216,11 +216,11 @@ public:
 	float   m_fRespawnDelay = 3.0f;  
 	float   m_fInactiveTime = 0.0f;  
 
-
 	bool m_bIsBanana = false;
 	int m_nBananaOwnerPlayerId = -1;
 	int m_nBananaId = -1;
 
+	bool m_bIsBoosterZone{ false };
 
 	virtual void Disable() { m_bIsActive = false; if (m_pChild) m_pChild->Disable(); }
 

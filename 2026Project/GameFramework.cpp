@@ -1906,7 +1906,7 @@ void CGameFramework::BuildGameObjects()
 	m_SoundManager.SetBGMVolume(m_fBGMVolume);
 
 	//pCarPlayer->SetPosition(XMFLOAT3(-2700, 0, -3400));
-	pCarPlayer->SetPosition(XMFLOAT3(-950, 0, -900));
+	pCarPlayer->SetPosition(XMFLOAT3(-3370,-80,-1369));
 }
 
 float CGameFramework::GetPlayerEffectiveMaxSpeed() const
@@ -2468,93 +2468,25 @@ void CGameFramework::CollisionProcess()
 			m_nJumpCount = 0;
 			m_bJump = false;
 
-	
+
 			if (!m_bBananaSpinning)
 			{
-				float fTimeElapsed =
-					m_GameTimer.GetTimeElapsed();
+				float fTimeElapsed = m_GameTimer.GetTimeElapsed();
 
-				XMFLOAT3 f3Pos =
-					m_pPlayer->GetPosition();
-
-				XMVECTOR vPos =
-					XMLoadFloat3(&f3Pos);
-
-				XMVECTOR vLogicalLook =
-					XMLoadFloat3(
-						&m_pPlayer->GetLookVector()
-					);
-
-				vLogicalLook =
-					XMVector3Normalize(
-						XMVectorSetY(
-							vLogicalLook,
-							0.0f
-						)
-					);
-
-				XMVECTOR vLogicalRight =
-					XMVector3Normalize(
-						XMVector3Cross(
-							XMVectorSet(
-								0.0f,
-								1.0f,
-								0.0f,
-								0.0f
-							),
-							vLogicalLook
-						)
-					);
+				XMFLOAT3 f3Pos = m_pPlayer->GetPosition();
+				XMVECTOR vPos = XMLoadFloat3(&f3Pos);
+				XMVECTOR vLogicalLook = XMLoadFloat3(&m_pPlayer->GetLookVector());
+				vLogicalLook = XMVector3Normalize(XMVectorSetY(vLogicalLook, 0.0f));
+				XMVECTOR vLogicalRight = XMVector3Normalize(XMVector3Cross(XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), vLogicalLook));
 
 				float fOffset = 8.0f;
 
-				XMVECTOR vRayDir =
-					XMVectorSet(
-						0.0f,
-						-1.0f,
-						0.0f,
-						0.0f
-					);
+				XMVECTOR vRayDir = XMVectorSet(0.0f, -1.0f, 0.0f, 0.0f);
+				XMVECTOR vFrontOrigin = vPos + (vLogicalLook * fOffset) + XMVectorSet(0.0f, 20.0f, 0.0f, 0.0f);
+				XMVECTOR vBackOrigin = vPos - (vLogicalLook * fOffset) + XMVectorSet(0.0f, 20.0f, 0.0f, 0.0f);
+				XMVECTOR vRightOrigin = vPos + (vLogicalRight * fOffset) + XMVectorSet(0.0f, 20.0f, 0.0f, 0.0f);
+				XMVECTOR vLeftOrigin = vPos - (vLogicalRight * fOffset) + XMVectorSet(0.0f, 20.0f, 0.0f, 0.0f);
 
-				XMVECTOR vFrontOrigin =
-					vPos +
-					(vLogicalLook * fOffset) +
-					XMVectorSet(
-						0.0f,
-						20.0f,
-						0.0f,
-						0.0f
-					);
-
-				XMVECTOR vBackOrigin =
-					vPos -
-					(vLogicalLook * fOffset) +
-					XMVectorSet(
-						0.0f,
-						20.0f,
-						0.0f,
-						0.0f
-					);
-
-				XMVECTOR vRightOrigin =
-					vPos +
-					(vLogicalRight * fOffset) +
-					XMVectorSet(
-						0.0f,
-						20.0f,
-						0.0f,
-						0.0f
-					);
-
-				XMVECTOR vLeftOrigin =
-					vPos -
-					(vLogicalRight * fOffset) +
-					XMVectorSet(
-						0.0f,
-						20.0f,
-						0.0f,
-						0.0f
-					);
 
 				float fYFront = f3Pos.y;
 				float fYBack = f3Pos.y;
@@ -2564,282 +2496,93 @@ void CGameFramework::CollisionProcess()
 				float bestT = FLT_MAX;
 				XMVECTOR vDummyNormal;
 
-				if (m_pScene &&
-					m_pScene->m_ppGameObjects &&
-					m_pScene->m_ppGameObjects[0])
+				if (m_pScene && m_pScene->m_ppGameObjects && m_pScene->m_ppGameObjects[0])
 				{
-					CGameObject* pMap =
-						m_pScene->m_ppGameObjects[0];
+					CGameObject* pMap = m_pScene->m_ppGameObjects[0];
 
 					bestT = FLT_MAX;
-					m_pScene->RaycastDownRecursive(
-						pMap,
-						vFrontOrigin,
-						vFrontOrigin + vRayDir * 100.0f,
-						vRayDir,
-						100.0f,
-						bestT,
-						fYFront,
-						vDummyNormal
-					);
+					m_pScene->RaycastDownRecursive(pMap, vFrontOrigin, vFrontOrigin + vRayDir * 100.0f, vRayDir, 100.0f, bestT, fYFront, vDummyNormal);
 
 					bestT = FLT_MAX;
-					m_pScene->RaycastDownRecursive(
-						pMap,
-						vBackOrigin,
-						vBackOrigin + vRayDir * 100.0f,
-						vRayDir,
-						100.0f,
-						bestT,
-						fYBack,
-						vDummyNormal
-					);
+					m_pScene->RaycastDownRecursive(pMap, vBackOrigin, vBackOrigin + vRayDir * 100.0f, vRayDir, 100.0f, bestT, fYBack, vDummyNormal);
 
 					bestT = FLT_MAX;
-					m_pScene->RaycastDownRecursive(
-						pMap,
-						vRightOrigin,
-						vRightOrigin + vRayDir * 100.0f,
-						vRayDir,
-						100.0f,
-						bestT,
-						fYRight,
-						vDummyNormal
-					);
+					m_pScene->RaycastDownRecursive(pMap, vRightOrigin, vRightOrigin + vRayDir * 100.0f, vRayDir, 100.0f, bestT, fYRight, vDummyNormal);
 
 					bestT = FLT_MAX;
-					m_pScene->RaycastDownRecursive(
-						pMap,
-						vLeftOrigin,
-						vLeftOrigin + vRayDir * 100.0f,
-						vRayDir,
-						100.0f,
-						bestT,
-						fYLeft,
-						vDummyNormal
-					);
+					m_pScene->RaycastDownRecursive(pMap, vLeftOrigin, vLeftOrigin + vRayDir * 100.0f, vRayDir, 100.0f, bestT, fYLeft, vDummyNormal);
+
 				}
 
-				XMVECTOR vHitFront =
-					XMVectorSet(
-						XMVectorGetX(vFrontOrigin),
-						fYFront,
-						XMVectorGetZ(vFrontOrigin),
-						1.0f
-					);
+				XMVECTOR vHitFront = XMVectorSet(XMVectorGetX(vFrontOrigin), fYFront, XMVectorGetZ(vFrontOrigin), 1.0f);
+				XMVECTOR vHitBack = XMVectorSet(XMVectorGetX(vBackOrigin), fYBack, XMVectorGetZ(vBackOrigin), 1.0f);
+				XMVECTOR vHitRight = XMVectorSet(XMVectorGetX(vRightOrigin), fYRight, XMVectorGetZ(vRightOrigin), 1.0f);
+				XMVECTOR vHitLeft = XMVectorSet(XMVectorGetX(vLeftOrigin), fYLeft, XMVectorGetZ(vLeftOrigin), 1.0f);
+				XMVECTOR vDirZ = XMVector3Normalize(vHitFront - vHitBack);
+				XMVECTOR vDirX = XMVector3Normalize(vHitRight - vHitLeft);
+				XMVECTOR vTerrainNormal = XMVector3Normalize(XMVector3Cross(vDirZ, vDirX));
 
-				XMVECTOR vHitBack =
-					XMVectorSet(
-						XMVectorGetX(vBackOrigin),
-						fYBack,
-						XMVectorGetZ(vBackOrigin),
-						1.0f
-					);
-
-				XMVECTOR vHitRight =
-					XMVectorSet(
-						XMVectorGetX(vRightOrigin),
-						fYRight,
-						XMVectorGetZ(vRightOrigin),
-						1.0f
-					);
-
-				XMVECTOR vHitLeft =
-					XMVectorSet(
-						XMVectorGetX(vLeftOrigin),
-						fYLeft,
-						XMVectorGetZ(vLeftOrigin),
-						1.0f
-					);
-
-				XMVECTOR vDirZ =
-					XMVector3Normalize(
-						vHitFront - vHitBack
-					);
-
-				XMVECTOR vDirX =
-					XMVector3Normalize(
-						vHitRight - vHitLeft
-					);
-
-				XMVECTOR vTerrainNormal =
-					XMVector3Normalize(
-						XMVector3Cross(
-							vDirZ,
-							vDirX
-						)
-					);
-
-				if (XMVectorGetX(
-					XMVector3LengthSq(vTerrainNormal)
-				) < 0.1f)
+				if (XMVectorGetX(XMVector3LengthSq(vTerrainNormal)) < 0.1f)
 				{
-					vTerrainNormal =
-						XMVectorSet(
-							0.0f,
-							1.0f,
-							0.0f,
-							0.0f
-						);
+					vTerrainNormal = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 				}
 
-				XMVECTOR vCurrentTiltUp =
-					XMLoadFloat3(
-						&m_pPlayer->GetTiltUpVector()
-					);
+				XMVECTOR vCurrentTiltUp = XMLoadFloat3(&m_pPlayer->GetTiltUpVector());
 
-				float fRotationSpeed =
-					8.0f * fTimeElapsed;
+				float fRotationSpeed = 8.0f * fTimeElapsed;
 
-				if (fRotationSpeed > 1.0f)
-					fRotationSpeed = 1.0f;
+				if (fRotationSpeed > 1.0f) fRotationSpeed = 1.0f;
 
-				XMVECTOR vLerpedUp =
-					XMVector3Normalize(
-						XMVectorLerp(
-							vCurrentTiltUp,
-							vTerrainNormal,
-							fRotationSpeed
-						)
-					);
+				XMVECTOR vLerpedUp = XMVector3Normalize(XMVectorLerp(vCurrentTiltUp, vTerrainNormal, fRotationSpeed));
+				XMVECTOR vNewTiltRight = XMVector3Normalize(XMVector3Cross(vLerpedUp, vLogicalLook));
+				XMVECTOR vNewTiltLook = XMVector3Normalize(XMVector3Cross(vNewTiltRight, vLerpedUp));
 
-				XMVECTOR vNewTiltRight =
-					XMVector3Normalize(
-						XMVector3Cross(
-							vLerpedUp,
-							vLogicalLook
-						)
-					);
-
-				XMVECTOR vNewTiltLook =
-					XMVector3Normalize(
-						XMVector3Cross(
-							vNewTiltRight,
-							vLerpedUp
-						)
-					);
-
-				m_pPlayer->SetTiltUpVector(
-					vLerpedUp
-				);
-
-				m_pPlayer->SetTiltRightVector(
-					vNewTiltRight
-				);
-
-				m_pPlayer->SetTiltLookVector(
-					vNewTiltLook
-				);
+				m_pPlayer->SetTiltUpVector(vLerpedUp);
+				m_pPlayer->SetTiltRightVector(vNewTiltRight);
+				m_pPlayer->SetTiltLookVector(vNewTiltLook);
 			}
 		}
-else
-{
-	
-	m_pPlayer->SetGravity(XMFLOAT3(0, -5.5f, 0));
-
-	
-	if (!m_bBananaSpinning)
-	{
-		float fTimeElapsed =
-			m_GameTimer.GetTimeElapsed();
-
-		XMVECTOR vCurrentTiltUp =
-			XMLoadFloat3(
-				&m_pPlayer->GetTiltUpVector()
-			);
-
-		if (XMVectorGetX(
-			XMVector3LengthSq(vCurrentTiltUp)
-		) < 0.1f)
+		else
 		{
-			vCurrentTiltUp =
-				XMVectorSet(
-					0.0f,
-					1.0f,
-					0.0f,
-					0.0f
-				);
+
+			m_pPlayer->SetGravity(XMFLOAT3(0, -5.5f, 0));
+
+			if (!m_bBananaSpinning)
+			{
+				float fTimeElapsed = m_GameTimer.GetTimeElapsed();
+
+				XMVECTOR vCurrentTiltUp = XMLoadFloat3(&m_pPlayer->GetTiltUpVector());
+
+				if (XMVectorGetX(XMVector3LengthSq(vCurrentTiltUp)) < 0.1f)
+				{
+					vCurrentTiltUp = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+				}
+
+				float fRestoreSpeed = 4.0f * fTimeElapsed;
+
+				if (fRestoreSpeed > 1.0f) fRestoreSpeed = 1.0f;
+
+				XMVECTOR vDefaultUp = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+				XMVECTOR vLerpedUp = XMVector3Normalize(XMVectorLerp(vCurrentTiltUp, vDefaultUp, fRestoreSpeed));
+				XMVECTOR vLogicalLook = XMLoadFloat3(&m_pPlayer->GetLookVector());
+
+				vLogicalLook = XMVectorSetY(vLogicalLook, 0.0f);
+
+				if (XMVectorGetX(XMVector3LengthSq(vLogicalLook)) < 0.001f)
+				{
+					vLogicalLook = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
+				}
+
+				vLogicalLook = XMVector3Normalize(vLogicalLook);
+
+				XMVECTOR vNewTiltRight = XMVector3Normalize(XMVector3Cross(vLerpedUp, vLogicalLook));
+				XMVECTOR vNewTiltLook = XMVector3Normalize(XMVector3Cross(vNewTiltRight, vLerpedUp));
+
+				m_pPlayer->SetTiltUpVector(vLerpedUp);
+				m_pPlayer->SetTiltRightVector(vNewTiltRight);
+				m_pPlayer->SetTiltLookVector(vNewTiltLook);
+			}
 		}
-
-		float fRestoreSpeed =
-			4.0f * fTimeElapsed;
-
-		if (fRestoreSpeed > 1.0f)
-			fRestoreSpeed = 1.0f;
-
-		XMVECTOR vDefaultUp =
-			XMVectorSet(
-				0.0f,
-				1.0f,
-				0.0f,
-				0.0f
-			);
-
-		XMVECTOR vLerpedUp =
-			XMVector3Normalize(
-				XMVectorLerp(
-					vCurrentTiltUp,
-					vDefaultUp,
-					fRestoreSpeed
-				)
-			);
-
-		XMVECTOR vLogicalLook =
-			XMLoadFloat3(
-				&m_pPlayer->GetLookVector()
-			);
-
-		vLogicalLook =
-			XMVectorSetY(
-				vLogicalLook,
-				0.0f
-			);
-
-		if (XMVectorGetX(
-			XMVector3LengthSq(vLogicalLook)
-		) < 0.001f)
-		{
-			vLogicalLook =
-				XMVectorSet(
-					0.0f,
-					0.0f,
-					1.0f,
-					0.0f
-				);
-		}
-
-		vLogicalLook =
-			XMVector3Normalize(vLogicalLook);
-
-		XMVECTOR vNewTiltRight =
-			XMVector3Normalize(
-				XMVector3Cross(
-					vLerpedUp,
-					vLogicalLook
-				)
-			);
-
-		XMVECTOR vNewTiltLook =
-			XMVector3Normalize(
-				XMVector3Cross(
-					vNewTiltRight,
-					vLerpedUp
-				)
-			);
-
-		m_pPlayer->SetTiltUpVector(
-			vLerpedUp
-		);
-
-		m_pPlayer->SetTiltRightVector(
-			vNewTiltRight
-		);
-
-		m_pPlayer->SetTiltLookVector(
-			vNewTiltLook
-		);
-	}
-	}
 	}
 
 	if (2 == m_nStage && m_pScene->CheckCollision() && !m_bIsStun)
@@ -2848,17 +2591,13 @@ else
 
 		if (m_pScene->CheckCollision())
 		{
-			CGameObject* pCollidedObject =
-				m_pScene->m_pCollidedObject;
+			CGameObject* pCollidedObject = m_pScene->m_pCollidedObject;
 
-			if (pCollidedObject &&
-				pCollidedObject->m_bIsBanana)
+			if (pCollidedObject && pCollidedObject->m_bIsBanana)
 			{
-				const int bananaId =
-					pCollidedObject->m_nBananaId;
+				const int bananaId = pCollidedObject->m_nBananaId;
 
-				const int ownerPlayerId =
-					pCollidedObject->m_nBananaOwnerPlayerId;
+				const int ownerPlayerId = pCollidedObject->m_nBananaOwnerPlayerId;
 
 				if (ownerPlayerId == m_nMyPlayerId)
 				{
@@ -2872,23 +2611,13 @@ else
 				}
 
 				m_fBananaCollisionCooldown = 0.3f;
-
 			
 				StartBananaSpin(1.2f);
-
-			
 				m_pScene->RemoveBanana(bananaId);
-
-				SendBananaHitEvent(
-					bananaId,
-					ownerPlayerId,
-					m_nMyPlayerId
-				);
+				SendBananaHitEvent(bananaId, ownerPlayerId, m_nMyPlayerId);
 
 				return;
 			}
-
-			
 		}
 
 		// 체크포인트
@@ -2952,7 +2681,8 @@ else
 			}
 
 		}
-		else if (pCollidedObject->m_bIsRCP) {
+
+		if (pCollidedObject->m_bIsBoosterZone) {
 			//int currentRCP = pCollidedObject->m_nCheckPointIndex;
 			//if (m_nLastRCPIndex != currentRCP) {
 			//	if (currentRCP == 1) {
@@ -2969,8 +2699,26 @@ else
 			//	}
 			//	m_nLastRCPIndex = currentRCP;
 			//}
+			XMFLOAT3 boostDir = m_pPlayer->GetLookVector();
+
+			float boostPower = 800.0f;
+
+			XMFLOAT3 boostVelocity = Vector3::ScalarProduct(boostDir, boostPower, false);
+
+			XMFLOAT3 currentVelocity = m_pPlayer->GetVelocity();
+			boostVelocity.y = currentVelocity.y;
+
+			m_pPlayer->SetVelocity(boostVelocity);
+
+			m_fSpeedItemBonus = 400.0f;     
+			m_fSpeedItemBonusTime = 1.5f;   
+
+			m_pPlayer->m_fMaxVelocityXZ = GetPlayerEffectiveMaxSpeed();
+
+			m_nPlayerCurrentSpeed = (int)boostPower;
 		}
-		else if (pCollidedObject->m_bIsInvisibleWall)
+
+		if (pCollidedObject->m_bIsInvisibleWall)
 		{
 			// 벽에 박을때
 			m_SoundManager.PlaySFX("Asset/Audio/Collision.mp3");
@@ -3029,42 +2777,43 @@ else
 				m_nPlayerCurrentSpeed = (int)XMVectorGetX(XMVector3Length(xvReflection));
 			}
 		}
-		else if (pCollidedObject != m_pScene->m_ppGameObjects[38])
-		{
-			XMFLOAT3 vPos = pCollidedObject->GetPosition();
 
-			PlayAndSyncEffect(EFFECT_TYPE::COLLISION, XMFLOAT3(vPos.x, vPos.y + 10, vPos.z), XMFLOAT2(50, 50), XMFLOAT3(1, 0, 0));
-			PlayAndSyncEffect(EFFECT_TYPE::COLLISION, XMFLOAT3(vPos.x, vPos.y + 10, vPos.z), XMFLOAT2(50, 50), XMFLOAT3(0, 1, 0));
-			PlayAndSyncEffect(EFFECT_TYPE::COLLISION, XMFLOAT3(vPos.x, vPos.y + 10, vPos.z), XMFLOAT2(50, 50), XMFLOAT3(0, 0, 1));
-
-			pCollidedObject->Disable();
-
-			colDirection = Vector3::Subtract(m_pPlayer->GetPosition(), pCollidedObject->GetPosition());
-			colDirection.y = 0.0f;
-			colDirection = Vector3::Normalize(colDirection);
-
-			float fReboundPower = m_nPlayerCurrentSpeed;
-			XMFLOAT3 velocity = Vector3::ScalarProduct(colDirection, fReboundPower, false);
-
-			m_pPlayer->SetVelocity(velocity);
-
-			m_bIsStun = true;
-			m_fCollisionCurrentTime = m_fTotalTime;
-		}
-		else
-		{
-			colDirection = Vector3::Subtract(m_pPlayer->GetPosition(), pCollidedObject->GetPosition());
-			colDirection.y = 0.0f;
-			colDirection = Vector3::Normalize(colDirection);
-
-			float fReboundPower = m_nPlayerCurrentSpeed;
-			XMFLOAT3 velocity = Vector3::ScalarProduct(colDirection, fReboundPower, false);
-
-			m_pPlayer->SetVelocity(velocity);
-
-			m_bIsStun = true;
-			m_fCollisionCurrentTime = m_fTotalTime;
-		}
+		//if (pCollidedObject != m_pScene->m_ppGameObjects[38])
+		//{
+		//	XMFLOAT3 vPos = pCollidedObject->GetPosition();
+		//
+		//	PlayAndSyncEffect(EFFECT_TYPE::COLLISION, XMFLOAT3(vPos.x, vPos.y + 10, vPos.z), XMFLOAT2(50, 50), XMFLOAT3(1, 0, 0));
+		//	PlayAndSyncEffect(EFFECT_TYPE::COLLISION, XMFLOAT3(vPos.x, vPos.y + 10, vPos.z), XMFLOAT2(50, 50), XMFLOAT3(0, 1, 0));
+		//	PlayAndSyncEffect(EFFECT_TYPE::COLLISION, XMFLOAT3(vPos.x, vPos.y + 10, vPos.z), XMFLOAT2(50, 50), XMFLOAT3(0, 0, 1));
+		//
+		//	pCollidedObject->Disable();
+		//
+		//	colDirection = Vector3::Subtract(m_pPlayer->GetPosition(), pCollidedObject->GetPosition());
+		//	colDirection.y = 0.0f;
+		//	colDirection = Vector3::Normalize(colDirection);
+		//
+		//	float fReboundPower = m_nPlayerCurrentSpeed;
+		//	XMFLOAT3 velocity = Vector3::ScalarProduct(colDirection, fReboundPower, false);
+		//
+		//	m_pPlayer->SetVelocity(velocity);
+		//
+		//	m_bIsStun = true;
+		//	m_fCollisionCurrentTime = m_fTotalTime;
+		//}
+		//else
+		//{
+		//	colDirection = Vector3::Subtract(m_pPlayer->GetPosition(), pCollidedObject->GetPosition());
+		//	colDirection.y = 0.0f;
+		//	colDirection = Vector3::Normalize(colDirection);
+		//
+		//	float fReboundPower = m_nPlayerCurrentSpeed;
+		//	XMFLOAT3 velocity = Vector3::ScalarProduct(colDirection, fReboundPower, false);
+		//
+		//	m_pPlayer->SetVelocity(velocity);
+		//
+		//	m_bIsStun = true;
+		//	m_fCollisionCurrentTime = m_fTotalTime;
+		//}
 	}
 
 	if (m_bIsStun && m_fTotalTime - m_fCollisionCurrentTime > 1.0f)
@@ -6306,9 +6055,7 @@ void CGameFramework::LoadSpeedometerUIResource()
 	}
 }
 
-bool CGameFramework::WorldToScreenPoint(
-	const XMFLOAT3& worldPos,
-	D2D1_POINT_2F& outScreen)
+bool CGameFramework::WorldToScreenPoint(const XMFLOAT3& worldPos, D2D1_POINT_2F& outScreen)
 {
 	if (!m_pCamera) return false;
 
@@ -6318,15 +6065,9 @@ bool CGameFramework::WorldToScreenPoint(
 	XMMATRIX view = XMLoadFloat4x4(&viewMat);
 	XMMATRIX proj = XMLoadFloat4x4(&projMat);
 
-	XMVECTOR pos = XMVectorSet(
-		worldPos.x,
-		worldPos.y,
-		worldPos.z,
-		1.0f);
+	XMVECTOR pos = XMVectorSet(worldPos.x, worldPos.y, worldPos.z, 1.0f);
 
-	XMVECTOR clip = XMVector4Transform(
-		pos,
-		view * proj);
+	XMVECTOR clip = XMVector4Transform(pos, view * proj);
 
 	float w = XMVectorGetW(clip);
 
@@ -6336,15 +6077,12 @@ bool CGameFramework::WorldToScreenPoint(
 	float x = XMVectorGetX(clip) / w;
 	float y = XMVectorGetY(clip) / w;
 
-	outScreen.x =
-		(x * 0.5f + 0.5f) * m_nWndClientWidth;
+	outScreen.x = (x * 0.5f + 0.5f) * m_nWndClientWidth;
 
-	outScreen.y =
-		(-y * 0.5f + 0.5f) * m_nWndClientHeight;
+	outScreen.y = (-y * 0.5f + 0.5f) * m_nWndClientHeight;
 
 	return true;
 }
-
 
 void CGameFramework::SaveNameFromEditControl()
 {
@@ -6577,14 +6315,10 @@ void CGameFramework::LoadRankingWaitImage()
 	);
 }
 
-void CGameFramework::SendBananaSpawnEvent(
-	int bananaId,
-	const XMFLOAT3& position,
-	float yaw
+void CGameFramework::SendBananaSpawnEvent(int bananaId,const XMFLOAT3& position,float yaw
 )
 {
-	if (!m_pNetwork ||
-		!m_pNetwork->IsConnected())
+	if (!m_pNetwork || !m_pNetwork->IsConnected())
 	{
 		return;
 	}
@@ -6605,14 +6339,9 @@ void CGameFramework::SendBananaSpawnEvent(
 	m_pNetwork->SendBananaEvent(ev);
 }
 
-void CGameFramework::SendBananaHitEvent(
-	int bananaId,
-	int ownerPlayerId,
-	int hitPlayerId
-)
+void CGameFramework::SendBananaHitEvent(int bananaId,int ownerPlayerId,int hitPlayerId)
 {
-	if (!m_pNetwork ||
-		!m_pNetwork->IsConnected())
+	if (!m_pNetwork || !m_pNetwork->IsConnected())
 	{
 		return;
 	}
@@ -6627,9 +6356,8 @@ void CGameFramework::SendBananaHitEvent(
 
 	m_pNetwork->SendBananaEvent(ev);
 }
-void CGameFramework::StartBananaSpin(
-	float duration
-)
+
+void CGameFramework::StartBananaSpin(float duration)
 {
 	if (!m_pPlayer)
 		return;
@@ -6640,37 +6368,21 @@ void CGameFramework::StartBananaSpin(
 	m_bIsDrifting = false;
 	m_bIsDashing = false;
 
-	m_pPlayer->SetVelocity(
-		XMFLOAT3(0.0f, 0.0f, 0.0f)
-	);
+	m_pPlayer->SetVelocity(XMFLOAT3(0.0f, 0.0f, 0.0f));
 
+	CEffectLibrary::Instance()->StopEffect(m_pLocalBananaSpinEffect);
 
-	CEffectLibrary::Instance()->StopEffect(
-		m_pLocalBananaSpinEffect
-	);
-
-	XMFLOAT3 effectPosition =
-		m_pPlayer->GetPosition();
+	XMFLOAT3 effectPosition = m_pPlayer->GetPosition();
 
 	effectPosition.y += 18.0f;
 
-
-	m_pLocalBananaSpinEffect =
-		CEffectLibrary::Instance()->Play(
-			EFFECT_TYPE::BANANA_SPIN,
-			effectPosition,
-			XMFLOAT2(12.0f, 12.0f), 
-			XMFLOAT3(1.0f, 1.0f, 1.0f)
-		);
+	m_pLocalBananaSpinEffect = CEffectLibrary::Instance()->Play(EFFECT_TYPE::BANANA_SPIN, effectPosition, XMFLOAT2(12.0f, 12.0f), XMFLOAT3(1.0f, 1.0f, 1.0f));
 }
 
-void CGameFramework::StartRemoteBananaSpin(
-	int playerId,
-	float duration
-)
+
+void CGameFramework::StartRemoteBananaSpin(int playerId,float duration)
 {
-	RemotePlayerInfo* pInfo =
-		FindOrAllocateRemotePlayer(playerId);
+	RemotePlayerInfo* pInfo = FindOrAllocateRemotePlayer(playerId);
 
 	if (!pInfo || !pInfo->pPlayer)
 		return;
@@ -6678,22 +6390,13 @@ void CGameFramework::StartRemoteBananaSpin(
 	pInfo->bananaSpinning = true;
 	pInfo->bananaSpinRemainTime = duration;
 
-	CEffectLibrary::Instance()->StopEffect(
-		pInfo->pBananaSpinEffect
-	);
+	CEffectLibrary::Instance()->StopEffect(pInfo->pBananaSpinEffect);
 
-	XMFLOAT3 effectPosition =
-		pInfo->pPlayer->GetPosition();
+	XMFLOAT3 effectPosition = pInfo->pPlayer->GetPosition();
 
 	effectPosition.y += 18.0f;
 
-	pInfo->pBananaSpinEffect =
-		CEffectLibrary::Instance()->Play(
-			EFFECT_TYPE::BANANA_SPIN,
-			effectPosition,
-			XMFLOAT2(12.0f, 12.0f),
-			XMFLOAT3(1.0f, 1.0f, 1.0f)
-		);
+	pInfo->pBananaSpinEffect = CEffectLibrary::Instance()->Play(EFFECT_TYPE::BANANA_SPIN, effectPosition, XMFLOAT2(12.0f, 12.0f), XMFLOAT3(1.0f, 1.0f, 1.0f));
 }
 
 void CGameFramework::UpdateRemoteBananaSpins(
@@ -6702,39 +6405,22 @@ void CGameFramework::UpdateRemoteBananaSpins(
 {
 	for (auto& info : m_vRemotePlayers)
 	{
-		if (!info.bananaSpinning ||
-			!info.pPlayer ||
-			!info.pPlayer->m_bIsActive)
+		if (!info.bananaSpinning || !info.pPlayer || !info.pPlayer->m_bIsActive)
 		{
 			continue;
 		}
 
-		float spinDeltaTime =
-			min(
-				fTimeElapsed,
-				info.bananaSpinRemainTime
-			);
-
-		float spinDeltaAngle =
-			m_fBananaSpinSpeed * spinDeltaTime;
-
+		float spinDeltaTime = min(fTimeElapsed, info.bananaSpinRemainTime);
+		float spinDeltaAngle = m_fBananaSpinSpeed * spinDeltaTime;
 	
-		info.pPlayer->RotateBodyOnly(
-			spinDeltaAngle
-		);
-
+		info.pPlayer->RotateBodyOnly(spinDeltaAngle);
 		info.pPlayer->OnPrepareRender();
-
 		
-		XMFLOAT3 effectPosition =
-			info.pPlayer->GetPosition();
+		XMFLOAT3 effectPosition = info.pPlayer->GetPosition();
 
 		effectPosition.y += 18.0f;
 
-		CEffectLibrary::Instance()->UpdateEffectPosition(
-			info.pBananaSpinEffect,
-			effectPosition
-		);
+		CEffectLibrary::Instance()->UpdateEffectPosition(info.pBananaSpinEffect, effectPosition);
 
 		info.bananaSpinRemainTime -= spinDeltaTime;
 
@@ -6743,18 +6429,14 @@ void CGameFramework::UpdateRemoteBananaSpins(
 			info.bananaSpinRemainTime = 0.0f;
 			info.bananaSpinning = false;
 
-			CEffectLibrary::Instance()->StopEffect(
-				info.pBananaSpinEffect
-			);
+			CEffectLibrary::Instance()->StopEffect(info.pBananaSpinEffect);
 
 			info.pPlayer->OnPrepareRender();
 		}
 	}
 }
 
-void CGameFramework::UpdateBananaSpin(
-	float fTimeElapsed
-)
+void CGameFramework::UpdateBananaSpin(float fTimeElapsed)
 {
 	if (m_fBananaCollisionCooldown > 0.0f)
 	{
@@ -6764,30 +6446,23 @@ void CGameFramework::UpdateBananaSpin(
 			m_fBananaCollisionCooldown = 0.0f;
 	}
 
-	if (!m_bBananaSpinning ||
-		!m_pPlayer)
+	if (!m_bBananaSpinning || !m_pPlayer)
 	{
 		return;
 	}
 
-	float fSpinDeltaTime =
-		min(fTimeElapsed, m_fBananaSpinRemainTime);
+	float fSpinDeltaTime = min(fTimeElapsed, m_fBananaSpinRemainTime);
 
-	float fSpinDeltaAngle =
-		m_fBananaSpinSpeed * fSpinDeltaTime;
+	float fSpinDeltaAngle = m_fBananaSpinSpeed * fSpinDeltaTime;
 
 	m_pPlayer->RotateBodyOnly(fSpinDeltaAngle);
 	m_pPlayer->OnPrepareRender();
 
-	XMFLOAT3 effectPosition =
-		m_pPlayer->GetPosition();
+	XMFLOAT3 effectPosition = m_pPlayer->GetPosition();
 
 	effectPosition.y += 18.0f;
 
-	CEffectLibrary::Instance()->UpdateEffectPosition(
-		m_pLocalBananaSpinEffect,
-		effectPosition
-	);
+	CEffectLibrary::Instance()->UpdateEffectPosition(m_pLocalBananaSpinEffect, effectPosition);
 
 
 	m_fBananaSpinRemainTime -= fSpinDeltaTime;
@@ -6797,14 +6472,12 @@ void CGameFramework::UpdateBananaSpin(
 		m_fBananaSpinRemainTime = 0.0f;
 		m_bBananaSpinning = false;
 
-
 		m_pPlayer->OnPrepareRender();
 	}
 }
 void CGameFramework::ConsumeNetworkBananaEvents()
 {
-	if (!m_pNetwork ||
-		!m_pScene)
+	if (!m_pNetwork || !m_pScene)
 	{
 		return;
 	}
@@ -6815,34 +6488,21 @@ void CGameFramework::ConsumeNetworkBananaEvents()
 	{
 		switch (ev.action)
 		{
-
 		case BANANA_EVENT_SPAWN:
 		{
-		
 			if (ev.ownerPlayerId == m_nMyPlayerId)
 			{
 				break;
 			}
 
-			m_pScene->InstallBanana(
-				ev.bananaId,
-				ev.ownerPlayerId,
-				XMFLOAT3(
-					ev.x,
-					ev.y,
-					ev.z
-				),
-				ev.yaw
-			);
+			m_pScene->InstallBanana(ev.bananaId, ev.ownerPlayerId, XMFLOAT3(ev.x, ev.y, ev.z), ev.yaw);
 
 			break;
 		}
 
 		case BANANA_EVENT_HIT:
 		{
-			m_pScene->RemoveBanana(
-				ev.bananaId
-			);
+			m_pScene->RemoveBanana(ev.bananaId);
 
 			if (ev.hitPlayerId == m_nMyPlayerId)
 			{
@@ -6850,20 +6510,14 @@ void CGameFramework::ConsumeNetworkBananaEvents()
 			}
 			else
 			{
-				StartRemoteBananaSpin(
-					ev.hitPlayerId,
-					1.0f
-				);
+				StartRemoteBananaSpin(ev.hitPlayerId, 1.0f);
 			}
-
 			break;
 		}
 
 		case BANANA_EVENT_REMOVE:
 		{
-			m_pScene->RemoveBanana(
-				ev.bananaId
-			);
+			m_pScene->RemoveBanana(ev.bananaId);
 
 			break;
 		}
