@@ -1464,12 +1464,12 @@ void CScene::BuildGameStage3(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 		m_ppGameObjects[12-1] = pCPObject9;
 	}
 
-	CGameObject* pboosterZoneModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/GameStart.bin");
+	CGameObject* pboosterZoneModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/circusBoostZones.bin");
 	ApplyMeshTextures(pd3dDevice, pd3dCommandList, pboosterZoneModel);
 	CGameObject* pboosterZone = new CGameObject();
 	pboosterZone->SetChild(pboosterZoneModel);
-	pboosterZone->SetPosition(-3013,-81,-1328);
-	pboosterZone->SetScale(.5f, .5f, .5f);
+	pboosterZone->SetPosition(0,0,0);
+	pboosterZone->SetScale(8,8,8);
 	pboosterZone->m_bIsBoosterZone = true;
 	m_ppGameObjects[12] = pboosterZone;
 	
@@ -1922,7 +1922,7 @@ bool CScene::CheckCollision()
 		if (!pObject || !pObject->m_bIsActive) continue;
 		if (pObject->m_bIsGround) continue;
 
-		if (pObject->m_bIsInvisibleWall || pObject->m_bIsCheckPoint || pObject->m_bIsRCP)
+		if (pObject->m_bIsInvisibleWall || pObject->m_bIsCheckPoint || pObject->m_bIsRCP || pObject->m_bIsBoosterZone)
 		{
 			if (CheckRecursiveCollision(pObject, worldPlayerOBB, playerPos, &m_pCollidedObject))
 			{
@@ -1930,6 +1930,8 @@ bool CScene::CheckCollision()
 				m_pCollidedObject->m_bIsCheckPoint = pObject->m_bIsCheckPoint;
 				m_pCollidedObject->m_nCheckPointIndex = pObject->m_nCheckPointIndex;
 				m_pCollidedObject->m_bIsRCP = pObject->m_bIsRCP;
+				m_pCollidedObject->m_bIsBoosterZone = pObject->m_bIsBoosterZone;
+
 				return true;
 			}
 		}
