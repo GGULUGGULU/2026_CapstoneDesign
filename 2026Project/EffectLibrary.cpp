@@ -4,7 +4,7 @@
 #include "MeshEffect.h"
 #include "d3dx12.h"
 
-// 쉐이더 컴파일 헬퍼 함수
+
 D3D12_SHADER_BYTECODE CompileShaderHelper(LPCWSTR filename, LPCSTR entrypoint, LPCSTR target)
 {
 	UINT compileFlags = 0;
@@ -46,6 +46,11 @@ void CEffectLibrary::InitializeDefaultEffectConfigs()
 	}
 
 	m_EffectConfigs[(int)EFFECT_TYPE::COLLISION].spread = 20.0f;
+	m_EffectConfigs[(int)EFFECT_TYPE::COLLISION].particleConfig.motion = ParticleMotion::COLLISION;
+
+	m_EffectConfigs[(int)EFFECT_TYPE::DUST].particleConfig.motion = ParticleMotion::DUST;
+	m_EffectConfigs[(int)EFFECT_TYPE::DUST].particleConfig.gravity = 9.8f;
+	m_EffectConfigs[(int)EFFECT_TYPE::DUST].particleConfig.moveZ = false;
 
 	m_EffectConfigs[(int)EFFECT_TYPE::DUST].poolSize = 2000;
 	m_EffectConfigs[(int)EFFECT_TYPE::DUST].particleCount = 1;
@@ -54,6 +59,8 @@ void CEffectLibrary::InitializeDefaultEffectConfigs()
 	for (int i = (int)EFFECT_TYPE::ITEM1; i <= (int)EFFECT_TYPE::ITEM11; ++i)
 	{
 		m_EffectConfigs[i].spread = 50.0f;
+		m_EffectConfigs[i].particleConfig.motion = ParticleMotion::ITEM;
+		m_EffectConfigs[i].particleConfig.gravity = 0.0f;
 
 	}
 
@@ -62,6 +69,7 @@ void CEffectLibrary::InitializeDefaultEffectConfigs()
 	m_EffectConfigs[(int)EFFECT_TYPE::BOOSTER].lifeTime = 999999.0f;
 	m_EffectConfigs[(int)EFFECT_TYPE::BOOSTER].loop = true;
 	m_EffectConfigs[(int)EFFECT_TYPE::BOOSTER].useDepth = true;
+	m_EffectConfigs[(int)EFFECT_TYPE::BOOSTER].particleConfig.motion = ParticleMotion::BOOSTER;
 
 	m_EffectConfigs[(int)EFFECT_TYPE::WIND_EFFECT].poolSize = 1;
 	m_EffectConfigs[(int)EFFECT_TYPE::WIND_EFFECT].lifeTime = 999999.0f;
@@ -74,6 +82,9 @@ void CEffectLibrary::InitializeDefaultEffectConfigs()
 	m_EffectConfigs[(int)EFFECT_TYPE::LOCK_ORBIT].spread = 0.0f;
 	m_EffectConfigs[(int)EFFECT_TYPE::LOCK_ORBIT].loop = false;
 	m_EffectConfigs[(int)EFFECT_TYPE::LOCK_ORBIT].useDepth = true;
+	m_EffectConfigs[(int)EFFECT_TYPE::LOCK_ORBIT].particleConfig.motion = ParticleMotion::ORBIT;
+	m_EffectConfigs[(int)EFFECT_TYPE::LOCK_ORBIT].particleConfig.gravity = 0.0f;
+	m_EffectConfigs[(int)EFFECT_TYPE::LOCK_ORBIT].particleConfig.shrink = false;
 
 	m_EffectConfigs[(int)EFFECT_TYPE::ITEM10].spread = 0.0f;
 	m_EffectConfigs[(int)EFFECT_TYPE::ITEM10].particleCount = 1;
@@ -84,14 +95,14 @@ void CEffectLibrary::InitializeDefaultEffectConfigs()
 	m_EffectConfigs[(int)EFFECT_TYPE::ITEM11].lifeTime = 0.35f;
 
 
-	// 왼쪽
+	
 	m_EffectConfigs[(int)EFFECT_TYPE::DRIFT_SPARK_LEFT].poolSize = 100;
 	m_EffectConfigs[(int)EFFECT_TYPE::DRIFT_SPARK_LEFT].particleCount = 3;
 	m_EffectConfigs[(int)EFFECT_TYPE::DRIFT_SPARK_LEFT].lifeTime = 0.15f;
 	m_EffectConfigs[(int)EFFECT_TYPE::DRIFT_SPARK_LEFT].spread = 8.0f;
 	m_EffectConfigs[(int)EFFECT_TYPE::DRIFT_SPARK_LEFT].useDepth = true;
 
-	// 오른쪽
+
 	m_EffectConfigs[(int)EFFECT_TYPE::DRIFT_SPARK_RIGHT].poolSize = 100;
 	m_EffectConfigs[(int)EFFECT_TYPE::DRIFT_SPARK_RIGHT].particleCount = 3;
 	m_EffectConfigs[(int)EFFECT_TYPE::DRIFT_SPARK_RIGHT].lifeTime = 0.15f;
@@ -105,6 +116,9 @@ void CEffectLibrary::InitializeDefaultEffectConfigs()
 	m_EffectConfigs[(int)EFFECT_TYPE::BANANA_SPIN].spread = 0.0f;
 	m_EffectConfigs[(int)EFFECT_TYPE::BANANA_SPIN].loop = false;
 	m_EffectConfigs[(int)EFFECT_TYPE::BANANA_SPIN].useDepth = true;
+	m_EffectConfigs[(int)EFFECT_TYPE::BANANA_SPIN].particleConfig.motion = ParticleMotion::ORBIT;
+	m_EffectConfigs[(int)EFFECT_TYPE::BANANA_SPIN].particleConfig.gravity = 0.0f;
+	m_EffectConfigs[(int)EFFECT_TYPE::BANANA_SPIN].particleConfig.shrink = false;
 
 
 }
@@ -171,6 +185,13 @@ bool CEffectLibrary::GetConfiguredLoop(EFFECT_TYPE type) const
 {
 	if (!IsValidEffectType(type)) return false;
 	return m_EffectConfigs[(int)type].loop;
+}
+
+const ParticleConfig& CEffectLibrary::GetConfiguredParticleConfig(EFFECT_TYPE type) const
+{
+	static ParticleConfig defaultConfig;
+	if (!IsValidEffectType(type)) return defaultConfig;
+	return m_EffectConfigs[(int)type].particleConfig;
 }
 
 void CEffectLibrary::SetEffectTypeConfig(EFFECT_TYPE type, const EffectTypeConfig& config)
@@ -295,7 +316,7 @@ bool CEffectLibrary::InitializeRenderResources(ID3D12Device* pd3dDevice, ID3D12G
 	BuildPipelineState(pd3dDevice);
 
 	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc{};
-	srvHeapDesc.NumDescriptors = (int)EFFECT_TYPE::COUNT + 3; // 텍스처 수만큼
+	srvHeapDesc.NumDescriptors = (int)EFFECT_TYPE::COUNT + 3; // 
 	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	srvHeapDesc.NodeMask = 0;
@@ -570,7 +591,7 @@ void CEffectLibrary::Render(ID3D12GraphicsCommandList* pd3dCommandList, const XM
 	ID3D12DescriptorHeap* heaps[] = { m_pd3dSrvHeap };
 	pd3dCommandList->SetDescriptorHeaps(1, heaps);
 
-	int currentPsoType = 0; 
+	int currentPsoType = 0;
 
 	for (auto eff : m_vActiveEffects)
 	{
@@ -699,7 +720,7 @@ void CEffectLibrary::BuildPipelineState(ID3D12Device* pd3dDevice)
 		OutputDebugStringA("[EffectLibrary] CreateGraphicsPipelineState(Particle Depth) failed.\n");
 	}
 
-	// 바람저항효과 PSO 생성
+	// PSO 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC meshPsoDesc = {};
 
 
@@ -794,32 +815,35 @@ ActiveEffect* CEffectLibrary::Play(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT2
 
 	if (pEffectData->pParticleSys)
 	{
-		// 파티클 시스템
+		
 		pEffectData->pParticleSys->SetPosition(position);
 
 		float fSpread = pEffectData->fSpread;
 		pEffectData->bUseSpread = !IsZero(fSpread);
+
+		ParticleConfig particleConfig = GetConfiguredParticleConfig(type);
+		particleConfig.useSpread = pEffectData->bUseSpread;
 
 		if (
 			type == EFFECT_TYPE::LOCK_ORBIT ||
 			type == EFFECT_TYPE::BANANA_SPIN
 			)
 		{
-			pEffectData->pParticleSys->ResetLockOrbit(size, color);
+			pEffectData->pParticleSys->ResetLockOrbit(size, color, particleConfig);
 		}
 		else
 		{
 			pEffectData->pParticleSys->ResetParticles(
 				size,
+				particleConfig,
 				fSpread,
-				pEffectData->bUseSpread,
 				color
 			);
 		}
 	}
 	else if (pEffectData->pMeshEffect)
 	{
-		// 바람저항효과인 경우
+
 		pEffectData->pMeshEffect->SetPosition(position);
 		pEffectData->pMeshEffect->SetScale(XMFLOAT3(size.x, size.y, size.x));
 		pEffectData->pMeshEffect->SetColor(color);
@@ -841,15 +865,15 @@ void CEffectLibrary::PlayCarDustParticle(EFFECT_TYPE type, XMFLOAT3 position, XM
 
 	XMFLOAT3 fl, fr, bl, br;
 
-	XMStoreFloat3(&fl, vPos - vOffsetX + vOffsetZ); // 좌상 
-	XMStoreFloat3(&fr, vPos + vOffsetX + vOffsetZ); // 우상 
-	XMStoreFloat3(&bl, vPos - vOffsetX - vOffsetZ); // 좌하 
-	XMStoreFloat3(&br, vPos + vOffsetX - vOffsetZ); // 우하 
+	XMStoreFloat3(&fl, vPos - vOffsetX + vOffsetZ);
+	XMStoreFloat3(&fr, vPos + vOffsetX + vOffsetZ); 
+	XMStoreFloat3(&bl, vPos - vOffsetX - vOffsetZ); 
+	XMStoreFloat3(&br, vPos + vOffsetX - vOffsetZ); 
 
-	Play(type, fl, size, color); // 좌상
-	Play(type, fr, size, color); // 우상
-	Play(type, bl, size, color); // 좌하
-	Play(type, br, size, color); // 우하
+	Play(type, fl, size, color); 
+	Play(type, fr, size, color);
+	Play(type, bl, size, color); 
+	Play(type, br, size, color); 
 }
 
 
@@ -935,30 +959,11 @@ void CEffectLibrary::UpdateParticleEffect(ActiveEffect* eff, float fTimeElapsed)
 {
 	if (!eff || !eff->pParticleSys) return;
 	if (m_pPipelineState == nullptr) return;
+	if (!eff->bActive) return;
 
-	if (eff->type == EFFECT_TYPE::BOOSTER)
-	{
-		if (eff->bActive) eff->pParticleSys->BoosterAnimate(fTimeElapsed);
-	}
-	else if (eff->type == EFFECT_TYPE::DUST)
-	{
-		eff->pParticleSys->DustAnimate(fTimeElapsed, eff->bUseSpread);
-	}
-	else if (
-		eff->type == EFFECT_TYPE::LOCK_ORBIT ||
-		eff->type == EFFECT_TYPE::BANANA_SPIN
-		)
-	{
-		eff->pParticleSys->LockOrbitAnimate(fTimeElapsed);
-	}
-	else if (IsItemEffect(eff->type))
-	{
-		eff->pParticleSys->ItemAnimate(fTimeElapsed);
-	}
-	else
-	{
-		eff->pParticleSys->CollisionAnimate(fTimeElapsed);
-	}
+	ParticleConfig particleConfig = GetConfiguredParticleConfig(eff->type);
+	particleConfig.useSpread = eff->bUseSpread;
+	eff->pParticleSys->UpdateByMotion(fTimeElapsed, particleConfig);
 }
 
 void CEffectLibrary::UpdateMeshEffect(ActiveEffect* eff, float fTimeElapsed)
@@ -989,7 +994,7 @@ void CEffectLibrary::RecycleEffect(ActiveEffect* eff)
 
 	if (eff->type == EFFECT_TYPE::BOOSTER || eff->type == EFFECT_TYPE::WIND_EFFECT)
 	{
-		return; 
+		return;
 	}
 
 	m_vEffectPool[(int)eff->type].push_back(eff);
@@ -1093,7 +1098,7 @@ void CEffectLibrary::ToggleLocalBooster(bool flag, XMFLOAT3 scale, XMFLOAT3 colo
 		if (flag)
 		{
 			m_pLocalWindShieldEffect->pMeshEffect->SetScale(XMFLOAT3(scale.x * 1.5f, scale.y * 1.05f, scale.z * 0.75f));
-			m_pLocalWindShieldEffect->fOffsetDistance = windOffset; 
+			m_pLocalWindShieldEffect->fOffsetDistance = windOffset;
 		}
 	}
 
@@ -1105,9 +1110,9 @@ void CEffectLibrary::ToggleLocalBooster(bool flag, XMFLOAT3 scale, XMFLOAT3 colo
 			m_pLocalBoosterEffect->pMeshEffect->SetActive(flag);
 			if (flag)
 			{
-				m_pLocalBoosterEffect->pMeshEffect->SetScale(scale);   
-				m_pLocalBoosterEffect->pMeshEffect->SetColor(color);   
-				m_pLocalBoosterEffect->fOffsetDistance = boosterOffset; 
+				m_pLocalBoosterEffect->pMeshEffect->SetScale(scale);
+				m_pLocalBoosterEffect->pMeshEffect->SetColor(color);
+				m_pLocalBoosterEffect->fOffsetDistance = boosterOffset;
 			}
 		}
 
@@ -1140,9 +1145,9 @@ void CEffectLibrary::ToggleRemoteBooster(bool flag, XMFLOAT3 scale, XMFLOAT3 col
 
 			if (flag)
 			{
-				m_pRemoteBoosterEffect->pMeshEffect->SetScale(scale);       
-				m_pRemoteBoosterEffect->pMeshEffect->SetColor(color);     
-				m_pRemoteBoosterEffect->fOffsetDistance = boosterOffset;   
+				m_pRemoteBoosterEffect->pMeshEffect->SetScale(scale);
+				m_pRemoteBoosterEffect->pMeshEffect->SetColor(color);
+				m_pRemoteBoosterEffect->fOffsetDistance = boosterOffset;
 			}
 		}
 
@@ -1328,19 +1333,19 @@ void CEffectLibrary::InitializePostProcess(ID3D12Device* pd3dDevice, int width, 
 	m_nHeight = height;
 
 	CD3DX12_ROOT_PARAMETER pd3dRootParameters[4];
-	pd3dRootParameters[0].InitAsConstants(8, 0); // b0
+	pd3dRootParameters[0].InitAsConstants(8, 0);
 
 	CD3DX12_DESCRIPTOR_RANGE srvRange[1];
 	srvRange[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
-	pd3dRootParameters[1].InitAsDescriptorTable(1, srvRange); // t0
+	pd3dRootParameters[1].InitAsDescriptorTable(1, srvRange); 
 
 	CD3DX12_DESCRIPTOR_RANGE uavRange[1];
 	uavRange[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
-	pd3dRootParameters[2].InitAsDescriptorTable(1, uavRange); // u0
+	pd3dRootParameters[2].InitAsDescriptorTable(1, uavRange); 
 
 	CD3DX12_DESCRIPTOR_RANGE speedLineRange[1];
 	speedLineRange[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1);
-	pd3dRootParameters[3].InitAsDescriptorTable(1, speedLineRange); // t1 (속도선 텍스처)
+	pd3dRootParameters[3].InitAsDescriptorTable(1, speedLineRange); 
 
 	CD3DX12_STATIC_SAMPLER_DESC sampler(
 		0, D3D12_FILTER_MIN_MAG_MIP_LINEAR,
@@ -1452,7 +1457,7 @@ void CEffectLibrary::RenderRadialBlur(ID3D12GraphicsCommandList* pd3dCommandList
 	pd3dCommandList->SetComputeRootDescriptorTable(2, m_d3dUavGpuHandle); // u0
 	pd3dCommandList->SetComputeRootDescriptorTable(3, m_d3dSpeedLineGpuHandle); // t1
 
-	// 속도 
+
 	float maxSpeed = 300.0f;
 	float speedRatio = max(0.0f, min(1.0f, (float)speed / maxSpeed));
 

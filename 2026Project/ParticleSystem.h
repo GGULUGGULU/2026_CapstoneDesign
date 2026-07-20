@@ -5,6 +5,37 @@
 #include <vector>
 
 using namespace DirectX;
+enum class ParticleMotion
+{
+	COLLISION,
+	DUST,
+	ITEM,
+	ORBIT,
+	BOOSTER
+};
+
+struct ParticleConfig
+{
+	ParticleMotion motion;
+	float gravity;
+	bool moveX;
+	bool moveY;
+	bool moveZ;
+	bool shrink;
+	bool useSpread;
+
+	ParticleConfig()
+		: motion(ParticleMotion::COLLISION)
+		, gravity(-19.6f)
+		, moveX(true)
+		, moveY(true)
+		, moveZ(true)
+		, shrink(true)
+		, useSpread(false)
+	{
+	}
+};
+
 struct VS_VB_INSTANCE_PARTICLE
 {
 	XMFLOAT3 m_xmf3Position;
@@ -23,26 +54,22 @@ struct ParticleCPUData
 	bool m_bIsActive;
 };
 
-class CParticleSystem{
+class CParticleSystem {
 public:
 	CParticleSystem(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, int nMaxParticles = 1000);
 	virtual ~CParticleSystem();
 
-	void CollisionAnimate(float fTimeElapsed);
-	void DustAnimate(float fTimeElapsed, bool flag);
-	void ItemAnimate(float fTimeElapsed);
-	void BoosterAnimate(float fTimeElapsed);
+	void UpdateByMotion(float fTimeElapsed, const ParticleConfig& config);
 
 	void Render(ID3D12GraphicsCommandList* pd3dCommandList);
 
-	void ResetParticles(const XMFLOAT2& size, float fSpreadRange = 10.f, bool flag = false, const XMFLOAT3& color = XMFLOAT3(1,1,1));
+	void ResetParticles(const XMFLOAT2& size, const ParticleConfig& config, float fSpreadRange = 10.f, const XMFLOAT3& color = XMFLOAT3(1, 1, 1));
 
 	void SetPosition(const XMFLOAT3& pos) { m_xmf3Position = pos; }
 
 	void Clear();
 
-	void ResetLockOrbit(const XMFLOAT2& size, const XMFLOAT3& color);
-	void LockOrbitAnimate(float fTimeElapsed);
+	void ResetLockOrbit(const XMFLOAT2& size, const XMFLOAT3& color, const ParticleConfig& config);
 
 private:
 	XMFLOAT3 m_xmf3Position;
@@ -60,4 +87,3 @@ private:
 
 	friend class CEffectLibrary;
 };
-

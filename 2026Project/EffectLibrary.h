@@ -8,6 +8,7 @@
 
 #include <DirectxMath.h>
 #include "DDSTextureLoader12.h"
+#include "ParticleSystem.h"
 
 
 
@@ -18,30 +19,29 @@ class CMeshEffect;
 
 enum class EFFECT_TYPE
 {
-	COLLISION, // 浹
+	COLLISION, // 
 	DUST, // 
-	ITEM1, //  ?
-	ITEM2, //  ?
-	ITEM3, //  ?
-	ITEM4, //  ?
-	ITEM5, //  ?
-	ITEM6, //  ?
-	ITEM7, //  ?
-	ITEM8, //  ?
-	ITEM9, //  ?
+	ITEM1, //  
+	ITEM2, //  
+	ITEM3, //  
+	ITEM4, //  
+	ITEM5, //  
+	ITEM6, //  
+	ITEM7, //  
+	ITEM8, //  
+	ITEM9, //  
 
-	ITEM10, //  
-	ITEM11, //  
+	ITEM10, 
+	ITEM11,  
 
-
-	BOOSTER, // ν
+	BOOSTER, 
 	WIND_EFFECT,
 	SPEED_LINE,
 	LOCK_ORBIT,
 	DRIFT_SPARK_LEFT,
-	DRIFT_SPARK_RIGHT, // 드리프트 스파크
+	DRIFT_SPARK_RIGHT, 
 	BANANA_SPIN,
-	COUNT, // 
+	COUNT, 
 };
 
 struct ActiveEffect {
@@ -95,6 +95,7 @@ struct EffectTypeConfig {
 	float spread;
 	bool loop;
 	bool useDepth;
+	ParticleConfig particleConfig;
 
 	EffectTypeConfig()
 		: poolSize(50)
@@ -103,6 +104,7 @@ struct EffectTypeConfig {
 		, spread(0.0f)
 		, loop(false)
 		, useDepth(false)
+		, particleConfig()
 	{
 	}
 };
@@ -260,7 +262,7 @@ private:
 	ID3D12PipelineState* m_pPipelineState = nullptr;
 	ID3D12PipelineState* m_pMeshEffectPSO = nullptr;
 	ID3D12PipelineState* m_pParticleDepthPSO = nullptr; // 
-	ID3D12PipelineState* m_pBoosterPSO = nullptr; // ν?
+	ID3D12PipelineState* m_pBoosterPSO = nullptr; // 
 
 
 	void BuildRootSignature(ID3D12Device* pd3dDevice);
@@ -282,6 +284,7 @@ private:
 	float GetConfiguredSpread(EFFECT_TYPE type) const;
 	float GetConfiguredLifeTime(EFFECT_TYPE type) const;
 	bool GetConfiguredLoop(EFFECT_TYPE type) const;
+	const ParticleConfig& GetConfiguredParticleConfig(EFFECT_TYPE type) const;
 
 	void ConsumeEffectEvents();
 	void UpdateEffectInstance(ActiveEffect* eff, float fTimeElapsed, bool& bIsDead);
@@ -352,4 +355,3 @@ public:
 	}
 
 };
-
