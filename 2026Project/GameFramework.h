@@ -329,7 +329,7 @@ private:
 	ComPtr<ID2D1Bitmap> m_pDashVignetteBitmap;
 	ComPtr<ID2D1Bitmap> m_pRoomD2DBitmap;
 	ComPtr<ID2D1Bitmap> m_pCarImages[3];
-	ComPtr<ID2D1Bitmap> m_pMapImages[3];
+	ComPtr<ID2D1Bitmap> m_pMapImages[4];
 	ComPtr<ID2D1Bitmap> m_pReadyImage;
 	ComPtr<ID2D1Bitmap> m_pDashGaugeFrameBitmap;
 
@@ -345,8 +345,6 @@ private:
 
 	// 아이템 + 대시
 
-
-
 	// 드리프트
 
 	bool  m_bIsDrifting = false;
@@ -358,7 +356,7 @@ private:
 	float m_fDriftHoldTime = 0.0f;
 \
 	// // ===== 미니맵
-	ComPtr<ID2D1Bitmap> m_pMinimapBitmaps[3];
+	ComPtr<ID2D1Bitmap> m_pMinimapBitmaps[4];
 
 	ComPtr<ID2D1SolidColorBrush> m_minimapBorderBrush;
 	ComPtr<ID2D1SolidColorBrush> m_minimapPlayerBrush;
@@ -496,9 +494,17 @@ public:
 		{-3412,-80,-1250}, // 4
 	};
 
+	XMFLOAT3 Map4PlayerSpawnPos[4]{
+		{-277, 323, -1904}, // 1
+		{-315, 323, -1941}, // 2
+		{-348, 323, -1972}, // 3
+		{-392, 323, -2014}, // 4
+	};
+
 	XMFLOAT3 Map1SinglePlayerSpawn{ -1938.0f, -200.0f, 188.0f };
 	XMFLOAT3 Map2SinglePlayerSpawn{ -7600, -2260, 5530 };
 	XMFLOAT3 Map3SinglePlayerSpawn{ -3396,-80, -1474 };
+	XMFLOAT3 Map4SinglePlayerSpawn{ -277.405609,322.482239,-1904.646729 };
 	
 	float PLAYER_SPAWN_YAW = 0.0f;
 

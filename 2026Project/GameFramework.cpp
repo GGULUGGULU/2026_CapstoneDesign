@@ -682,13 +682,13 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 					// 맵 왼쪽 버튼 클릭 시
 					if (m_nHoveredButtonIndex == 10) {
 						--m_nSelectedMapIndex;
-						if (m_nSelectedMapIndex < 0) m_nSelectedMapIndex = 2;
+						if (m_nSelectedMapIndex < 0) m_nSelectedMapIndex = 3;
 						changed = true;
 					}
 					// 맵 오른쪽 버튼 클릭 시
 					else if (m_nHoveredButtonIndex == 11) {
 						++m_nSelectedMapIndex;
-						if (m_nSelectedMapIndex > 2) m_nSelectedMapIndex = 0;
+						if (m_nSelectedMapIndex > 3) m_nSelectedMapIndex = 0;
 						changed = true;
 					}
 				}
@@ -958,7 +958,7 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 			break;
 		case 'O':
 			WCHAR szDebug[256];
-			swprintf_s(szDebug, L"x: %f, y: %f, z: %f\n", m_pPlayer->GetPosition().x, m_pPlayer->GetPosition().y, m_pPlayer->GetPosition().z);
+			swprintf_s(szDebug, L"%.2f, %.2f, %.2f\n", m_pPlayer->GetPosition().x, m_pPlayer->GetPosition().y+20, m_pPlayer->GetPosition().z);
 			OutputDebugStringW(szDebug);
 			break;
 
@@ -1800,6 +1800,11 @@ void CGameFramework::BuildGameObjects()
 			m_pScene->m_nCurrentMapStage = 2;
 			m_pScene->BuildGameStage3(m_pd3dDevice, m_pd3dCommandList);
 		}
+		else if (3 == m_nSelectedMapIndex) {
+			m_pScene->m_nCurrentMapStage = 3;
+			m_pScene->BuildGameStage4(m_pd3dDevice, m_pd3dCommandList);
+		}
+
 	}
 	CreateShadowMap();
 
@@ -1825,6 +1830,12 @@ void CGameFramework::BuildGameObjects()
 	m_pCamera = m_pPlayer->GetCamera();
 
 	// 아이템 + 대시 
+	if (2 == m_nSelectedMapIndex) {
+		pCarPlayer->Rotate(0, 90, 0);
+	}
+	else if (3 == m_nSelectedMapIndex) {
+		pCarPlayer->Rotate(0, -45, 0);
+	}
 
 	m_fBasePlayerMaxSpeed = m_pPlayer->m_fMaxVelocityXZ;
 	m_fSpeedItemBonus = 0.0f;
@@ -1911,10 +1922,6 @@ void CGameFramework::BuildGameObjects()
 	}
 	m_GameTimer.Reset();
 	m_SoundManager.SetBGMVolume(m_fBGMVolume);
-
-	//pCarPlayer->SetPosition(XMFLOAT3(-2700, 0, -3400));
-	//pCarPlayer->SetPosition(XMFLOAT3(-3370,-80,-1369));
-	pCarPlayer->Rotate(0, 90, 0);
 }
 
 float CGameFramework::GetPlayerEffectiveMaxSpeed() const
@@ -2708,9 +2715,12 @@ void CGameFramework::CollisionProcess()
 		// 체크포인트
 		if (pCollidedObject->m_bIsCheckPoint) {
 			int hitIndex = pCollidedObject->m_nCheckPointIndex;
+			
 			if (hitIndex == m_nPassedCheckPoints + 1) {
 				++m_nPassedCheckPoints;
-
+				WCHAR szDebug[256];
+				swprintf_s(szDebug, L"Hit Checkpoint Index : %d\n", hitIndex);
+				OutputDebugStringW(szDebug);
 				if (m_nPassedCheckPoints == m_nTotalCheckPoints) {
 					++m_nCurrentLap;
 					m_nPassedCheckPoints = 0;
@@ -4074,6 +4084,15 @@ void CGameFramework::ApplyMultiplayerSpawn()
 				else if (m_nMyPlayerId == 4) xmf3LocalSpawn = Map3PlayerSpawnPos[3];
 			}
 		}
+		else if (3 == m_nSelectedMapIndex) {
+			if (m_bMultiplayerEnabled)
+			{
+				if (m_nMyPlayerId == 1) xmf3LocalSpawn = Map4PlayerSpawnPos[0];
+				else if (m_nMyPlayerId == 2) xmf3LocalSpawn = Map4PlayerSpawnPos[1];
+				else if (m_nMyPlayerId == 3)xmf3LocalSpawn = Map4PlayerSpawnPos[2];
+				else if (m_nMyPlayerId == 4) xmf3LocalSpawn = Map4PlayerSpawnPos[3];
+			}
+		}
 
 		SetupPlayerTransform(m_pPlayer, xmf3LocalSpawn, PLAYER_SPAWN_YAW);
 		m_nPlayerCurrentSpeed = 0;
@@ -4085,7 +4104,8 @@ void CGameFramework::ApplyMultiplayerSpawn()
 
 			if (m_nSelectedMapIndex == 0) baseSpawn = Map1SinglePlayerSpawn;
 			else if (m_nSelectedMapIndex == 1) baseSpawn = Map2SinglePlayerSpawn;
-			else baseSpawn = Map3SinglePlayerSpawn;
+			else if(m_nSelectedMapIndex == 2) baseSpawn = Map3SinglePlayerSpawn;
+			else baseSpawn = Map4SinglePlayerSpawn;
 
 			SetupPlayerTransform(info.pPlayer, baseSpawn, PLAYER_SPAWN_YAW);
 			info.pPlayer->m_bIsActive = false;
@@ -4495,13 +4515,14 @@ void CGameFramework::LoadResultUIResource()
 
 void CGameFramework::LoadMinimapUIResource()
 {
-	const wchar_t* fileNames[3] = {
+	const wchar_t* fileNames[4] = {
 		L"Asset/image/Minimap1.png",
 		L"Asset/image/Minimap2.png",// 추가해야함
-		L"Asset/image/Minimap3.png"// 추가해야함
+		L"Asset/image/Minimap3.png",// 추가해야함
+		L"Asset/image/Minimap4.png"// 추가해야함
 	};
 
-	for (int i = 0; i < 3; ++i)
+	for (int i = 0; i < 4; ++i)
 	{
 		m_pMinimapBitmaps[i].Reset();
 		ComPtr<IWICBitmapDecoder> decoder;
@@ -4635,9 +4656,7 @@ RemotePlayerInfo* CGameFramework::FindOrAllocateRemotePlayer(int targetId)
 	return nullptr;
 }
 
-D2D1_POINT_2F CGameFramework::WorldToMinimap(
-	const XMFLOAT3& worldPos,
-	const D2D1_RECT_F& minimapRect)
+D2D1_POINT_2F CGameFramework::WorldToMinimap(const XMFLOAT3& worldPos,const D2D1_RECT_F& minimapRect)
 {
 	float worldMinX;
 	float worldMaxX;
@@ -4661,6 +4680,12 @@ D2D1_POINT_2F CGameFramework::WorldToMinimap(
 		worldMaxX = 330;
 		worldMinZ = -4600;
 		worldMaxZ = 350;
+	}
+	else if (3 == m_nSelectedMapIndex) {
+		worldMinX = -2340; // 맵 사이즈 맞게 조정 
+		worldMaxX = 1880;
+		worldMinZ = -2700;
+		worldMaxZ = 3700;
 	}
 
 	float u, v;
@@ -5425,13 +5450,14 @@ void CGameFramework::LoadCarImages()
 
 void CGameFramework::LoadMapImages()
 {
-	const wchar_t* fileNames[3] = {
+	const wchar_t* fileNames[4] = {
 		L"Asset/image/Map1.png",
 		L"Asset/image/Map2.png",
-		L"Asset/image/Map3.png"
+		L"Asset/image/Map3.png",
+		L"Asset/image/Map4.png"
 	};
 
-	for (int i = 0; i < 3; ++i)
+	for (int i = 0; i < 4; ++i)
 	{
 		m_pMapImages[i].Reset();
 		ComPtr<IWICBitmapDecoder> decoder;

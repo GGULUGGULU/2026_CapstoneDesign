@@ -77,6 +77,7 @@ public:
 	void BuildGameStage2(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 	// 스테이지2
 	void BuildGameStage3(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+	void BuildGameStage4(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 
 	void BuildObjectsGameEnd(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 	//void CreateParticle(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
