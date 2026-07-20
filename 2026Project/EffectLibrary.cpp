@@ -95,7 +95,7 @@ void CEffectLibrary::InitializeDefaultEffectConfigs()
 	m_EffectConfigs[(int)EFFECT_TYPE::ITEM11].lifeTime = 0.35f;
 
 
-	
+
 	m_EffectConfigs[(int)EFFECT_TYPE::DRIFT_SPARK_LEFT].poolSize = 100;
 	m_EffectConfigs[(int)EFFECT_TYPE::DRIFT_SPARK_LEFT].particleCount = 3;
 	m_EffectConfigs[(int)EFFECT_TYPE::DRIFT_SPARK_LEFT].lifeTime = 0.15f;
@@ -316,7 +316,7 @@ bool CEffectLibrary::InitializeRenderResources(ID3D12Device* pd3dDevice, ID3D12G
 	BuildPipelineState(pd3dDevice);
 
 	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc{};
-	srvHeapDesc.NumDescriptors = (int)EFFECT_TYPE::COUNT + 3; // 
+	srvHeapDesc.NumDescriptors = (int)EFFECT_TYPE::COUNT + 3;
 	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	srvHeapDesc.NodeMask = 0;
@@ -720,7 +720,7 @@ void CEffectLibrary::BuildPipelineState(ID3D12Device* pd3dDevice)
 		OutputDebugStringA("[EffectLibrary] CreateGraphicsPipelineState(Particle Depth) failed.\n");
 	}
 
-	// PSO 
+
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC meshPsoDesc = {};
 
 
@@ -815,7 +815,7 @@ ActiveEffect* CEffectLibrary::Play(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT2
 
 	if (pEffectData->pParticleSys)
 	{
-		
+
 		pEffectData->pParticleSys->SetPosition(position);
 
 		float fSpread = pEffectData->fSpread;
@@ -866,14 +866,14 @@ void CEffectLibrary::PlayCarDustParticle(EFFECT_TYPE type, XMFLOAT3 position, XM
 	XMFLOAT3 fl, fr, bl, br;
 
 	XMStoreFloat3(&fl, vPos - vOffsetX + vOffsetZ);
-	XMStoreFloat3(&fr, vPos + vOffsetX + vOffsetZ); 
-	XMStoreFloat3(&bl, vPos - vOffsetX - vOffsetZ); 
-	XMStoreFloat3(&br, vPos + vOffsetX - vOffsetZ); 
+	XMStoreFloat3(&fr, vPos + vOffsetX + vOffsetZ);
+	XMStoreFloat3(&bl, vPos - vOffsetX - vOffsetZ);
+	XMStoreFloat3(&br, vPos + vOffsetX - vOffsetZ);
 
-	Play(type, fl, size, color); 
+	Play(type, fl, size, color);
 	Play(type, fr, size, color);
-	Play(type, bl, size, color); 
-	Play(type, br, size, color); 
+	Play(type, bl, size, color);
+	Play(type, br, size, color);
 }
 
 
@@ -1337,15 +1337,15 @@ void CEffectLibrary::InitializePostProcess(ID3D12Device* pd3dDevice, int width, 
 
 	CD3DX12_DESCRIPTOR_RANGE srvRange[1];
 	srvRange[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
-	pd3dRootParameters[1].InitAsDescriptorTable(1, srvRange); 
+	pd3dRootParameters[1].InitAsDescriptorTable(1, srvRange);
 
 	CD3DX12_DESCRIPTOR_RANGE uavRange[1];
 	uavRange[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
-	pd3dRootParameters[2].InitAsDescriptorTable(1, uavRange); 
+	pd3dRootParameters[2].InitAsDescriptorTable(1, uavRange);
 
 	CD3DX12_DESCRIPTOR_RANGE speedLineRange[1];
 	speedLineRange[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1);
-	pd3dRootParameters[3].InitAsDescriptorTable(1, speedLineRange); 
+	pd3dRootParameters[3].InitAsDescriptorTable(1, speedLineRange);
 
 	CD3DX12_STATIC_SAMPLER_DESC sampler(
 		0, D3D12_FILTER_MIN_MAG_MIP_LINEAR,
@@ -1453,9 +1453,9 @@ void CEffectLibrary::RenderRadialBlur(ID3D12GraphicsCommandList* pd3dCommandList
 
 	pd3dCommandList->SetComputeRootSignature(m_pd3dComputeRootSignature);
 	pd3dCommandList->SetDescriptorHeaps(1, &m_pd3dCbvSrvUavHeap);
-	pd3dCommandList->SetComputeRootDescriptorTable(1, m_d3dSrvGpuHandle); // t0
-	pd3dCommandList->SetComputeRootDescriptorTable(2, m_d3dUavGpuHandle); // u0
-	pd3dCommandList->SetComputeRootDescriptorTable(3, m_d3dSpeedLineGpuHandle); // t1
+	pd3dCommandList->SetComputeRootDescriptorTable(1, m_d3dSrvGpuHandle);
+	pd3dCommandList->SetComputeRootDescriptorTable(2, m_d3dUavGpuHandle);
+	pd3dCommandList->SetComputeRootDescriptorTable(3, m_d3dSpeedLineGpuHandle);
 
 
 	float maxSpeed = 300.0f;
@@ -1492,4 +1492,62 @@ void CEffectLibrary::RenderRadialBlur(ID3D12GraphicsCommandList* pd3dCommandList
 	pd3dCommandList->ResourceBarrier(1, &toRTBack);
 
 	pd3dCommandList->OMSetRenderTargets(1, &rtvHandle, TRUE, &dsvHandle);
+}
+
+bool CEffectLibrary::RegisterEffect(const std::string& name, EFFECT_TYPE sourceType, const EffectTypeConfig& config)
+{
+	if (name.empty() || !IsValidEffectType(sourceType)) return false;
+	m_RegisteredEffects[name] = RegisteredEffect{ sourceType, config };
+	return true;
+}
+
+bool CEffectLibrary::UnregisterEffect(const std::string& name)
+{
+	return m_RegisteredEffects.erase(name) > 0;
+}
+
+bool CEffectLibrary::HasEffect(const std::string& name) const
+{
+	return m_RegisteredEffects.find(name) != m_RegisteredEffects.end();
+}
+
+EffectTypeConfig* CEffectLibrary::GetEffectConfig(const std::string& name)
+{
+	auto iterator = m_RegisteredEffects.find(name);
+	if (iterator == m_RegisteredEffects.end()) return nullptr;
+	return &iterator->second.config;
+}
+
+const EffectTypeConfig* CEffectLibrary::GetEffectConfig(const std::string& name) const
+{
+	auto iterator = m_RegisteredEffects.find(name);
+	if (iterator == m_RegisteredEffects.end()) return nullptr;
+	return &iterator->second.config;
+}
+
+ActiveEffect* CEffectLibrary::Play(const std::string& name, XMFLOAT3 position, XMFLOAT2 size, XMFLOAT3 color)
+{
+	auto iterator = m_RegisteredEffects.find(name);
+	if (iterator == m_RegisteredEffects.end()) return nullptr;
+
+	RegisteredEffect& registeredEffect = iterator->second;
+	EFFECT_TYPE sourceType = registeredEffect.sourceType;
+	EffectTypeConfig previousConfig = m_EffectConfigs[static_cast<int>(sourceType)];
+	m_EffectConfigs[static_cast<int>(sourceType)] = registeredEffect.config;
+	ActiveEffect* effect = Play(sourceType, position, size, color);
+	m_EffectConfigs[static_cast<int>(sourceType)] = previousConfig;
+
+	if (effect)
+	{
+		effect->fLifeTime = registeredEffect.config.lifeTime;
+		effect->bLoop = registeredEffect.config.loop;
+		effect->fSpread = registeredEffect.config.spread;
+		effect->bUseSpread = registeredEffect.config.spread > 0.0001f;
+		if (effect->pParticleSys)
+		{
+			effect->pParticleSys->ResetParticles(size, registeredEffect.config.particleConfig, registeredEffect.config.spread, color);
+		}
+	}
+
+	return effect;
 }

@@ -1,255 +1,252 @@
 #include "EffectPCH.h"
 #include "ParticleSystem.h"
+#include <algorithm>
+#include <cmath>
 #include <random>
 
-CParticleSystem::CParticleSystem(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, int nMaxParticles)
+namespace
 {
-    m_nMaxParticles = nMaxParticles;
-    m_nActiveParticles = 0;
+    std::mt19937& ParticleRandomEngine()
+    {
+        static std::mt19937 engine(std::random_device{}());
+        return engine;
+    }
+
+    float RandomFloat(float minimum, float maximum)
+    {
+        if (maximum < minimum) std::swap(minimum, maximum);
+        std::uniform_real_distribution<float> distribution(minimum, maximum);
+        return distribution(ParticleRandomEngine());
+    }
+
+    float Saturate(float value)
+    {
+        return (std::max)(0.0f, (std::min)(1.0f, value));
+    }
+
+    XMFLOAT3 Lerp3(const XMFLOAT3& a, const XMFLOAT3& b, float t)
+    {
+        return XMFLOAT3(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, a.z + (b.z - a.z) * t);
+    }
+
+    XMFLOAT2 Lerp2(const XMFLOAT2& a, const XMFLOAT2& b, float t)
+    {
+        return XMFLOAT2(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t);
+    }
+}
+
+CParticleSystem::CParticleSystem(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList*, int nMaxParticles)
+    : m_xmf3Position(0.0f, 0.0f, 0.0f)
+    , m_nMaxParticles((std::max)(1, nMaxParticles))
+    , m_nActiveParticles(0)
+{
     m_vCpuParticles.resize(m_nMaxParticles);
-    m_xmf3Position = XMFLOAT3(0, 0, 0);
     XMStoreFloat4x4(&m_xmf4x4World, XMMatrixIdentity());
 
-    UINT nStride = sizeof(VS_VB_INSTANCE_PARTICLE);
-    UINT nBufferSize = nStride * m_nMaxParticles;
+    UINT stride = sizeof(VS_VB_INSTANCE_PARTICLE);
+    UINT bufferSize = stride * m_nMaxParticles;
+    D3D12_HEAP_PROPERTIES heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+    D3D12_RESOURCE_DESC resourceDescription = CD3DX12_RESOURCE_DESC::Buffer(bufferSize);
 
-    D3D12_HEAP_PROPERTIES heapProp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
-    D3D12_RESOURCE_DESC resDesc = CD3DX12_RESOURCE_DESC::Buffer(nBufferSize);
+    if (pd3dDevice)
+    {
+        pd3dDevice->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_NONE, &resourceDescription, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&m_pd3dVertexBuffer));
+    }
 
-    pd3dDevice->CreateCommittedResource(&heapProp, D3D12_HEAP_FLAG_NONE,
-        &resDesc, D3D12_RESOURCE_STATE_GENERIC_READ, NULL, IID_PPV_ARGS(&m_pd3dVertexBuffer));
-
-    m_pd3dVertexBuffer->Map(0, NULL, (void**)&m_pMappedParticles);
-
-    m_d3dVertexBufferView.BufferLocation = m_pd3dVertexBuffer->GetGPUVirtualAddress();
-    m_d3dVertexBufferView.StrideInBytes = nStride;
-    m_d3dVertexBufferView.SizeInBytes = nBufferSize;
+    if (m_pd3dVertexBuffer)
+    {
+        m_pd3dVertexBuffer->Map(0, nullptr, reinterpret_cast<void**>(&m_pMappedParticles));
+        m_d3dVertexBufferView.BufferLocation = m_pd3dVertexBuffer->GetGPUVirtualAddress();
+        m_d3dVertexBufferView.StrideInBytes = stride;
+        m_d3dVertexBufferView.SizeInBytes = bufferSize;
+    }
 }
 
 CParticleSystem::~CParticleSystem()
 {
     if (m_pd3dVertexBuffer)
     {
-        m_pd3dVertexBuffer->Unmap(0, NULL);
+        m_pd3dVertexBuffer->Unmap(0, nullptr);
         m_pd3dVertexBuffer->Release();
+        m_pd3dVertexBuffer = nullptr;
     }
 }
 
-void CParticleSystem::ResetParticles(const XMFLOAT2& size, const ParticleConfig& config, float fSpreadRange, const XMFLOAT3& color)
+XMFLOAT3 CParticleSystem::CreateSpawnPosition(const ParticleConfig& config, float spreadRange)
 {
-    static std::mt19937 dre(std::random_device{}());
-    std::uniform_real_distribution<float> urdDir(-1.0f, 1.0f);
-    std::uniform_real_distribution<float> urdSpeed(10.0f, 50.0f);
-    std::uniform_real_distribution<float> urdLife(0.5f, 1.5f);
-    std::uniform_real_distribution<float> urdPos(-fSpreadRange, fSpreadRange); 
+    XMFLOAT3 extents = config.spawnExtents;
+    if (spreadRange > 0.0f) extents = XMFLOAT3(spreadRange, spreadRange * 0.5f, spreadRange);
 
+    if (config.spawnShape == ParticleSpawnShape::POINT) return XMFLOAT3(0.0f, 0.0f, 0.0f);
+
+    if (config.spawnShape == ParticleSpawnShape::BOX)
+    {
+        return XMFLOAT3(RandomFloat(-extents.x, extents.x), RandomFloat(-extents.y, extents.y), RandomFloat(-extents.z, extents.z));
+    }
+
+    if (config.spawnShape == ParticleSpawnShape::CIRCLE)
+    {
+        float angle = RandomFloat(0.0f, XM_2PI);
+        float radius = std::sqrt(RandomFloat(0.0f, 1.0f)) * (std::max)(extents.x, extents.z);
+
+        return XMFLOAT3(std::cos(angle) * radius, 0.0f, std::sin(angle) * radius);
+    }
+
+    XMFLOAT3 direction(RandomFloat(-1.0f, 1.0f), RandomFloat(-1.0f, 1.0f), RandomFloat(-1.0f, 1.0f));
+    XMVECTOR vector = XMLoadFloat3(&direction);
+    if (XMVectorGetX(XMVector3LengthSq(vector)) < 0.000001f) vector = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+    vector = XMVector3Normalize(vector) * std::cbrt(RandomFloat(0.0f, 1.0f));
+    XMFLOAT3 normalized;
+    XMStoreFloat3(&normalized, vector);
+    return XMFLOAT3(normalized.x * extents.x, normalized.y * extents.y, normalized.z * extents.z);
+}
+
+XMFLOAT3 CParticleSystem::CreateVelocity(const ParticleConfig& config)
+{
+    XMFLOAT3 randomDirection(RandomFloat(-1.0f, 1.0f), RandomFloat(-1.0f, 1.0f), RandomFloat(-1.0f, 1.0f));
+    XMVECTOR direction = XMLoadFloat3(&config.direction) + XMLoadFloat3(&randomDirection);
+    if (XMVectorGetX(XMVector3LengthSq(direction)) < 0.000001f) direction = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+    direction = XMVector3Normalize(direction) * RandomFloat(config.minSpeed, config.maxSpeed);
+    XMFLOAT3 velocity;
+    XMStoreFloat3(&velocity, direction);
+    return velocity;
+}
+
+void CParticleSystem::InitializeParticle(ParticleCPUData& particle, const XMFLOAT2& size, const XMFLOAT3& color, const ParticleConfig& config, float spreadRange)
+{
+    particle.m_bIsActive = true;
+    particle.m_fAge = 0.0f;
+    particle.m_fLifeTime = (std::max)(0.001f, RandomFloat(config.minLifeTime, config.maxLifeTime));
+    particle.m_xmf3Position = CreateSpawnPosition(config, spreadRange);
+    particle.m_xmf3Velocity = CreateVelocity(config);
+    particle.m_xmf3Color = color;
+    particle.m_xmf2StartSize = XMFLOAT2(size.x * config.startSize.x, size.y * config.startSize.y);
+    particle.m_xmf2EndSize = XMFLOAT2(size.x * config.endSize.x, size.y * config.endSize.y);
+    particle.m_fOrbitAngle = RandomFloat(0.0f, XM_2PI);
+    particle.m_fOrbitRadius = config.orbitRadius;
+    particle.m_fOrbitSpeed = config.orbitSpeed;
+}
+
+void CParticleSystem::ResetParticles(const XMFLOAT2& size, const ParticleConfig& config, float spreadRange, const XMFLOAT3& color)
+{
+    m_LastConfig = config;
+    m_xmf2BaseSize = size;
+    m_xmf3BaseColor = color;
+    m_fSpreadRange = spreadRange;
     m_nActiveParticles = 0;
 
-    m_xmf3BaseColor = color;
-
-    for (int i = 0; i < m_nMaxParticles; ++i)
+    for (ParticleCPUData& particle : m_vCpuParticles)
     {
-        m_vCpuParticles[i].m_bIsActive = true;
-        m_vCpuParticles[i].m_xmf3Color = color;
-        m_vCpuParticles[i].m_fAge = 0.0f;
-        m_vCpuParticles[i].m_fLifeTime = urdLife(dre);
-
-        m_vCpuParticles[i].m_xmf3Position = XMFLOAT3(
-            urdPos(dre),
-            urdPos(dre) * 0.5f,
-            urdPos(dre)
-        );
-
-        m_vCpuParticles[i].m_xmf2MaxSize = XMFLOAT2(size); //
-
-        XMFLOAT3 randomDir = XMFLOAT3(urdDir(dre), urdDir(dre), urdDir(dre));
-
-        XMVECTOR vDir = XMLoadFloat3(&randomDir);
-        vDir = XMVector3Normalize(vDir);
-        vDir *= urdSpeed(dre);
-
-        XMStoreFloat3(&m_vCpuParticles[i].m_xmf3Velocity, vDir);
+        InitializeParticle(particle, size, color, config, spreadRange);
     }
 
     UpdateByMotion(0.0f, config);
 }
 
-void CParticleSystem::Render(ID3D12GraphicsCommandList* pd3dCommandList)
+void CParticleSystem::ResetLockOrbit(const XMFLOAT2& size, const XMFLOAT3& color, const ParticleConfig& config)
 {
-    if (0 == m_nActiveParticles) return;
+    ParticleConfig orbitConfig = config;
+    orbitConfig.motion = ParticleMotion::ORBIT;
+    orbitConfig.spawnShape = ParticleSpawnShape::POINT;
+    orbitConfig.startSize = XMFLOAT2(1.0f, 1.0f);
+    orbitConfig.endSize = XMFLOAT2(1.0f, 1.0f);
+    orbitConfig.minLifeTime = (std::max)(orbitConfig.minLifeTime, 999999.0f);
+    orbitConfig.maxLifeTime = orbitConfig.minLifeTime;
+    ResetParticles(size, orbitConfig, 0.0f, color);
 
-    XMFLOAT4X4 xmf4x4World;
-    XMMATRIX mWorld = XMMatrixTranslation(m_xmf3Position.x, m_xmf3Position.y, m_xmf3Position.z);
+    int count = (std::max)(1, m_nMaxParticles);
+    for (int index = 0; index < count; ++index)
+    {
+        ParticleCPUData& particle = m_vCpuParticles[index];
+        particle.m_fOrbitAngle = XM_2PI * static_cast<float>(index) / static_cast<float>(count);
+        particle.m_fOrbitRadius = orbitConfig.orbitRadius;
+        particle.m_fOrbitSpeed = orbitConfig.orbitSpeed;
+    }
 
-    XMStoreFloat4x4(&xmf4x4World, XMMatrixTranspose(mWorld));
+    UpdateByMotion(0.0f, orbitConfig);
+}
 
-    pd3dCommandList->SetGraphicsRoot32BitConstants(2, 16, &xmf4x4World, 0);
+void CParticleSystem::EmitParticles(const ParticleConfig& config)
+{
+    int remaining = (std::max)(0, config.emissionCount);
+    for (ParticleCPUData& particle : m_vCpuParticles)
+    {
+        if (remaining == 0) break;
+        if (particle.m_bIsActive) continue;
+        InitializeParticle(particle, m_xmf2BaseSize, m_xmf3BaseColor, config, m_fSpreadRange);
+        --remaining;
+    }
+}
 
-    pd3dCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_POINTLIST);
-    pd3dCommandList->IASetVertexBuffers(0, 1, &m_d3dVertexBufferView);
-    pd3dCommandList->DrawInstanced(m_nActiveParticles, 1, 0, 0);
+void CParticleSystem::WriteParticleToGpu(const ParticleCPUData& particle, const ParticleConfig& config)
+{
+    if (!m_pMappedParticles || m_nActiveParticles >= m_nMaxParticles) return;
+    float ratio = Saturate(particle.m_fAge / (std::max)(0.001f, particle.m_fLifeTime));
+    XMFLOAT2 size = Lerp2(particle.m_xmf2StartSize, particle.m_xmf2EndSize, ratio);
+    if (!config.shrink) size = particle.m_xmf2StartSize;
+    XMFLOAT3 color = Lerp3(config.startColor, config.endColor, ratio);
+    color.x *= particle.m_xmf3Color.x;
+    color.y *= particle.m_xmf3Color.y;
+    color.z *= particle.m_xmf3Color.z;
+    m_pMappedParticles[m_nActiveParticles].m_xmf3Position = particle.m_xmf3Position;
+    m_pMappedParticles[m_nActiveParticles].m_xmf2Size = size;
+    m_pMappedParticles[m_nActiveParticles].m_xmf3Color = color;
+    ++m_nActiveParticles;
 }
 
 void CParticleSystem::UpdateByMotion(float fTimeElapsed, const ParticleConfig& config)
 {
+    m_LastConfig = config;
+    if (config.motion == ParticleMotion::EMITTER) EmitParticles(config);
     m_nActiveParticles = 0;
 
-    if (config.motion == ParticleMotion::BOOSTER)
+    for (ParticleCPUData& particle : m_vCpuParticles)
     {
-        int nParticlesToEmit = 5;
+        if (!particle.m_bIsActive) continue;
+        particle.m_fAge += fTimeElapsed;
 
-        for (int i = 0; i < m_nMaxParticles; i++)
+        if (config.motion != ParticleMotion::ORBIT && particle.m_fAge >= particle.m_fLifeTime)
         {
-            if (m_vCpuParticles[i].m_bIsActive)
-            {
-                m_vCpuParticles[i].m_fAge += fTimeElapsed;
-                if (m_vCpuParticles[i].m_fAge > m_vCpuParticles[i].m_fLifeTime)
-                {
-                    m_vCpuParticles[i].m_bIsActive = false;
-                    continue;
-                }
-
-                m_vCpuParticles[i].m_xmf3Position.x += m_vCpuParticles[i].m_xmf3Velocity.x * fTimeElapsed;
-                m_vCpuParticles[i].m_xmf3Position.y += m_vCpuParticles[i].m_xmf3Velocity.y * fTimeElapsed;
-                m_vCpuParticles[i].m_xmf3Position.z += m_vCpuParticles[i].m_xmf3Velocity.z * fTimeElapsed;
-            }
-            else if (nParticlesToEmit > 0)
-            {
-                m_vCpuParticles[i].m_bIsActive = true;
-                m_vCpuParticles[i].m_fAge = 0.0f;
-                m_vCpuParticles[i].m_fLifeTime = 0.5f;
-
-                float fRandX = ((float)(rand() % 100) / 50.0f) - 1.0f;
-                float fRandY = ((float)(rand() % 100) / 50.0f) - 1.0f;
-                m_vCpuParticles[i].m_xmf3Position = XMFLOAT3(fRandX * 0.5f, fRandY * 0.5f, 0.0f);
-
-                float speed = 20.0f + (rand() % 10);
-                m_vCpuParticles[i].m_xmf3Velocity = XMFLOAT3(0.0f, 0.0f, -speed);
-
-                m_vCpuParticles[i].m_xmf2MaxSize = XMFLOAT2(10.5f, 20.5f);
-
-                nParticlesToEmit--;
-            }
-
-            if (m_vCpuParticles[i].m_bIsActive)
-            {
-                float fLifeRatio = m_vCpuParticles[i].m_fAge / m_vCpuParticles[i].m_fLifeTime;
-                float fScale = 1.0f - fLifeRatio;
-                if (fScale < 0.0f) fScale = 0.0f;
-
-                m_pMappedParticles[m_nActiveParticles].m_xmf3Position = m_vCpuParticles[i].m_xmf3Position;
-                m_pMappedParticles[m_nActiveParticles].m_xmf2Size.x = m_vCpuParticles[i].m_xmf2MaxSize.x * fScale;
-                m_pMappedParticles[m_nActiveParticles].m_xmf2Size.y = m_vCpuParticles[i].m_xmf2MaxSize.y * fScale;
-                m_pMappedParticles[m_nActiveParticles].m_xmf3Color = m_vCpuParticles[i].m_xmf3Color;
-
-                m_nActiveParticles++;
-            }
-        }
-
-        return;
-    }
-
-    for (int i = 0; i < m_nMaxParticles; ++i)
-    {
-        if (!m_vCpuParticles[i].m_bIsActive) continue;
-
-        m_vCpuParticles[i].m_fAge += fTimeElapsed;
-
-        if (config.motion != ParticleMotion::ORBIT &&
-            m_vCpuParticles[i].m_fAge > m_vCpuParticles[i].m_fLifeTime)
-        {
-            m_vCpuParticles[i].m_bIsActive = false;
+            particle.m_bIsActive = false;
             continue;
         }
 
         if (config.motion == ParticleMotion::ORBIT)
         {
-            const float fHeight = 35.0f;
-            float angle = m_vCpuParticles[i].m_xmf3Velocity.x;
-            float angularSpeed = m_vCpuParticles[i].m_xmf3Velocity.y;
-            float radius = m_vCpuParticles[i].m_xmf3Velocity.z;
-
-            angle += angularSpeed * fTimeElapsed;
-
-            m_vCpuParticles[i].m_xmf3Velocity.x = angle;
-            m_vCpuParticles[i].m_xmf3Position.x = cosf(angle) * radius;
-            m_vCpuParticles[i].m_xmf3Position.y = fHeight;
-            m_vCpuParticles[i].m_xmf3Position.z = -sinf(angle) * radius;
+            particle.m_fOrbitAngle += particle.m_fOrbitSpeed * fTimeElapsed;
+            particle.m_xmf3Position.x = std::cos(particle.m_fOrbitAngle) * particle.m_fOrbitRadius;
+            particle.m_xmf3Position.y = config.orbitHeight;
+            particle.m_xmf3Position.z = -std::sin(particle.m_fOrbitAngle) * particle.m_fOrbitRadius;
         }
         else
         {
-            m_vCpuParticles[i].m_xmf3Velocity.y += config.gravity * fTimeElapsed;
-
-            if (config.moveX && (config.motion != ParticleMotion::DUST || config.useSpread))
-                m_vCpuParticles[i].m_xmf3Position.x += m_vCpuParticles[i].m_xmf3Velocity.x * fTimeElapsed;
-            if (config.moveY)
-                m_vCpuParticles[i].m_xmf3Position.y += m_vCpuParticles[i].m_xmf3Velocity.y * fTimeElapsed;
-            if (config.moveZ && config.motion != ParticleMotion::DUST)
-                m_vCpuParticles[i].m_xmf3Position.z += m_vCpuParticles[i].m_xmf3Velocity.z * fTimeElapsed;
+            XMFLOAT3 acceleration = config.acceleration;
+            acceleration.y += config.gravity - config.acceleration.y;
+            particle.m_xmf3Velocity.x += acceleration.x * fTimeElapsed;
+            particle.m_xmf3Velocity.y += acceleration.y * fTimeElapsed;
+            particle.m_xmf3Velocity.z += acceleration.z * fTimeElapsed;
+            if (config.moveX) particle.m_xmf3Position.x += particle.m_xmf3Velocity.x * fTimeElapsed;
+            if (config.moveY) particle.m_xmf3Position.y += particle.m_xmf3Velocity.y * fTimeElapsed;
+            if (config.moveZ) particle.m_xmf3Position.z += particle.m_xmf3Velocity.z * fTimeElapsed;
         }
 
-        float fScale = 1.0f;
-
-        if (config.shrink)
-        {
-          
-            float fLifeRatio = m_vCpuParticles[i].m_fAge / m_vCpuParticles[i].m_fLifeTime;
-            // float fScale = 1.0f - fLifeRatio; // 1 -> 0
-            fScale = 1.0f - fLifeRatio;
-            if (fScale < 0.0f) fScale = 0.0f;
-        }
-
-        XMFLOAT2 currentSize;
-        currentSize.x = m_vCpuParticles[i].m_xmf2MaxSize.x * fScale;
-        currentSize.y = m_vCpuParticles[i].m_xmf2MaxSize.y * fScale;
-
-        // GPU 
-        m_pMappedParticles[m_nActiveParticles].m_xmf3Position = m_vCpuParticles[i].m_xmf3Position;
-        m_pMappedParticles[m_nActiveParticles].m_xmf2Size = currentSize;
-        m_pMappedParticles[m_nActiveParticles].m_xmf3Color = m_vCpuParticles[i].m_xmf3Color;
-
-        m_nActiveParticles++;
+        WriteParticleToGpu(particle, config);
     }
 }
 
-void CParticleSystem::ResetLockOrbit(const XMFLOAT2& size, const XMFLOAT3& color, const ParticleConfig& config)
+void CParticleSystem::Render(ID3D12GraphicsCommandList* pd3dCommandList)
 {
-    m_nActiveParticles = 0;
-    m_xmf3BaseColor = color;
-
-    const float fRadius = 45.0f;
-    const float fHeight = 35.0f;
-    const float fAngularSpeed = XM_2PI * 0.8f;
-
-    for (int i = 0; i < m_nMaxParticles; ++i)
-    {
-        float angle = XM_2PI * ((float)i / (float)m_nMaxParticles);
-
-        m_vCpuParticles[i].m_bIsActive = true;
-        m_vCpuParticles[i].m_xmf3Color = color;
-        m_vCpuParticles[i].m_fAge = 0.0f;
-        m_vCpuParticles[i].m_fLifeTime = 9999.0f;
-
-        m_vCpuParticles[i].m_xmf3Velocity = XMFLOAT3(angle, fAngularSpeed, fRadius);
-
-        m_vCpuParticles[i].m_xmf2MaxSize = size;
-
-        m_vCpuParticles[i].m_xmf3Position = XMFLOAT3(
-            cosf(angle) * fRadius,
-            fHeight,
-            -sinf(angle) * fRadius
-        );
-    }
-
-    UpdateByMotion(0.0f, config);
+    if (!pd3dCommandList || !m_pd3dVertexBuffer || m_nActiveParticles == 0) return;
+    XMFLOAT4X4 world;
+    XMStoreFloat4x4(&world, XMMatrixTranspose(XMMatrixTranslation(m_xmf3Position.x, m_xmf3Position.y, m_xmf3Position.z)));
+    pd3dCommandList->SetGraphicsRoot32BitConstants(2, 16, &world, 0);
+    pd3dCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_POINTLIST);
+    pd3dCommandList->IASetVertexBuffers(0, 1, &m_d3dVertexBufferView);
+    pd3dCommandList->DrawInstanced(m_nActiveParticles, 1, 0, 0);
 }
 
 void CParticleSystem::Clear()
 {
+    for (ParticleCPUData& particle : m_vCpuParticles) particle.m_bIsActive = false;
     m_nActiveParticles = 0;
-
-    for (int i = 0; i < m_nMaxParticles; ++i) {
-        m_vCpuParticles[i].m_bIsActive = false;
-        m_vCpuParticles[i].m_fAge = 0.f;
-    }
 }

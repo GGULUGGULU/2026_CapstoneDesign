@@ -5,6 +5,7 @@
 #include <queue>
 #include <string>
 #include <memory>
+#include <unordered_map>
 
 #include <DirectxMath.h>
 #include "DDSTextureLoader12.h"
@@ -19,29 +20,30 @@ class CMeshEffect;
 
 enum class EFFECT_TYPE
 {
-	COLLISION, // 
-	DUST, // 
-	ITEM1, //  
-	ITEM2, //  
-	ITEM3, //  
-	ITEM4, //  
-	ITEM5, //  
-	ITEM6, //  
-	ITEM7, //  
-	ITEM8, //  
-	ITEM9, //  
+	COLLISION,
+	DUST,
+	ITEM1,
+	ITEM2,
+	ITEM3,
+	ITEM4,
+	ITEM5,
+	ITEM6,
+	ITEM7,
+	ITEM8,
+	ITEM9,
 
-	ITEM10, 
-	ITEM11,  
+	ITEM10,
+	ITEM11,
 
-	BOOSTER, 
+
+	BOOSTER,
 	WIND_EFFECT,
 	SPEED_LINE,
 	LOCK_ORBIT,
 	DRIFT_SPARK_LEFT,
-	DRIFT_SPARK_RIGHT, 
+	DRIFT_SPARK_RIGHT,
 	BANANA_SPIN,
-	COUNT, 
+	COUNT,
 };
 
 struct ActiveEffect {
@@ -96,6 +98,7 @@ struct EffectTypeConfig {
 	bool loop;
 	bool useDepth;
 	ParticleConfig particleConfig;
+	std::wstring textureFile;
 
 	EffectTypeConfig()
 		: poolSize(50)
@@ -179,6 +182,13 @@ public:
 	void SetEffectLifeTime(EFFECT_TYPE type, float lifeTime);
 	void SetEffectTextureFileName(EFFECT_TYPE type, const std::wstring& fileName);
 
+	bool RegisterEffect(const std::string& name, EFFECT_TYPE sourceType, const EffectTypeConfig& config);
+	bool UnregisterEffect(const std::string& name);
+	bool HasEffect(const std::string& name) const;
+	EffectTypeConfig* GetEffectConfig(const std::string& name);
+	const EffectTypeConfig* GetEffectConfig(const std::string& name) const;
+	ActiveEffect* Play(const std::string& name, XMFLOAT3 position, XMFLOAT2 size, XMFLOAT3 color = XMFLOAT3(1.0f, 1.0f, 1.0f));
+
 	void SetBoosterMeshConfig(const EffectMeshConfig& config);
 	void SetWindMeshConfig(const EffectMeshConfig& config);
 	void SetBoosterTextureFiles(const std::vector<std::wstring>& textureFiles);
@@ -231,9 +241,9 @@ private:
 
 	std::wstring m_TextureFileNames[(int)EFFECT_TYPE::COUNT] = {
 		L"Asset/DDS_File/WhiteStar1.dds",
-		/////////////////////////////////////////////////
+
 		L"Asset/DDS_File/Dust.dds",
-		/////////////////////////////////////////////////
+
 		L"Asset/DDS_File/LongPinkRibbon.dds",
 		L"Asset/DDS_File/LongRedRibbon.dds",
 		L"Asset/DDS_File/LongYellowRibbon.dds",
@@ -243,10 +253,10 @@ private:
 		L"Asset/DDS_File/ShortYellowRibbon.dds",
 		L"Asset/DDS_File/YellowCircle.dds",
 		L"Asset/DDS_File/YellowTriangle.dds",
-		/////////////////////////////////////////////////
+
 		L"Asset/DDS_File/BurstCore.dds",
 		L"Asset/DDS_File/ShockRing.dds",
-		/////////////////////////////////////////////////
+
 		L"Asset/DDS_File/Booster.dds",
 		L"Asset/DDS_File/WindShield.dds",
 		L"Asset/DDS_File/SpeedLine1.dds",
@@ -261,8 +271,8 @@ private:
 	ID3D12RootSignature* m_pRootSignature = nullptr;
 	ID3D12PipelineState* m_pPipelineState = nullptr;
 	ID3D12PipelineState* m_pMeshEffectPSO = nullptr;
-	ID3D12PipelineState* m_pParticleDepthPSO = nullptr; // 
-	ID3D12PipelineState* m_pBoosterPSO = nullptr; // 
+	ID3D12PipelineState* m_pParticleDepthPSO = nullptr;
+	ID3D12PipelineState* m_pBoosterPSO = nullptr;
 
 
 	void BuildRootSignature(ID3D12Device* pd3dDevice);
@@ -296,8 +306,8 @@ private:
 	void RenderParticleEffect(ID3D12GraphicsCommandList* pd3dCommandList, ActiveEffect* eff, int& currentPsoType, ID3D12DescriptorHeap** ppParticleHeap);
 	void RenderMeshEffect(ID3D12GraphicsCommandList* pd3dCommandList, ActiveEffect* eff, int& currentPsoType);
 
-	//ActiveEffect* m_pBoosterEffect = nullptr;
-	//ActiveEffect* m_pWindShieldEffect = nullptr;
+
+
 
 	ActiveEffect* m_pLocalBoosterEffect = nullptr;
 	ActiveEffect* m_pLocalWindShieldEffect = nullptr;
@@ -312,6 +322,14 @@ private:
 	EffectMeshConfig m_BoosterMeshConfig;
 	EffectMeshConfig m_WindMeshConfig;
 	std::queue<EffectEvent> m_qEffectEvents;
+
+	struct RegisteredEffect
+	{
+		EFFECT_TYPE sourceType;
+		EffectTypeConfig config;
+	};
+
+	std::unordered_map<std::string, RegisteredEffect> m_RegisteredEffects;
 
 public:
 	void InitializePostProcess(ID3D12Device* pd3dDevice, int width, int height);
