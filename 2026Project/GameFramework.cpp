@@ -682,13 +682,13 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 					// 맵 왼쪽 버튼 클릭 시
 					if (m_nHoveredButtonIndex == 10) {
 						--m_nSelectedMapIndex;
-						if (m_nSelectedMapIndex < 0) m_nSelectedMapIndex = 1;
+						if (m_nSelectedMapIndex < 0) m_nSelectedMapIndex = 2;
 						changed = true;
 					}
 					// 맵 오른쪽 버튼 클릭 시
 					else if (m_nHoveredButtonIndex == 11) {
 						++m_nSelectedMapIndex;
-						if (m_nSelectedMapIndex > 1) m_nSelectedMapIndex = 0;
+						if (m_nSelectedMapIndex > 2) m_nSelectedMapIndex = 0;
 						changed = true;
 					}
 				}
@@ -955,6 +955,11 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 			break;
 		case 'S':
 			m_pPlayer->SetVelocity(XMFLOAT3(0, 0, 0));
+			break;
+		case 'O':
+			WCHAR szDebug[256];
+			swprintf_s(szDebug, L"x: %f, y: %f, z: %f\n", m_pPlayer->GetPosition().x, m_pPlayer->GetPosition().y, m_pPlayer->GetPosition().z);
+			OutputDebugStringW(szDebug);
 			break;
 
 		case 'P':
@@ -1789,6 +1794,10 @@ void CGameFramework::BuildGameObjects()
 		}
 		else if (1 == m_nSelectedMapIndex) {
 			m_pScene->m_nCurrentMapStage = 1;
+			m_pScene->BuildGameStage2(m_pd3dDevice, m_pd3dCommandList);
+		}
+		else if (2 == m_nSelectedMapIndex) {
+			m_pScene->m_nCurrentMapStage = 2;
 			m_pScene->BuildGameStage3(m_pd3dDevice, m_pd3dCommandList);
 		}
 	}
@@ -1890,7 +1899,6 @@ void CGameFramework::BuildGameObjects()
 	}
 	m_bRaceStarted = !m_bMultiplayerEnabled;
 
-
 	m_SoundManager.StopBGM();
 
 	if (m_nSelectedMapIndex == 0)
@@ -1900,13 +1908,13 @@ void CGameFramework::BuildGameObjects()
 	else if (m_nSelectedMapIndex == 1)
 	{
 		m_SoundManager.PlayBGM("Asset/Audio/CutlassDash.mp3");
-	}m_GameTimer.Reset();
-
-
+	}
+	m_GameTimer.Reset();
 	m_SoundManager.SetBGMVolume(m_fBGMVolume);
 
 	//pCarPlayer->SetPosition(XMFLOAT3(-2700, 0, -3400));
-	pCarPlayer->SetPosition(XMFLOAT3(-3370,-80,-1369));
+	//pCarPlayer->SetPosition(XMFLOAT3(-3370,-80,-1369));
+	pCarPlayer->Rotate(0, 90, 0);
 }
 
 float CGameFramework::GetPlayerEffectiveMaxSpeed() const
@@ -2387,11 +2395,9 @@ void CGameFramework::CollisionProcess()
 				float attackerBouncePower = localSpeed * 0.25f;
 				float victimBouncePower = localSpeed * 0.90f;
 
-				XMFLOAT3 localBounceVel =
-					Vector3::ScalarProduct(pushDir, attackerBouncePower, false);
+				XMFLOAT3 localBounceVel = Vector3::ScalarProduct(pushDir, attackerBouncePower, false);
 
-				XMFLOAT3 remoteBounceVel =
-					Vector3::ScalarProduct(pushDir, -victimBouncePower, false);
+				XMFLOAT3 remoteBounceVel = Vector3::ScalarProduct(pushDir, -victimBouncePower, false);
 
 				m_pPlayer->SetVelocity(localBounceVel);
 				pTargetPlayer->SetVelocity(remoteBounceVel);
@@ -2456,13 +2462,7 @@ void CGameFramework::CollisionProcess()
 
 			if (currentVel.y != 0.0f)
 			{
-				m_pPlayer->SetVelocity(
-					XMFLOAT3(
-						currentVel.x,
-						0.0f,
-						currentVel.z
-					)
-				);
+				m_pPlayer->SetVelocity(XMFLOAT3(currentVel.x, 0.0f, currentVel.z));
 			}
 
 			m_nJumpCount = 0;
@@ -2583,6 +2583,91 @@ void CGameFramework::CollisionProcess()
 				m_pPlayer->SetTiltLookVector(vNewTiltLook);
 			}
 		}
+
+		for (auto& info : m_vRemotePlayers)
+		{
+			if (info.playerID == -1 || !info.pPlayer || !info.pPlayer->m_bIsActive || info.bananaSpinning)
+				continue;
+
+			float fTimeElapsed = m_GameTimer.GetTimeElapsed();
+
+			XMFLOAT3 f3Pos = info.pPlayer->GetPosition();
+			XMVECTOR vPos = XMLoadFloat3(&f3Pos);
+
+			XMVECTOR vLogicalLook = XMLoadFloat3(&info.pPlayer->GetLookVector());
+			vLogicalLook = XMVector3Normalize(XMVectorSetY(vLogicalLook, 0.0f));
+			XMVECTOR vLogicalRight = XMVector3Normalize(XMVector3Cross(XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), vLogicalLook));
+
+			float fOffset = 8.0f;
+			XMVECTOR vRayDir = XMVectorSet(0.0f, -1.0f, 0.0f, 0.0f);
+			XMVECTOR vFrontOrigin = vPos + (vLogicalLook * fOffset) + XMVectorSet(0.0f, 20.0f, 0.0f, 0.0f);
+			XMVECTOR vBackOrigin = vPos - (vLogicalLook * fOffset) + XMVectorSet(0.0f, 20.0f, 0.0f, 0.0f);
+			XMVECTOR vRightOrigin = vPos + (vLogicalRight * fOffset) + XMVectorSet(0.0f, 20.0f, 0.0f, 0.0f);
+			XMVECTOR vLeftOrigin = vPos - (vLogicalRight * fOffset) + XMVectorSet(0.0f, 20.0f, 0.0f, 0.0f);
+
+			float fYFront = f3Pos.y, fYBack = f3Pos.y, fYRight = f3Pos.y, fYLeft = f3Pos.y;
+			float bestT = FLT_MAX;
+			XMVECTOR vDummyNormal;
+
+			if (m_pScene && m_pScene->m_ppGameObjects && m_pScene->m_ppGameObjects[0])
+			{
+				CGameObject* pMap = m_pScene->m_ppGameObjects[0];
+				bestT = FLT_MAX; m_pScene->RaycastDownRecursive(pMap, vFrontOrigin, vFrontOrigin + vRayDir * 100.0f, vRayDir, 100.0f, bestT, fYFront, vDummyNormal);
+				bestT = FLT_MAX; m_pScene->RaycastDownRecursive(pMap, vBackOrigin, vBackOrigin + vRayDir * 100.0f, vRayDir, 100.0f, bestT, fYBack, vDummyNormal);
+				bestT = FLT_MAX; m_pScene->RaycastDownRecursive(pMap, vRightOrigin, vRightOrigin + vRayDir * 100.0f, vRayDir, 100.0f, bestT, fYRight, vDummyNormal);
+				bestT = FLT_MAX; m_pScene->RaycastDownRecursive(pMap, vLeftOrigin, vLeftOrigin + vRayDir * 100.0f, vRayDir, 100.0f, bestT, fYLeft, vDummyNormal);
+			}
+
+			float fCenterY = (fYFront + fYBack + fYRight + fYLeft) * 0.25f;
+			bool bRemoteOnGround = (f3Pos.y - fCenterY) < 15.0f;
+
+			if (bRemoteOnGround)
+			{
+				XMVECTOR vHitFront = XMVectorSet(XMVectorGetX(vFrontOrigin), fYFront, XMVectorGetZ(vFrontOrigin), 1.0f);
+				XMVECTOR vHitBack = XMVectorSet(XMVectorGetX(vBackOrigin), fYBack, XMVectorGetZ(vBackOrigin), 1.0f);
+				XMVECTOR vHitRight = XMVectorSet(XMVectorGetX(vRightOrigin), fYRight, XMVectorGetZ(vRightOrigin), 1.0f);
+				XMVECTOR vHitLeft = XMVectorSet(XMVectorGetX(vLeftOrigin), fYLeft, XMVectorGetZ(vLeftOrigin), 1.0f);
+
+				XMVECTOR vDirZ = XMVector3Normalize(vHitFront - vHitBack);
+				XMVECTOR vDirX = XMVector3Normalize(vHitRight - vHitLeft);
+				XMVECTOR vTerrainNormal = XMVector3Normalize(XMVector3Cross(vDirZ, vDirX));
+
+				if (XMVectorGetX(XMVector3LengthSq(vTerrainNormal)) < 0.1f)
+					vTerrainNormal = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+
+				XMVECTOR vCurrentTiltUp = XMLoadFloat3(&info.pPlayer->GetTiltUpVector());
+				float fRotationSpeed = 8.0f * fTimeElapsed;
+				if (fRotationSpeed > 1.0f) fRotationSpeed = 1.0f;
+
+				XMVECTOR vLerpedUp = XMVector3Normalize(XMVectorLerp(vCurrentTiltUp, vTerrainNormal, fRotationSpeed));
+				XMVECTOR vNewTiltRight = XMVector3Normalize(XMVector3Cross(vLerpedUp, vLogicalLook));
+				XMVECTOR vNewTiltLook = XMVector3Normalize(XMVector3Cross(vNewTiltRight, vLerpedUp));
+
+				info.pPlayer->SetTiltUpVector(vLerpedUp);
+				info.pPlayer->SetTiltRightVector(vNewTiltRight);
+				info.pPlayer->SetTiltLookVector(vNewTiltLook);
+			}
+			else
+			{
+				XMVECTOR vCurrentTiltUp = XMLoadFloat3(&info.pPlayer->GetTiltUpVector());
+				if (XMVectorGetX(XMVector3LengthSq(vCurrentTiltUp)) < 0.1f)
+					vCurrentTiltUp = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+
+				float fRestoreSpeed = 4.0f * fTimeElapsed;
+				if (fRestoreSpeed > 1.0f) fRestoreSpeed = 1.0f;
+
+				XMVECTOR vDefaultUp = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+				XMVECTOR vLerpedUp = XMVector3Normalize(XMVectorLerp(vCurrentTiltUp, vDefaultUp, fRestoreSpeed));
+				XMVECTOR vNewTiltRight = XMVector3Normalize(XMVector3Cross(vLerpedUp, vLogicalLook));
+				XMVECTOR vNewTiltLook = XMVector3Normalize(XMVector3Cross(vNewTiltRight, vLerpedUp));
+
+				info.pPlayer->SetTiltUpVector(vLerpedUp);
+				info.pPlayer->SetTiltRightVector(vNewTiltRight);
+				info.pPlayer->SetTiltLookVector(vNewTiltLook);
+			}
+
+			info.pPlayer->OnPrepareRender();
+		}
 	}
 
 	if (2 == m_nStage && m_pScene->CheckCollision() && !m_bIsStun)
@@ -2623,7 +2708,6 @@ void CGameFramework::CollisionProcess()
 		// 체크포인트
 		if (pCollidedObject->m_bIsCheckPoint) {
 			int hitIndex = pCollidedObject->m_nCheckPointIndex;
-
 			if (hitIndex == m_nPassedCheckPoints + 1) {
 				++m_nPassedCheckPoints;
 
@@ -2710,7 +2794,7 @@ void CGameFramework::CollisionProcess()
 
 			m_pPlayer->SetVelocity(boostVelocity);
 
-			m_fSpeedItemBonus = 400.0f;     
+			m_fSpeedItemBonus = 300.0f;     
 			m_fSpeedItemBonusTime = 1.5f;   
 
 			m_pPlayer->m_fMaxVelocityXZ = GetPlayerEffectiveMaxSpeed();
@@ -3594,7 +3678,7 @@ void CGameFramework::RenderUI()
 			);
 
 			m_d2dDeviceContext->FillEllipse(
-				D2D1::Ellipse(pt, 5, 5),
+				D2D1::Ellipse(pt, 3, 3),
 				m_minimapPlayerBrush.Get()
 			);
 		}
@@ -3608,7 +3692,7 @@ void CGameFramework::RenderUI()
 					);
 
 					m_d2dDeviceContext->FillEllipse(
-						D2D1::Ellipse(remotePt, 5, 5),
+						D2D1::Ellipse(remotePt, 3, 3),
 						m_minimapOtherBrush.Get()
 					);
 				}
@@ -3944,6 +4028,14 @@ void CGameFramework::SetupPlayerTransform(CPlayer* pPlayer, const XMFLOAT3& xmf3
 	if (fabsf(fDeltaYaw) > 0.001f)
 	{
 		pPlayer->Rotate(0.0f, fDeltaYaw, 0.0f);
+
+		XMFLOAT3 look = pPlayer->GetLookVector();
+		XMFLOAT3 right = pPlayer->GetRightVector();
+		XMFLOAT3 up = pPlayer->GetUpVector();
+
+		pPlayer->SetTiltLookVector(XMLoadFloat3(&look));
+		pPlayer->SetTiltRightVector(XMLoadFloat3(&right));
+		pPlayer->SetTiltUpVector(XMLoadFloat3(&up));
 	}
 
 	pPlayer->OnPrepareRender();
@@ -3971,7 +4063,15 @@ void CGameFramework::ApplyMultiplayerSpawn()
 				else if (m_nMyPlayerId == 2) xmf3LocalSpawn = Map2PlayerSpawnPos[1];
 				else if (m_nMyPlayerId == 3)xmf3LocalSpawn = Map2PlayerSpawnPos[2];
 				else if (m_nMyPlayerId == 4) xmf3LocalSpawn = Map2PlayerSpawnPos[3];
-				// 3, 4 번 플레이어 위치 추가해야함
+			}
+		}
+		else if (2 == m_nSelectedMapIndex) {
+			if (m_bMultiplayerEnabled)
+			{
+				if (m_nMyPlayerId == 1) xmf3LocalSpawn = Map3PlayerSpawnPos[0];
+				else if (m_nMyPlayerId == 2) xmf3LocalSpawn = Map3PlayerSpawnPos[1];
+				else if (m_nMyPlayerId == 3)xmf3LocalSpawn = Map3PlayerSpawnPos[2];
+				else if (m_nMyPlayerId == 4) xmf3LocalSpawn = Map3PlayerSpawnPos[3];
 			}
 		}
 
@@ -3981,7 +4081,12 @@ void CGameFramework::ApplyMultiplayerSpawn()
 
 	for (auto& info : m_vRemotePlayers) {
 		if (info.pPlayer) {
-			XMFLOAT3 baseSpawn = (m_nSelectedMapIndex == 0) ? Map1SinglePlayerSpawn : Map2SinglePlayerSpawn;
+			XMFLOAT3 baseSpawn;
+
+			if (m_nSelectedMapIndex == 0) baseSpawn = Map1SinglePlayerSpawn;
+			else if (m_nSelectedMapIndex == 1) baseSpawn = Map2SinglePlayerSpawn;
+			else baseSpawn = Map3SinglePlayerSpawn;
+
 			SetupPlayerTransform(info.pPlayer, baseSpawn, PLAYER_SPAWN_YAW);
 			info.pPlayer->m_bIsActive = false;
 			info.yaw = PLAYER_SPAWN_YAW;
@@ -4053,7 +4158,7 @@ PlayerNetState CGameFramework::BuildLocalPlayerState() const
 		{
 			objectIndex = nextCPIndex + 2;
 		}
-		else if (m_nSelectedMapIndex == 1)
+		else if (m_nSelectedMapIndex != 0)
 		{
 			objectIndex = nextCPIndex + 1;
 		}
@@ -4390,12 +4495,13 @@ void CGameFramework::LoadResultUIResource()
 
 void CGameFramework::LoadMinimapUIResource()
 {
-	const wchar_t* fileNames[2] = {
+	const wchar_t* fileNames[3] = {
 		L"Asset/image/Minimap1.png",
 		L"Asset/image/Minimap2.png",// 추가해야함
+		L"Asset/image/Minimap3.png"// 추가해야함
 	};
 
-	for (int i = 0; i < 2; ++i)
+	for (int i = 0; i < 3; ++i)
 	{
 		m_pMinimapBitmaps[i].Reset();
 		ComPtr<IWICBitmapDecoder> decoder;
@@ -4550,9 +4656,23 @@ D2D1_POINT_2F CGameFramework::WorldToMinimap(
 		worldMinZ = 2600.0f;
 		worldMaxZ = 7820.0f;
 	}
+	else if (2 == m_nSelectedMapIndex) {
+		worldMinX = -6630.f; // 맵 사이즈 맞게 조정 
+		worldMaxX = 330;
+		worldMinZ = -4600;
+		worldMaxZ = 350;
+	}
 
-	float u = (worldPos.x - worldMinX) / (worldMaxX - worldMinX);
-	float v = (worldPos.z - worldMinZ) / (worldMaxZ - worldMinZ);
+	float u, v;
+
+	if (2 == m_nSelectedMapIndex) {
+		u = 1-(worldPos.z - worldMinZ) / (worldMaxZ - worldMinZ);
+		v = (worldPos.x - worldMinX) / (worldMaxX - worldMinX);
+	}
+	else {
+		u = (worldPos.x - worldMinX) / (worldMaxX - worldMinX);
+		v = (worldPos.z - worldMinZ) / (worldMaxZ - worldMinZ);
+	}
 
 	u = max(0.0f, min(1.0f, u));
 	v = max(0.0f, min(1.0f, v));
@@ -4998,11 +5118,8 @@ void CGameFramework::FrameAdvance()
 		ClearRTVDSV(m_pd3dRtvDescriptorHeap, m_pd3dDsvDescriptorHeap, m_pd3dCommandList);
 		SetMainViewport();
 		if (m_nStage != 1) {
-
-
 			if (m_pScene) m_pScene->Render(m_pd3dCommandList, m_pCamera);
 			if (m_pPlayer) m_pPlayer->Render(m_pd3dCommandList, NULL, m_pCamera);
-
 		}
 	}
 
@@ -5308,12 +5425,13 @@ void CGameFramework::LoadCarImages()
 
 void CGameFramework::LoadMapImages()
 {
-	const wchar_t* fileNames[2] = {
+	const wchar_t* fileNames[3] = {
 		L"Asset/image/Map1.png",
-		L"Asset/image/MAp2.png",
+		L"Asset/image/Map2.png",
+		L"Asset/image/Map3.png"
 	};
 
-	for (int i = 0; i < 2; ++i)
+	for (int i = 0; i < 3; ++i)
 	{
 		m_pMapImages[i].Reset();
 		ComPtr<IWICBitmapDecoder> decoder;
@@ -5891,7 +6009,7 @@ int CGameFramework::CalculateCurrentRank()
 			int objectIndex = -1;
 
 			if (m_nSelectedMapIndex == 0) objectIndex = nextCPIndex + 2;
-			else if (m_nSelectedMapIndex == 1) objectIndex = nextCPIndex + 1;
+			else if (m_nSelectedMapIndex != 0) objectIndex = nextCPIndex + 1;
 
 			if (objectIndex != -1 && m_pScene->m_ppGameObjects[objectIndex])
 			{

@@ -329,7 +329,7 @@ private:
 	ComPtr<ID2D1Bitmap> m_pDashVignetteBitmap;
 	ComPtr<ID2D1Bitmap> m_pRoomD2DBitmap;
 	ComPtr<ID2D1Bitmap> m_pCarImages[3];
-	ComPtr<ID2D1Bitmap> m_pMapImages[2];
+	ComPtr<ID2D1Bitmap> m_pMapImages[3];
 	ComPtr<ID2D1Bitmap> m_pReadyImage;
 	ComPtr<ID2D1Bitmap> m_pDashGaugeFrameBitmap;
 
@@ -358,7 +358,7 @@ private:
 	float m_fDriftHoldTime = 0.0f;
 \
 	// // ===== 미니맵
-	ComPtr<ID2D1Bitmap> m_pMinimapBitmaps[2];
+	ComPtr<ID2D1Bitmap> m_pMinimapBitmaps[3];
 
 	ComPtr<ID2D1SolidColorBrush> m_minimapBorderBrush;
 	ComPtr<ID2D1SolidColorBrush> m_minimapPlayerBrush;
@@ -489,8 +489,16 @@ public:
 		{-7360, -2260, 5530}, // 4
 	};
 
+	XMFLOAT3 Map3PlayerSpawnPos[4]{
+		{-3396,-80, -1474}, // 1
+		{-3400,-80,-1402}, // 2
+		{-3408,-80,-1316}, // 3
+		{-3412,-80,-1250}, // 4
+	};
+
 	XMFLOAT3 Map1SinglePlayerSpawn{ -1938.0f, -200.0f, 188.0f };
 	XMFLOAT3 Map2SinglePlayerSpawn{ -7600, -2260, 5530 };
+	XMFLOAT3 Map3SinglePlayerSpawn{ -3396,-80, -1474 };
 	
 	float PLAYER_SPAWN_YAW = 0.0f;
 
