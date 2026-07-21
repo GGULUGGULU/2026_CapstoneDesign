@@ -2353,19 +2353,15 @@ void CGameFramework::CollisionProcess()
 {
 	if (m_bMultiplayerEnabled && m_pPlayer)
 	{
-		BoundingBox localAABB = m_pPlayer->GetCombinedAABB();
-		BoundingBox worldAABB_Local;
-		localAABB.Transform(worldAABB_Local, XMLoadFloat4x4(&m_pPlayer->GetWorldMatrix()));
+		BoundingOrientedBox worldOBB_Local = m_pPlayer->GetWorldOBB();
 
 		for (auto& info : m_vRemotePlayers) {
 			CPlayer* pTargetPlayer = info.pPlayer;
 			if (info.playerID == -1 || !pTargetPlayer || !pTargetPlayer->m_bIsActive) continue;
 
-			BoundingBox remoteAABB = pTargetPlayer->GetCombinedAABB();
-			BoundingBox worldAABB_Remote;
-			remoteAABB.Transform(worldAABB_Remote, XMLoadFloat4x4(&pTargetPlayer->GetWorldMatrix()));
+			BoundingOrientedBox worldOBB_Remote = pTargetPlayer->GetWorldOBB();
 
-			if (worldAABB_Local.Intersects(worldAABB_Remote))
+			if (worldOBB_Local.Intersects(worldOBB_Remote))
 			{
 				XMFLOAT3 localPos = m_pPlayer->GetPosition();
 				XMFLOAT3 remotePos = pTargetPlayer->GetPosition();
