@@ -1379,8 +1379,7 @@ void CGameFramework::ProcessInputGameStage()
 	m_bIsDrifting =
 		(bDriftKeyDown &&
 			bHasDriveInput &&
-			(bLeft || bRight) &&
-			!m_bIsDashing);
+			(bLeft || bRight));
 
 	if (m_bIsDrifting)
 		m_fDriftHoldTime += fTimeElapsed;
@@ -4853,6 +4852,9 @@ void CGameFramework::CheckResult()
 
 void CGameFramework::FrameAdvance()
 {
+
+
+
 	m_GameTimer.Tick(0.0f);
 
 	static bool bPrevHelpUI = false;
