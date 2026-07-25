@@ -1992,7 +1992,7 @@ void CScene::BuildGameStage4(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 		CGameObject* pItemModel0 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
 		CGameObject* pItemObject0 = new CGameObject();
 		pItemObject0->SetChild(pItemModel0);
-		pItemObject0->SetPosition(-1614.42, 355.66, -1271.27);
+		pItemObject0->SetPosition(-1614.42*1.1, 355.66*1.1, -1271.27*1.1);
 		pItemObject0->SetScale(10, 10, 10);
 		pItemObject0->ComputeNewLocalAABB();
 		pItemObject0->m_bIsItemBox = true;
@@ -2002,7 +2002,7 @@ void CScene::BuildGameStage4(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 		CGameObject* pItemModel1 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
 		CGameObject* pItemObject1 = new CGameObject();
 		pItemObject1->SetChild(pItemModel1);
-		pItemObject1->SetPosition(-1817.84, 360.81, -354.97);
+		pItemObject1->SetPosition(-1817.84*1.1, 360.81 * 1.1, -354.97 * 1.1);
 		pItemObject1->SetScale(10, 10, 10);
 		pItemObject1->ComputeNewLocalAABB();
 		pItemObject1->m_bIsItemBox = true;
@@ -2012,7 +2012,7 @@ void CScene::BuildGameStage4(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 		CGameObject* pItemModel2 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
 		CGameObject* pItemObject2 = new CGameObject();
 		pItemObject2->SetChild(pItemModel2);
-		pItemObject2->SetPosition(-1931.97, 362.54, -351.62);
+		pItemObject2->SetPosition(-1931.97 * 1.1, 362.54 * 1.1, -351.62 * 1.1);
 		pItemObject2->SetScale(10, 10, 10);
 		pItemObject2->ComputeNewLocalAABB();
 		pItemObject2->m_bIsItemBox = true;
@@ -2022,7 +2022,7 @@ void CScene::BuildGameStage4(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 		CGameObject* pItemModel3 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
 		CGameObject* pItemObject3 = new CGameObject();
 		pItemObject3->SetChild(pItemModel3);
-		pItemObject3->SetPosition(-1634.36, 401.96, 860.49);
+		pItemObject3->SetPosition(-1634.36 * 1.1, 401.96 * 1.1, 860.49 * 1.1);
 		pItemObject3->SetScale(10, 10, 10);
 		pItemObject3->ComputeNewLocalAABB();
 		pItemObject3->m_bIsItemBox = true;
@@ -2032,7 +2032,7 @@ void CScene::BuildGameStage4(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 		CGameObject* pItemModel4 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
 		CGameObject* pItemObject4 = new CGameObject();
 		pItemObject4->SetChild(pItemModel4);
-		pItemObject4->SetPosition(-1616.81, 402.41, 868.85);
+		pItemObject4->SetPosition(-1616.81 * 1.1, 402.41 * 1.1, 868.85 * 1.1);
 		pItemObject4->SetScale(10, 10, 10);
 		pItemObject4->ComputeNewLocalAABB();
 		pItemObject4->m_bIsItemBox = true;
@@ -2044,7 +2044,7 @@ void CScene::BuildGameStage4(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 		CGameObject* pItemModel5 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
 		CGameObject* pItemObject5 = new CGameObject();
 		pItemObject5->SetChild(pItemModel5);
-		pItemObject5->SetPosition(-1593.52, 403.00, 879.94);
+		pItemObject5->SetPosition(-1593.52 * 1.1, 403.00 * 1.1, 879.94 * 1.1);
 		pItemObject5->SetScale(10, 10, 10);
 		pItemObject5->ComputeNewLocalAABB();
 		pItemObject5->m_bIsItemBox = true;
@@ -2054,7 +2054,7 @@ void CScene::BuildGameStage4(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 		CGameObject* pItemModel6 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
 		CGameObject* pItemObject6 = new CGameObject();
 		pItemObject6->SetChild(pItemModel6);
-		pItemObject6->SetPosition(-1563.48, 403.68, 894.24);
+		pItemObject6->SetPosition(-1563.48 * 1.1, 403.68 * 1.1, 894.24 * 1.1);
 		pItemObject6->SetScale(10, 10, 10);
 		pItemObject6->ComputeNewLocalAABB();
 		pItemObject6->m_bIsItemBox = true;
@@ -2064,7 +2064,7 @@ void CScene::BuildGameStage4(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 		CGameObject* pItemModel7 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
 		CGameObject* pItemObject7 = new CGameObject();
 		pItemObject7->SetChild(pItemModel7);
-		pItemObject7->SetPosition(-1520.99, 404.67, 914.46);
+		pItemObject7->SetPosition(-1520.99 * 1.1, 404.67 * 1.1, 914.46 * 1.1);
 		pItemObject7->SetScale(10, 10, 10);
 		pItemObject7->ComputeNewLocalAABB();
 		pItemObject7->m_bIsItemBox = true;
@@ -2074,7 +2074,7 @@ void CScene::BuildGameStage4(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 		CGameObject* pItemModel8 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
 		CGameObject* pItemObject8 = new CGameObject();
 		pItemObject8->SetChild(pItemModel8);
-		pItemObject8->SetPosition(-335.98, 766.55, 1090.71);
+		pItemObject8->SetPosition(-335.98 * 1.1, 766.55 * 1.1, 1090.71 * 1.1);
 		pItemObject8->SetScale(10, 10, 10);
 		pItemObject8->ComputeNewLocalAABB();
 		pItemObject8->m_bIsItemBox = true;
@@ -2084,7 +2084,7 @@ void CScene::BuildGameStage4(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 		CGameObject* pItemModel9 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
 		CGameObject* pItemObject9 = new CGameObject();
 		pItemObject9->SetChild(pItemModel9);
-		pItemObject9->SetPosition(-307.73, 784.73, 1066.34);
+		pItemObject9->SetPosition(-307.73 * 1.1, 784.73 * 1.1, 1066.34 * 1.1);
 		pItemObject9->SetScale(10, 10, 10);
 		pItemObject9->ComputeNewLocalAABB();
 		pItemObject9->m_bIsItemBox = true;
@@ -2096,7 +2096,7 @@ void CScene::BuildGameStage4(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 		CGameObject* pItemModel10 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
 		CGameObject* pItemObject10 = new CGameObject();
 		pItemObject10->SetChild(pItemModel10);
-		pItemObject10->SetPosition(-270.19, 809.42, 1033.97);
+		pItemObject10->SetPosition(-270.19 * 1.1, 809.42 * 1.1, 1033.97 * 1.1);
 		pItemObject10->SetScale(10, 10, 10);
 		pItemObject10->ComputeNewLocalAABB();
 		pItemObject10->m_bIsItemBox = true;
@@ -2106,7 +2106,7 @@ void CScene::BuildGameStage4(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 		CGameObject* pItemModel11 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
 		CGameObject* pItemObject11 = new CGameObject();
 		pItemObject11->SetChild(pItemModel11);
-		pItemObject11->SetPosition(-232.72, 835.27, 998.47);
+		pItemObject11->SetPosition(-232.72 * 1.1, 835.27 * 1.1, 998.47 * 1.1);
 		pItemObject11->SetScale(10, 10, 10);
 		pItemObject11->ComputeNewLocalAABB();
 		pItemObject11->m_bIsItemBox = true;
@@ -2116,7 +2116,7 @@ void CScene::BuildGameStage4(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 		CGameObject* pItemModel12 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
 		CGameObject* pItemObject12 = new CGameObject();
 		pItemObject12->SetChild(pItemModel12);
-		pItemObject12->SetPosition(-725.50, 1108.57, 3015.25);
+		pItemObject12->SetPosition(-725.50 * 1.1, 1108.57 * 1.1, 3015.25 * 1.1);
 		pItemObject12->SetScale(10, 10, 10);
 		pItemObject12->ComputeNewLocalAABB();
 		pItemObject12->m_bIsItemBox = true;
@@ -2126,7 +2126,7 @@ void CScene::BuildGameStage4(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 		CGameObject* pItemModel13 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
 		CGameObject* pItemObject13 = new CGameObject();
 		pItemObject13->SetChild(pItemModel13);
-		pItemObject13->SetPosition(-659.76, 1108.57, 2966.33);
+		pItemObject13->SetPosition(-659.76 * 1.1, 1108.57 * 1.1, 2966.33 * 1.1);
 		pItemObject13->SetScale(10, 10, 10);
 		pItemObject13->ComputeNewLocalAABB();
 		pItemObject13->m_bIsItemBox = true;
@@ -2136,7 +2136,7 @@ void CScene::BuildGameStage4(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 		CGameObject* pItemModel14 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
 		CGameObject* pItemObject14 = new CGameObject();
 		pItemObject14->SetChild(pItemModel14);
-		pItemObject14->SetPosition(-151.44, 1108.57, 3121.80);
+		pItemObject14->SetPosition(-151.44 * 1.1, 1108.57 * 1.1, 3121.80 * 1.1);
 		pItemObject14->SetScale(10, 10, 10);
 		pItemObject14->ComputeNewLocalAABB();
 		pItemObject14->m_bIsItemBox = true;
@@ -2148,7 +2148,7 @@ void CScene::BuildGameStage4(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 		CGameObject* pItemModel15 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
 		CGameObject* pItemObject15 = new CGameObject();
 		pItemObject15->SetChild(pItemModel15);
-		pItemObject15->SetPosition(125.92, 1108.57, 2879.76);
+		pItemObject15->SetPosition(125.92 * 1.1, 1108.57 * 1.1, 2879.76 * 1.1);
 		pItemObject15->SetScale(10, 10, 10);
 		pItemObject15->ComputeNewLocalAABB();
 		pItemObject15->m_bIsItemBox = true;
@@ -2158,7 +2158,7 @@ void CScene::BuildGameStage4(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 		CGameObject* pItemModel16 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
 		CGameObject* pItemObject16 = new CGameObject();
 		pItemObject16->SetChild(pItemModel16);
-		pItemObject16->SetPosition(35.02, 1108.57, 2854.62);
+		pItemObject16->SetPosition(35.02 * 1.1, 1108.57 * 1.1, 2854.62 * 1.1);
 		pItemObject16->SetScale(10, 10, 10);
 		pItemObject16->ComputeNewLocalAABB();
 		pItemObject16->m_bIsItemBox = true;
@@ -2168,7 +2168,7 @@ void CScene::BuildGameStage4(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 		CGameObject* pItemModel17 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
 		CGameObject* pItemObject17 = new CGameObject();
 		pItemObject17->SetChild(pItemModel17);
-		pItemObject17->SetPosition(267.80, 1074.01, 2490.73);
+		pItemObject17->SetPosition(267.80 * 1.1, 1074.01 * 1.1, 2490.73 * 1.1);
 		pItemObject17->SetScale(10, 10, 10);
 		pItemObject17->ComputeNewLocalAABB();
 		pItemObject17->m_bIsItemBox = true;
@@ -2178,7 +2178,7 @@ void CScene::BuildGameStage4(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 		CGameObject* pItemModel18 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
 		CGameObject* pItemObject18 = new CGameObject();
 		pItemObject18->SetChild(pItemModel18);
-		pItemObject18->SetPosition(1061.99, 680.54, 1203.73);
+		pItemObject18->SetPosition(1061.99 * 1.1, 680.54 * 1.1, 1203.73 * 1.1);
 		pItemObject18->SetScale(10, 10, 10);
 		pItemObject18->ComputeNewLocalAABB();
 		pItemObject18->m_bIsItemBox = true;
@@ -2188,7 +2188,7 @@ void CScene::BuildGameStage4(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 		CGameObject* pItemModel19 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
 		CGameObject* pItemObject19 = new CGameObject();
 		pItemObject19->SetChild(pItemModel19);
-		pItemObject19->SetPosition(949.21, 679.96, 1129.69);
+		pItemObject19->SetPosition(949.21 * 1.1, 679.96 * 1.1, 1129.69 * 1.1);
 		pItemObject19->SetScale(10, 10, 10);
 		pItemObject19->ComputeNewLocalAABB();
 		pItemObject19->m_bIsItemBox = true;
@@ -2200,7 +2200,7 @@ void CScene::BuildGameStage4(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 		CGameObject* pItemModel20 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
 		CGameObject* pItemObject20 = new CGameObject();
 		pItemObject20->SetChild(pItemModel20);
-		pItemObject20->SetPosition(1441.16, 363.05, 49.42);
+		pItemObject20->SetPosition(1441.16 * 1.1, 363.05 * 1.1, 49.42 * 1.1);
 		pItemObject20->SetScale(10, 10, 10);
 		pItemObject20->ComputeNewLocalAABB();
 		pItemObject20->m_bIsItemBox = true;
@@ -2210,7 +2210,7 @@ void CScene::BuildGameStage4(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 		CGameObject* pItemModel21 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
 		CGameObject* pItemObject21 = new CGameObject();
 		pItemObject21->SetChild(pItemModel21);
-		pItemObject21->SetPosition(1350.47, 362.23, 81.15);
+		pItemObject21->SetPosition(1350.47 * 1.1, 362.23 * 1.1, 81.15 * 1.1);
 		pItemObject21->SetScale(10, 10, 10);
 		pItemObject21->ComputeNewLocalAABB();
 		pItemObject21->m_bIsItemBox = true;
@@ -2220,7 +2220,7 @@ void CScene::BuildGameStage4(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 		CGameObject* pItemModel22 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
 		CGameObject* pItemObject22 = new CGameObject();
 		pItemObject22->SetChild(pItemModel22);
-		pItemObject22->SetPosition(1202.81, 342.46, -1122.31);
+		pItemObject22->SetPosition(1202.81 * 1.1, 342.46 * 1.1, -1122.31 * 1.1);
 		pItemObject22->SetScale(10, 10, 10);
 		pItemObject22->ComputeNewLocalAABB();
 		pItemObject22->m_bIsItemBox = true;
@@ -2230,7 +2230,7 @@ void CScene::BuildGameStage4(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 		CGameObject* pItemModel23 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
 		CGameObject* pItemObject23 = new CGameObject();
 		pItemObject23->SetChild(pItemModel23);
-		pItemObject23->SetPosition(1121.51, 342.46, -1084.10);
+		pItemObject23->SetPosition(1121.51 * 1.1, 342.46 * 1.1, -1084.10 * 1.1);
 		pItemObject23->SetScale(10, 10, 10);
 		pItemObject23->ComputeNewLocalAABB();
 		pItemObject23->m_bIsItemBox = true;
@@ -2240,7 +2240,7 @@ void CScene::BuildGameStage4(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 		CGameObject* pItemModel24 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
 		CGameObject* pItemObject24 = new CGameObject();
 		pItemObject24->SetChild(pItemModel24);
-		pItemObject24->SetPosition(115.81, 342.44, -2350.46);
+		pItemObject24->SetPosition(115.81 * 1.1, 342.44 * 1.1, -2350.46 * 1.1);
 		pItemObject24->SetScale(10, 10, 10);
 		pItemObject24->ComputeNewLocalAABB();
 		pItemObject24->m_bIsItemBox = true;
@@ -2252,7 +2252,7 @@ void CScene::BuildGameStage4(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 		CGameObject* pItemModel25 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Item_box.bin");
 		CGameObject* pItemObject25 = new CGameObject();
 		pItemObject25->SetChild(pItemModel25);
-		pItemObject25->SetPosition(90.44, 342.44, -2293.92);
+		pItemObject25->SetPosition(90.44 * 1.1, 342.44 * 1.1, -2293.92 * 1.1);
 		pItemObject25->SetScale(10, 10, 10);
 		pItemObject25->ComputeNewLocalAABB();
 		pItemObject25->m_bIsItemBox = true;

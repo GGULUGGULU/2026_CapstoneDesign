@@ -4051,42 +4051,39 @@ void CGameFramework::ApplyMultiplayerSpawn()
 	if (m_pPlayer)
 	{
 		XMFLOAT3 xmf3LocalSpawn = XMFLOAT3(0, 0, 0);
-		if (0 == m_nSelectedMapIndex) {
-			if (m_bMultiplayerEnabled)
-			{
+		if (m_bMultiplayerEnabled)
+		{
+			if (0 == m_nSelectedMapIndex) {
 				if (m_nMyPlayerId == 1) xmf3LocalSpawn = Map1PlayerSpawnPos[0];
 				else if (m_nMyPlayerId == 2) xmf3LocalSpawn = Map1PlayerSpawnPos[1];
-				else if (m_nMyPlayerId == 3)xmf3LocalSpawn = Map1PlayerSpawnPos[2];
+				else if (m_nMyPlayerId == 3) xmf3LocalSpawn = Map1PlayerSpawnPos[2];
 				else if (m_nMyPlayerId == 4) xmf3LocalSpawn = Map1PlayerSpawnPos[3];
-				// 3, 4 번 플레이어 위치 추가해야함
 			}
-		}
-		else if (1 == m_nSelectedMapIndex) {
-			if (m_bMultiplayerEnabled)
-			{
+			else if (1 == m_nSelectedMapIndex) {
 				if (m_nMyPlayerId == 1) xmf3LocalSpawn = Map2PlayerSpawnPos[0];
 				else if (m_nMyPlayerId == 2) xmf3LocalSpawn = Map2PlayerSpawnPos[1];
-				else if (m_nMyPlayerId == 3)xmf3LocalSpawn = Map2PlayerSpawnPos[2];
+				else if (m_nMyPlayerId == 3) xmf3LocalSpawn = Map2PlayerSpawnPos[2];
 				else if (m_nMyPlayerId == 4) xmf3LocalSpawn = Map2PlayerSpawnPos[3];
 			}
-		}
-		else if (2 == m_nSelectedMapIndex) {
-			if (m_bMultiplayerEnabled)
-			{
+			else if (2 == m_nSelectedMapIndex) {
 				if (m_nMyPlayerId == 1) xmf3LocalSpawn = Map3PlayerSpawnPos[0];
 				else if (m_nMyPlayerId == 2) xmf3LocalSpawn = Map3PlayerSpawnPos[1];
-				else if (m_nMyPlayerId == 3)xmf3LocalSpawn = Map3PlayerSpawnPos[2];
+				else if (m_nMyPlayerId == 3) xmf3LocalSpawn = Map3PlayerSpawnPos[2];
 				else if (m_nMyPlayerId == 4) xmf3LocalSpawn = Map3PlayerSpawnPos[3];
 			}
-		}
-		else if (3 == m_nSelectedMapIndex) {
-			if (m_bMultiplayerEnabled)
-			{
+			else if (3 == m_nSelectedMapIndex) {
 				if (m_nMyPlayerId == 1) xmf3LocalSpawn = Map4PlayerSpawnPos[0];
 				else if (m_nMyPlayerId == 2) xmf3LocalSpawn = Map4PlayerSpawnPos[1];
-				else if (m_nMyPlayerId == 3)xmf3LocalSpawn = Map4PlayerSpawnPos[2];
+				else if (m_nMyPlayerId == 3) xmf3LocalSpawn = Map4PlayerSpawnPos[2];
 				else if (m_nMyPlayerId == 4) xmf3LocalSpawn = Map4PlayerSpawnPos[3];
 			}
+		}
+		else
+		{
+			if (0 == m_nSelectedMapIndex) xmf3LocalSpawn = Map1SinglePlayerSpawn;
+			else if (1 == m_nSelectedMapIndex) xmf3LocalSpawn = Map2SinglePlayerSpawn;
+			else if (2 == m_nSelectedMapIndex) xmf3LocalSpawn = Map3SinglePlayerSpawn;
+			else if (3 == m_nSelectedMapIndex) xmf3LocalSpawn = Map4SinglePlayerSpawn;
 		}
 
 		SetupPlayerTransform(m_pPlayer, xmf3LocalSpawn, PLAYER_SPAWN_YAW);
@@ -4100,7 +4097,7 @@ void CGameFramework::ApplyMultiplayerSpawn()
 			if (m_nSelectedMapIndex == 0) baseSpawn = Map1SinglePlayerSpawn;
 			else if (m_nSelectedMapIndex == 1) baseSpawn = Map2SinglePlayerSpawn;
 			else if(m_nSelectedMapIndex == 2) baseSpawn = Map3SinglePlayerSpawn;
-			else baseSpawn = Map4SinglePlayerSpawn;
+			else if(m_nSelectedMapIndex == 3) baseSpawn = Map4SinglePlayerSpawn;
 
 			SetupPlayerTransform(info.pPlayer, baseSpawn, PLAYER_SPAWN_YAW);
 			info.pPlayer->m_bIsActive = false;

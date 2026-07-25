@@ -495,16 +495,16 @@ public:
 	};
 
 	XMFLOAT3 Map4PlayerSpawnPos[4]{
-		{-277, 323, -1904}, // 1
-		{-315, 323, -1941}, // 2
-		{-348, 323, -1972}, // 3
-		{-392, 323, -2014}, // 4
+		{-312.51, 355.72, -2093.72}, // 1
+		{-358.92, 355.72, -2135.62}, // 2
+		{-402.51, 355.72, -2174.97}, // 3
+		{-439.44, 355.72, -2208.30}, // 4
 	};
 
 	XMFLOAT3 Map1SinglePlayerSpawn{ -1938.0f, -200.0f, 188.0f };
 	XMFLOAT3 Map2SinglePlayerSpawn{ -7600, -2260, 5530 };
 	XMFLOAT3 Map3SinglePlayerSpawn{ -3396,-80, -1474 };
-	XMFLOAT3 Map4SinglePlayerSpawn{ -277.405609,322.482239,-1904.646729 };
+	XMFLOAT3 Map4SinglePlayerSpawn{ -307.0f, 323.0f, -1904.0f };
 	
 	float PLAYER_SPAWN_YAW = 0.0f;
 
