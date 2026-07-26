@@ -4981,7 +4981,7 @@ void CGameFramework::FrameAdvance()
 			pos.y += 18.0f;
 
 			CEffectLibrary::Instance()
-				->UpdateBananaSpinPosition(pos);
+				->UpdateStunOrbitPosition(pos);
 		}
 
 		if (m_bRemoteLockEffectActive)

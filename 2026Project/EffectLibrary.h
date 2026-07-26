@@ -214,7 +214,7 @@ public:
 	bool IsDepthParticleEffect(EFFECT_TYPE type) const;
 
 	void UpdateLockOrbitPosition(const XMFLOAT3& position);
-	void UpdateBananaSpinPosition(const XMFLOAT3& position);
+	void UpdateStunOrbitPosition(const XMFLOAT3& position);
 	void UpdateEffectPosition(
 		ActiveEffect* pEffect,
 		const XMFLOAT3& position

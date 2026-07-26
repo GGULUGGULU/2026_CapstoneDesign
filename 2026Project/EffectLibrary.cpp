@@ -1179,7 +1179,7 @@ void CEffectLibrary::UpdateLockOrbitPosition(const XMFLOAT3& position)
 	}
 }
 
-void CEffectLibrary::UpdateBananaSpinPosition(
+void CEffectLibrary::UpdateStunOrbitPosition(
 	const XMFLOAT3& position
 )
 {
