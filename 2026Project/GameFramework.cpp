@@ -546,7 +546,57 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 			}
 			else if (m_nGameMenuHoveredIndex == 2)
 			{
-				::PostQuitMessage(0);
+				m_bShowGameMenu = false;
+
+				if (m_pNetwork)
+				{
+					m_pNetwork->Shutdown();
+				}
+
+				ReleaseObjects();
+
+				m_SoundManager.StopCarEngine();
+
+				BuildObjectGameStart();
+
+				m_nStage = 0;
+				m_bIsHostPlayer = false;
+				m_bMultiplayerEnabled = false;
+
+				for (int i = 0; i < 4; ++i)
+				{
+					m_nPlayerIndices[i] = -1;
+					m_bPlayerReady[i] = false;
+					swprintf_s(m_szPlayerNames[i], L"Player%d", i + 1);
+				}
+
+				m_nScore = 0;
+				m_nCurrentLap = 1;
+				m_nPassedCheckPoints = 0;
+
+				m_fMyFinalTime = 0.0f;
+				m_fTotalTime = 0.0f;
+
+				m_bIsDrifting = false;
+				m_bIsDashing = false;
+				m_bBananaSpinning = false;
+				m_bDashLocked = false;
+
+				m_fCurrentDashGauge = m_fMaxDashGauge;
+
+				m_bRaceStarted = false;
+				m_bRaceStartDelayStarted = false;
+				m_bServerStartSign = false;
+				m_bCountdownSoundPlayed = false;
+
+				m_bLoadingPageShown = false;
+				m_bGameObjectsBuilt = false;
+
+				m_GameTimer.Reset();
+
+				m_SoundManager.PlayBGM("Asset/Audio/TRBGM.mp3");
+
+				return;
 			}
 		}
 
