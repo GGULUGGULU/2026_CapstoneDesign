@@ -1368,7 +1368,7 @@ void CGameFramework::ProcessInputGameStage()
 	const bool bRight = ((pKeysBuffer[VK_RIGHT] & 0xF0) != 0);
 	const bool bHasDriveInput = (bForward || bBackward);
 	const bool bDashKeyDown = ((::GetAsyncKeyState('Z') & 0x8000) != 0);
-	const bool bDriftKeyDown = ((::GetAsyncKeyState('X') & 0x8000) != 0);
+	const bool bDriftKeyDown = ((::GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0);
 
 
 

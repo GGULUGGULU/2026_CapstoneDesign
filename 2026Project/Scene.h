@@ -87,7 +87,8 @@ public:
 	void CreateShadowMapSRV(ID3D12Device* pd3dDevice, ID3D12Resource* pShadowMapResource);
 	void RenderShadowMap(ID3D12GraphicsCommandList* pd3dCommandList, D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle); 
 	XMMATRIX GetShadowLightViewProj();
-	void CreateSkybox(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+
+	void CreateSkybox(ID3D12Device* pd3dDevice,ID3D12GraphicsCommandList* pd3dCommandList,const wchar_t* pTexturePath);
 	void RenderSkybox(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
 
 	void CreateUIRootSignature(ID3D12Device* pd3dDevice);

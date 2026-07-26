@@ -793,7 +793,7 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 	CreateAABBWireFrameBox(pd3dDevice, pd3dCommandList);
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
 
-	CreateSkybox(pd3dDevice, pd3dCommandList);
+	CreateSkybox(pd3dDevice, pd3dCommandList, L"Asset/DDS_File/SkyBox_01.dds");
 
 	m_pShadowShader = new CShadowShader();
 	m_pShadowShader->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature);
@@ -1320,7 +1320,7 @@ void CScene::BuildGameStage2(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 	CreateAABBWireFrameBox(pd3dDevice, pd3dCommandList);
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
 
-	CreateSkybox(pd3dDevice, pd3dCommandList);
+	CreateSkybox(pd3dDevice, pd3dCommandList, L"Asset/DDS_File/SkyBox_01.dds");
 
 	m_pShadowShader = new CShadowShader();
 	m_pShadowShader->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature);
@@ -1838,7 +1838,7 @@ void CScene::BuildGameStage3(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 	CreateAABBWireFrameBox(pd3dDevice, pd3dCommandList);
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
 
-	CreateSkybox(pd3dDevice, pd3dCommandList);
+	CreateSkybox(pd3dDevice, pd3dCommandList, L"Asset/DDS_File/SkyBox_01.dds");
 
 	m_pShadowShader = new CShadowShader();
 	m_pShadowShader->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature);
@@ -2297,7 +2297,7 @@ void CScene::BuildGameStage4(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 	CreateAABBWireFrameBox(pd3dDevice, pd3dCommandList);
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
 
-	CreateSkybox(pd3dDevice, pd3dCommandList);
+	CreateSkybox(pd3dDevice, pd3dCommandList, L"Asset/DDS_File/SkyBox_01.dds");
 
 	m_pShadowShader = new CShadowShader();
 	m_pShadowShader->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature);
@@ -3196,7 +3196,7 @@ XMMATRIX CScene::GetShadowLightViewProj()
 	return mLightView * mLightProj;
 }
 
-void CScene::CreateSkybox(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
+void CScene::CreateSkybox(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,const wchar_t* pTexturePath)
 {
 	D3D12_CPU_DESCRIPTOR_HANDLE d3dCpuSrvHandle = m_pd3dCbvSrvHeap->GetCPUDescriptorHandleForHeapStart();
 	D3D12_GPU_DESCRIPTOR_HANDLE d3dGpuSrvHandle = m_pd3dCbvSrvHeap->GetGPUDescriptorHandleForHeapStart();
@@ -3210,7 +3210,7 @@ void CScene::CreateSkybox(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	std::unique_ptr<uint8_t[]> ddsData;
 	std::vector<D3D12_SUBRESOURCE_DATA> subresources;
 
-	DirectX::LoadDDSTextureFromFile(pd3dDevice, L"Asset/DDS_File/SkyBox_1210.dds", &m_pSkyboxTexture, ddsData, subresources);
+	DirectX::LoadDDSTextureFromFile(pd3dDevice,pTexturePath,&m_pSkyboxTexture,ddsData,subresources);
 
 	UINT64 nUploadBufferSize = GetRequiredIntermediateSize(m_pSkyboxTexture, 0, (UINT)subresources.size());
 	pd3dDevice->CreateCommittedResource(
