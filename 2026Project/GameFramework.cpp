@@ -5367,7 +5367,7 @@ void CGameFramework::LoadHelpUIResource()
 	ComPtr<IWICFormatConverter> converter;
 
 	HRESULT hr = m_pWICFactory->CreateDecoderFromFilename(
-		L"Asset/image/help_ui_dummy.png",
+		L"Asset/image/help_ui.png",
 		nullptr,
 		GENERIC_READ,
 		WICDecodeMetadataCacheOnLoad,
