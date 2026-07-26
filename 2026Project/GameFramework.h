@@ -599,6 +599,9 @@ public:
 	float m_fRaceStartDelayDuration = 5.0f;
 	bool m_bCountdownSoundPlayed = false;
 
+	Microsoft::WRL::ComPtr<ID2D1Bitmap1> m_pCountdownImages[5];
+	void LoadCountdownImages();
+
 	ComPtr<IDWriteTextFormat> m_textCountdownFormat;
 	ComPtr<ID2D1SolidColorBrush> m_textCountdownBrush;
 

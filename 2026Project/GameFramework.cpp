@@ -133,6 +133,7 @@ bool CGameFramework::OnCreate(HINSTANCE hInstance, HWND hMainWnd)
 	LoadMapImages();
 	LoadReadyImage();
 	LoadLoadingImage();
+	LoadCountdownImages();
 
 	LoadLoadingImage();
 	LoadRankingWaitImage();
@@ -3731,28 +3732,60 @@ void CGameFramework::RenderUI()
 		{
 			float remain = m_fRaceStartDelayDuration - m_fRaceStartDelayTime;
 			int count = (int)ceilf(remain);
-
-			if (count > 0)
+			if (count >= 1 && count <= 5)
 			{
-				WCHAR text[32];
-				swprintf_s(text, L"%d", count);
+				ID2D1Bitmap1* pCountdownBitmap =
+					m_pCountdownImages[count - 1].Get();
 
-				D2D1_RECT_F rect = D2D1::RectF(
-					0.0f,
-					0.0f,
-					(float)m_nWndClientWidth,
-					(float)m_nWndClientHeight
-				);
+				if (pCountdownBitmap)
+				{
+					D2D1_SIZE_F imageSize =
+						pCountdownBitmap->GetSize();
+					float imageWidth = imageSize.width;
+					float imageHeight = imageSize.height;
 
-				m_d2dDeviceContext->DrawText(
-					text,
-					(UINT32)wcslen(text),
-					m_textCountdownFormat.Get(),
-					rect,
-					m_textCountdownBrush.Get()
+					float referenceWidth = 1920.0f;
+					float referenceHeight = 1080.0f;
 
-				);
+					float windowScaleX =
+						(float)m_nWndClientWidth / referenceWidth;
+
+					float windowScaleY =
+						(float)m_nWndClientHeight / referenceHeight;
+
+					float windowScale = min(windowScaleX, windowScaleY);
+
+					float uiScale = 1.0f;
+
+					float drawWidth =
+						imageWidth * windowScale * uiScale;
+
+					float drawHeight =
+						imageHeight * windowScale * uiScale;
+
+					float centerX =
+						(float)m_nWndClientWidth * 0.5f;
+
+					float centerY =
+						(float)m_nWndClientHeight * 0.5f;
+
+					D2D1_RECT_F destRect = D2D1::RectF(
+						centerX - drawWidth * 0.5f,
+						centerY - drawHeight * 0.5f,
+						centerX + drawWidth * 0.5f,
+						centerY + drawHeight * 0.5f
+					);
+
+					m_d2dDeviceContext->DrawBitmap(
+						pCountdownBitmap,
+						destRect,
+						1.0f,
+						D2D1_BITMAP_INTERPOLATION_MODE_LINEAR
+					);
+				}
 			}
+
+
 		}
 
 
@@ -6679,5 +6712,63 @@ void CGameFramework::ConsumeNetworkBananaEvents()
 			break;
 		}
 		}
+	}
+}
+
+void CGameFramework::LoadCountdownImages()
+{
+	for (int i = 0; i < 5; ++i)
+	{
+		m_pCountdownImages[i].Reset();
+
+		ComPtr<IWICBitmapDecoder> decoder;
+		ComPtr<IWICBitmapFrameDecode> frame;
+		ComPtr<IWICFormatConverter> converter;
+
+		wchar_t filePath[256];
+		swprintf_s(
+			filePath,
+			L"Asset/image/%d.png",
+			i + 1
+		);
+
+		HRESULT hr = m_pWICFactory->CreateDecoderFromFilename(
+			filePath,
+			nullptr,
+			GENERIC_READ,
+			WICDecodeMetadataCacheOnLoad,
+			&decoder
+		);
+
+		if (FAILED(hr))
+			continue;
+
+		hr = decoder->GetFrame(0, &frame);
+
+		if (FAILED(hr))
+			continue;
+
+		hr = m_pWICFactory->CreateFormatConverter(&converter);
+
+		if (FAILED(hr))
+			continue;
+
+		hr = converter->Initialize(
+			frame.Get(),
+			GUID_WICPixelFormat32bppPBGRA,
+			WICBitmapDitherTypeNone,
+			nullptr,
+			0.0f,
+			WICBitmapPaletteTypeMedianCut
+		);
+
+		if (FAILED(hr))
+			continue;
+
+		m_d2dDeviceContext->CreateBitmapFromWicBitmap(
+			converter.Get(),
+			nullptr,
+			&m_pCountdownImages[i]
+		);
 	}
 }
