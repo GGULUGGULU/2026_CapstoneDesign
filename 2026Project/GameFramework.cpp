@@ -1395,10 +1395,20 @@ void CGameFramework::ProcessInputGameStage()
 
 	UpdateDashSystem(fTimeElapsed, bDashKeyDown, bHasDriveInput);
 
+	bool bPrevDrifting = m_bIsDrifting;
+
+
 	m_bIsDrifting =
 		(bDriftKeyDown &&
 			bHasDriveInput &&
 			(bLeft || bRight));
+
+	if (!bPrevDrifting && m_bIsDrifting)
+	{
+		m_SoundManager.PlaySFX("Asset/Audio/drift.mp3");
+	}
+
+
 
 	if (m_bIsDrifting)
 		m_fDriftHoldTime += fTimeElapsed;
@@ -2129,7 +2139,7 @@ void CGameFramework::InstallBananaItem()
 
 	XMFLOAT3 bananaPosition(
 		playerPosition.x - look.x * BACK_DISTANCE,
-		playerPosition.y,
+		playerPosition.y + 3.0f ,
 		playerPosition.z - look.z * BACK_DISTANCE
 	);
 
@@ -6559,6 +6569,7 @@ void CGameFramework::StartBananaSpin(float duration)
 	m_bIsDashing = false;
 
 	m_pPlayer->SetVelocity(XMFLOAT3(0.0f, 0.0f, 0.0f));
+	m_SoundManager.PlaySFX("Asset/Audio/stun.mp3");
 
 	CEffectLibrary::Instance()->StopEffect(m_pLocalBananaSpinEffect);
 

@@ -771,7 +771,8 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 
 		pBananaObject->SetChild(pBananaModel);
 		pBananaObject->SetPosition(0.0f, -10000.0f, 0.0f);
-		pBananaObject->SetScale(10.0f, 10.0f, 10.0f);
+		pBananaObject->SetScale(5.0f, 5.0f, 5.0f);
+		pBananaObject->Rotate(0.0f, 90.0f, 0.0f);;
 
 		pBananaObject->m_bIsBanana = true;
 		pBananaObject->m_bIsActive = false;
@@ -1301,7 +1302,8 @@ void CScene::BuildGameStage2(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 
 		pBananaObject->SetChild(pBananaModel);
 		pBananaObject->SetPosition(0.0f, -10000.0f, 0.0f);
-		pBananaObject->SetScale(10.0f, 10.0f, 10.0f);
+		pBananaObject->SetScale(5.0f, 5.0f, 5.0f);
+		pBananaObject->Rotate(0.0f, 90.0f, 0.0f);;
 
 		pBananaObject->m_bIsBanana = true;
 		pBananaObject->m_bIsActive = false;
@@ -1820,7 +1822,8 @@ void CScene::BuildGameStage3(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 
 		pBananaObject->SetChild(pBananaModel);
 		pBananaObject->SetPosition(0.0f, -10000.0f, 0.0f);
-		pBananaObject->SetScale(10.0f, 10.0f, 10.0f);
+		pBananaObject->SetScale(5.0f, 5.0f, 5.0f);
+		pBananaObject->Rotate(0.0f, 90.0f, 0.0f);;
 
 		pBananaObject->m_bIsBanana = true;
 		pBananaObject->m_bIsActive = false;
@@ -2279,7 +2282,8 @@ void CScene::BuildGameStage4(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 
 		pBananaObject->SetChild(pBananaModel);
 		pBananaObject->SetPosition(0.0f, -10000.0f, 0.0f);
-		pBananaObject->SetScale(10.0f, 10.0f, 10.0f);
+		pBananaObject->SetScale(5.0f, 5.0f, 5.0f);
+		pBananaObject->Rotate(0.0f, 90.0f, 0.0f);;
 
 		pBananaObject->m_bIsBanana = true;
 		pBananaObject->m_bIsActive = false;
@@ -2727,6 +2731,13 @@ bool CScene::CheckCollision()
 			if (localObjectAABB.Extents.x == 0 && localObjectAABB.Extents.y == 0 && localObjectAABB.Extents.z == 0) continue;
 
 			BoundingOrientedBox worldObjectOBB = pObject->GetWorldOBB();
+
+			if (pObject->m_bIsBanana)
+			{
+				worldObjectOBB.Extents.x *= 3.5f;
+				worldObjectOBB.Extents.y *= 3.0f;
+				worldObjectOBB.Extents.z *= 3.5f;
+			}
 
 			if (worldPlayerOBB.Intersects(worldObjectOBB))
 			{
