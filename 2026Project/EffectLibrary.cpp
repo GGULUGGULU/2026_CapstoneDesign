@@ -110,15 +110,15 @@ void CEffectLibrary::InitializeDefaultEffectConfigs()
 	m_EffectConfigs[(int)EFFECT_TYPE::DRIFT_SPARK_RIGHT].useDepth = true;
 
 
-	m_EffectConfigs[(int)EFFECT_TYPE::BANANA_SPIN].poolSize = 10;
-	m_EffectConfigs[(int)EFFECT_TYPE::BANANA_SPIN].particleCount = 5;
-	m_EffectConfigs[(int)EFFECT_TYPE::BANANA_SPIN].lifeTime = 1.2f;
-	m_EffectConfigs[(int)EFFECT_TYPE::BANANA_SPIN].spread = 0.0f;
-	m_EffectConfigs[(int)EFFECT_TYPE::BANANA_SPIN].loop = false;
-	m_EffectConfigs[(int)EFFECT_TYPE::BANANA_SPIN].useDepth = true;
-	m_EffectConfigs[(int)EFFECT_TYPE::BANANA_SPIN].particleConfig.motion = ParticleMotion::ORBIT;
-	m_EffectConfigs[(int)EFFECT_TYPE::BANANA_SPIN].particleConfig.gravity = 0.0f;
-	m_EffectConfigs[(int)EFFECT_TYPE::BANANA_SPIN].particleConfig.shrink = false;
+	m_EffectConfigs[(int)EFFECT_TYPE::STUN_ORBIT].poolSize = 10;
+	m_EffectConfigs[(int)EFFECT_TYPE::STUN_ORBIT].particleCount = 5;
+	m_EffectConfigs[(int)EFFECT_TYPE::STUN_ORBIT].lifeTime = 1.2f;
+	m_EffectConfigs[(int)EFFECT_TYPE::STUN_ORBIT].spread = 0.0f;
+	m_EffectConfigs[(int)EFFECT_TYPE::STUN_ORBIT].loop = false;
+	m_EffectConfigs[(int)EFFECT_TYPE::STUN_ORBIT].useDepth = true;
+	m_EffectConfigs[(int)EFFECT_TYPE::STUN_ORBIT].particleConfig.motion = ParticleMotion::ORBIT;
+	m_EffectConfigs[(int)EFFECT_TYPE::STUN_ORBIT].particleConfig.gravity = 0.0f;
+	m_EffectConfigs[(int)EFFECT_TYPE::STUN_ORBIT].particleConfig.shrink = false;
 
 
 }
@@ -826,7 +826,7 @@ ActiveEffect* CEffectLibrary::Play(EFFECT_TYPE type, XMFLOAT3 position, XMFLOAT2
 
 		if (
 			type == EFFECT_TYPE::LOCK_ORBIT ||
-			type == EFFECT_TYPE::BANANA_SPIN
+			type == EFFECT_TYPE::STUN_ORBIT
 			)
 		{
 			pEffectData->pParticleSys->ResetLockOrbit(size, color, particleConfig);
@@ -1188,7 +1188,7 @@ void CEffectLibrary::UpdateBananaSpinPosition(
 		if (!eff || !eff->bActive)
 			continue;
 
-		if (eff->type != EFFECT_TYPE::BANANA_SPIN)
+		if (eff->type != EFFECT_TYPE::STUN_ORBIT)
 			continue;
 
 		if (eff->pParticleSys)

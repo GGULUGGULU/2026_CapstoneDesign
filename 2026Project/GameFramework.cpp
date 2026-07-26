@@ -6515,7 +6515,7 @@ void CGameFramework::StartBananaSpin(float duration)
 
 	effectPosition.y += 18.0f;
 
-	m_pLocalBananaSpinEffect = CEffectLibrary::Instance()->Play(EFFECT_TYPE::BANANA_SPIN, effectPosition, XMFLOAT2(12.0f, 12.0f), XMFLOAT3(1.0f, 1.0f, 1.0f));
+	m_pLocalBananaSpinEffect = CEffectLibrary::Instance()->Play(EFFECT_TYPE::STUN_ORBIT, effectPosition, XMFLOAT2(12.0f, 12.0f), XMFLOAT3(1.0f, 1.0f, 1.0f));
 }
 
 
@@ -6535,7 +6535,7 @@ void CGameFramework::StartRemoteBananaSpin(int playerId,float duration)
 
 	effectPosition.y += 18.0f;
 
-	pInfo->pBananaSpinEffect = CEffectLibrary::Instance()->Play(EFFECT_TYPE::BANANA_SPIN, effectPosition, XMFLOAT2(12.0f, 12.0f), XMFLOAT3(1.0f, 1.0f, 1.0f));
+	pInfo->pBananaSpinEffect = CEffectLibrary::Instance()->Play(EFFECT_TYPE::STUN_ORBIT, effectPosition, XMFLOAT2(12.0f, 12.0f), XMFLOAT3(1.0f, 1.0f, 1.0f));
 }
 
 void CGameFramework::UpdateRemoteBananaSpins(
