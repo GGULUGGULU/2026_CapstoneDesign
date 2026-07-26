@@ -611,6 +611,24 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 			if (m_nHoveredButtonIndex == 0) {
 				SaveNameFromEditControl();
 
+				STARTUPINFO si;
+				PROCESS_INFORMATION pi;
+				ZeroMemory(&si, sizeof(si));
+				si.cb = sizeof(si);
+				ZeroMemory(&pi, sizeof(pi));
+
+				LPCWSTR serverPath = L"2026Server.exe";
+
+				if (CreateProcess(serverPath, NULL, NULL, NULL, FALSE, CREATE_NEW_CONSOLE, NULL, NULL, &si, &pi)) {
+					CloseHandle(pi.hProcess);
+					CloseHandle(pi.hThread);
+
+					Sleep(500);
+				}
+				else {
+					OutputDebugStringA("server execute failed\n");
+				}
+
 				m_nStage = -1;
 				ConnectToServer("127.0.0.1");
 			}
