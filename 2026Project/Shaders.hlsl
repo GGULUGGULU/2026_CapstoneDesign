@@ -134,7 +134,7 @@ float4 PSLighting(VS_LIGHTING_OUTPUT input) : SV_TARGET
     //너무밝아서 주석처리
     
     float4 texColor = gAlbedoTexture.Sample(gSampler, input.uv);
-    clip(texColor.a - 0.1f);
+    //clip(texColor.a - 0.1f);
     texColor.rgb = pow(texColor.rgb, 2.2f);
     
     float4 finalColor = lightingColor * texColor;
