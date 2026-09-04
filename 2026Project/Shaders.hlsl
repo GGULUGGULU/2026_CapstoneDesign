@@ -134,7 +134,7 @@ float4 PSLighting(VS_LIGHTING_OUTPUT input) : SV_TARGET
     //너무밝아서 주석처리
     
     float4 texColor = gAlbedoTexture.Sample(gSampler, input.uv);
-    //clip(texColor.a - 0.1f);
+    
     texColor.rgb = pow(texColor.rgb, 2.2f);
     
     float4 finalColor = lightingColor * texColor;
@@ -143,6 +143,36 @@ float4 PSLighting(VS_LIGHTING_OUTPUT input) : SV_TARGET
     float3 resultRGB = finalColor.rgb * shadowFactor;
     return float4(pow(resultRGB, 1.0f / 2.2f), finalColor.a);
     // 감마보정
+}
+
+float4 PS_Map1(VS_LIGHTING_OUTPUT input) : SV_TARGET
+{
+    input.normalW = normalize(input.normalW);
+    
+    float3 shadowPos = input.positionLight.xyz / input.positionLight.w;
+    float shadowDepth = gShadowMap.Sample(gShadowSampler, shadowPos.xy).r;
+    float currentDepth = shadowPos.z;
+
+    float bias = 0.001f;
+    float shadowFactor = 1.0f;
+    
+    if (shadowPos.x >= 0.0f && shadowPos.x <= 1.0f && shadowPos.y >= 0.0f && shadowPos.y <= 1.0f)
+    {
+        if (currentDepth - bias > shadowDepth)
+            shadowFactor = 0.4f;
+    }
+    
+    float4 texColor = gAlbedoTexture.Sample(gSampler, input.uv);
+    
+    clip(texColor.a - 0.1f);
+    
+    texColor.rgb = pow(texColor.rgb, 2.2f);
+    
+    float4 lightingColor = Lighting(input.positionW, input.normalW);
+    float4 finalColor = lightingColor * texColor;
+
+    float3 resultRGB = finalColor.rgb * shadowFactor;
+    return float4(pow(resultRGB, 1.0f / 2.2f), finalColor.a);
 }
 
 struct VS_DIFFUSED_INPUT

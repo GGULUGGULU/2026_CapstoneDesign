@@ -613,3 +613,11 @@ D3D12_SHADER_BYTECODE CUIShader::CreatePixelShader()
 {
 	return CompileShaderFromFile(L"Shaders.hlsl", "PS_UI_Main", "ps_5_1", &m_pd3dPixelShaderBlob);
 }
+
+CMap1Shader::CMap1Shader() {}
+CMap1Shader::~CMap1Shader() {}
+
+D3D12_SHADER_BYTECODE CMap1Shader::CreatePixelShader()
+{
+	return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "PS_Map1", "ps_5_1", &m_pd3dPixelShaderBlob));
+}

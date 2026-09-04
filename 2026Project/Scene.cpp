@@ -309,6 +309,12 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 
 	BuildUIResources(pd3dDevice, pd3dCommandList);
 
+	if (!m_pMap1Shader)
+	{
+		m_pMap1Shader = new CMap1Shader();
+		m_pMap1Shader->AddRef();
+		m_pMap1Shader->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature);
+	}
 
 	const int nNormalObjectCount = 42;
 
@@ -325,6 +331,7 @@ void CScene::BuildGameObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 	// 맵 모델링
 	CGameObject* pGroundModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/untitled.bin");
 	ApplyMeshTextures(pd3dDevice, pd3dCommandList, pGroundModel);
+	ChangeObjectShader(pGroundModel, m_pMap1Shader);
 	CGameObject* pGroundObject = new CGameObject();
 	pGroundObject->SetChild(pGroundModel);
 	pGroundObject->SetPosition(0.0f, -500.0f, 0.0f);
@@ -2433,7 +2440,7 @@ void CScene::ReleaseObjects()
 	if (m_pd3dCbvSrvHeap) m_pd3dCbvSrvHeap->Release();
 
 	if (m_pShadowShader) { m_pShadowShader->Release(); m_pShadowShader = NULL; }
-
+	if (m_pMap1Shader) { m_pMap1Shader->Release(); m_pMap1Shader = NULL; }
 	m_pTreeTexture = NULL;
 	m_pTreeTextureUploadBuffer = NULL;
 
@@ -2623,6 +2630,25 @@ void CScene::PickObject(XMFLOAT3& fWorldRayOrigin, XMFLOAT3& fWorldRayDirection)
 	}
 
 	m_pSelectedObject = pSelectedObject;
+}
+
+void CScene::ChangeObjectShader(CGameObject* pObject, CShader* pShader)
+{
+	if (!pObject) return;
+
+	if (pObject->m_nMaterials > 0 && pObject->m_ppMaterials)
+	{
+		for (int i = 0; i < pObject->m_nMaterials; i++)
+		{
+			if (pObject->m_ppMaterials[i] && pObject->m_ppMaterials[i]->m_pShader == CMaterial::m_pIlluminatedShader)
+			{
+				pObject->m_ppMaterials[i]->SetShader(pShader);
+			}
+		}
+	}
+
+	ChangeObjectShader(pObject->m_pChild, pShader);
+	ChangeObjectShader(pObject->m_pSibling, pShader);
 }
 
 //bool CScene::CheckCollision()

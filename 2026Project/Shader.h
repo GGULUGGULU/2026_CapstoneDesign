@@ -135,3 +135,12 @@ public:
 
 	virtual void CreateShader(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature);
 };
+
+class CMap1Shader : public CIlluminatedShader
+{
+public:
+	CMap1Shader();
+	virtual ~CMap1Shader();
+
+	virtual D3D12_SHADER_BYTECODE CreatePixelShader() override;
+};

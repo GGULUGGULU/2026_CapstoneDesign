@@ -194,8 +194,8 @@ public:
 
 	//CGameObject* m_pRoomCars[1]; // 모델링 파일 추가하면 더 늘려야 함
 
-
-
+	CMap1Shader* m_pMap1Shader = NULL;
+	void ChangeObjectShader(CGameObject* pObject, CShader* pShader);
 	//
 public:
 	ID3D12RootSignature			*m_pd3dGraphicsRootSignature = NULL;
