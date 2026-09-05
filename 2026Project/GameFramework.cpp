@@ -2751,7 +2751,8 @@ void CGameFramework::CollisionProcess()
 		}
 	}
 
-	if (2 == m_nStage && m_pScene->CheckCollision() && !m_bIsStun)
+	//if (2 == m_nStage && m_pScene->CheckCollision() && !m_bIsStun)
+	if (2 == m_nStage && m_pScene->CheckCollision())
 	{
 		CGameObject* pCollidedObject = m_pScene->m_pCollidedObject;
 
