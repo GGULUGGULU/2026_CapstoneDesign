@@ -1903,17 +1903,17 @@ void CGameFramework::BuildGameObjects()
 	m_pPlayer->ComputeNewLocalAABB();
 	m_pPlayer->SetGravity(XMFLOAT3(0, -1, 0));
 
+	// 아이템 + 대시 
+	//if (2 == m_nSelectedMapIndex) {
+	//	pCarPlayer->Rotate(0, 0, 0);
+	//}
+	//else if (3 == m_nSelectedMapIndex) {
+	//	pCarPlayer->Rotate(0, -45, 0);
+	//}
+
 	CreateRemotePlayers();
 	ApplyMultiplayerSpawn();
 	m_pCamera = m_pPlayer->GetCamera();
-
-	// 아이템 + 대시 
-	if (2 == m_nSelectedMapIndex) {
-		pCarPlayer->Rotate(0, 90, 0);
-	}
-	else if (3 == m_nSelectedMapIndex) {
-		pCarPlayer->Rotate(0, -45, 0);
-	}
 
 	m_fBasePlayerMaxSpeed = m_pPlayer->m_fMaxVelocityXZ;
 	m_fSpeedItemBonus = 0.0f;
@@ -4160,6 +4160,10 @@ void CGameFramework::SetupPlayerTransform(CPlayer* pPlayer, const XMFLOAT3& xmf3
 
 void CGameFramework::ApplyMultiplayerSpawn()
 {
+	float fTargetYaw = PLAYER_SPAWN_YAW;
+	if (m_nSelectedMapIndex == 2) fTargetYaw = 90.0f;
+	else if (m_nSelectedMapIndex == 3) fTargetYaw = -45.0f;
+
 	if (m_pPlayer)
 	{
 		XMFLOAT3 xmf3LocalSpawn = XMFLOAT3(0, 0, 0);
@@ -4198,7 +4202,7 @@ void CGameFramework::ApplyMultiplayerSpawn()
 			else if (3 == m_nSelectedMapIndex) xmf3LocalSpawn = Map4SinglePlayerSpawn;
 		}
 
-		SetupPlayerTransform(m_pPlayer, xmf3LocalSpawn, PLAYER_SPAWN_YAW);
+		SetupPlayerTransform(m_pPlayer, xmf3LocalSpawn, fTargetYaw);
 		m_nPlayerCurrentSpeed = 0;
 	}
 
@@ -4211,9 +4215,9 @@ void CGameFramework::ApplyMultiplayerSpawn()
 			else if(m_nSelectedMapIndex == 2) baseSpawn = Map3SinglePlayerSpawn;
 			else if(m_nSelectedMapIndex == 3) baseSpawn = Map4SinglePlayerSpawn;
 
-			SetupPlayerTransform(info.pPlayer, baseSpawn, PLAYER_SPAWN_YAW);
+			SetupPlayerTransform(info.pPlayer, baseSpawn, fTargetYaw);
 			info.pPlayer->m_bIsActive = false;
-			info.yaw = PLAYER_SPAWN_YAW;
+			info.yaw = fTargetYaw;
 		}
 	}
 }
