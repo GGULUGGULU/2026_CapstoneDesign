@@ -1,6 +1,7 @@
-#include "stdafx.h"
+﻿#include "stdafx.h"
 
 #include "ClientNetworkManager.h"
+#include <mstcpip.h>
 
 #undef min
 #undef max
@@ -101,6 +102,9 @@ bool CNetworkManager::ConnectToServer(const char* pszAddress, unsigned short por
     }
 
     EnableNoDelay(m_pImpl->peerSocket);
+    tcp_keepalive keepAlive{1, 10000, 1000};
+    DWORD returned = 0;
+    WSAIoctl(m_pImpl->peerSocket, SIO_KEEPALIVE_VALS, &keepAlive, sizeof(keepAlive), nullptr, 0, &returned, nullptr, nullptr);
     SetNonBlocking(m_pImpl->peerSocket);
 
     m_eMode = MODE::CLIENT;
@@ -155,6 +159,12 @@ void CNetworkManager::DisconnectPeer()
         CloseSocketSafe(m_pImpl->peerSocket);
     }
 
+    m_RemoteState.clear();
+    m_mapItemEvents.clear();
+    m_itemEvents.clear();
+    m_nTotalPlayerCount = 0;
+    m_bHasWelcomeId = false;
+    m_nWelcomePlayerId = 0;
     m_bConnected = false;
     m_bHasRemoteState = false;
     m_recvBuffer.clear();

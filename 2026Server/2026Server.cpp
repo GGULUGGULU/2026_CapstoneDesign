@@ -2,11 +2,25 @@
 #include <vector>
 #include <algorithm>
 #include <WinSock2.h>
+#include <mstcpip.h>
 #include <chrono>
 #include <map>
+#include <set>
+#include <cstring>
 #include "ServerNetworkTypes.h" 
 
 #pragma comment(lib, "ws2_32.lib")
+
+int SendPacket(SOCKET socket, const char* data, int size, int flags)
+{
+    int offset = 0;
+    while (offset < size) {
+        int sent = send(socket, data + offset, size - offset, flags);
+        if (sent <= 0) { shutdown(socket, SD_BOTH); return SOCKET_ERROR; }
+        offset += sent;
+    }
+    return offset;
+}
 
 std::map<int, float> g_deadItems;
 
@@ -23,7 +37,7 @@ void BroadcastPlayerCount(const std::vector<SOCKET>& sockets)
 
     for (SOCKET s : sockets)
     {
-        int nSend = send(s, reinterpret_cast<const char*>(&pkt), sizeof(pkt), 0);
+        int nSend = SendPacket(s, reinterpret_cast<const char*>(&pkt), sizeof(pkt), 0);
     }
 }
 
@@ -43,7 +57,7 @@ void UpdateServerItems(float elapsed, const std::vector<SOCKET>& clientSockets)
 
             // 모든 클라이언트에게 아이템 생성 브로드캐스트
             for (SOCKET s : clientSockets) {
-                send(s, reinterpret_cast<const char*>(&respawnPkt), sizeof(respawnPkt), 0);
+                SendPacket(s, reinterpret_cast<const char*>(&respawnPkt), sizeof(respawnPkt), 0);
             }
 
             it = g_deadItems.erase(it); 
@@ -62,7 +76,7 @@ void HandleMapItemRequest(int itemIndex, std::uint32_t playerId, const std::vect
 
         // 아이템 먹은 유저 정보 브로드캐스트
         for (SOCKET otherSocket : clientSockets) {
-            send(otherSocket, packetBuffer, bufferSize, 0);
+            SendPacket(otherSocket, packetBuffer, bufferSize, 0);
         }
     }
 }
@@ -118,6 +132,11 @@ int main()
     std::vector<SOCKET> clientSockets;
     std::map<SOCKET, int> clientIds;
 	std::vector<RaceRecordNet> raceRecords;
+    std::map<SOCKET, std::vector<char>> receiveBuffers;
+    std::map<SOCKET, bool> readyPlayers;
+    std::set<SOCKET> loadedPlayers;
+    enum class Phase { Waiting, Playing, Results };
+    Phase phase = Phase::Waiting;
 
     auto lastTime = std::chrono::system_clock::now();
 
@@ -148,6 +167,12 @@ int main()
             SOCKET clientSocket = accept(listenSocket, nullptr, nullptr);
             if (clientSocket != INVALID_SOCKET)
             {
+                if (phase != Phase::Waiting) { closesocket(clientSocket); continue; }
+                DWORD timeout = 2000;
+                setsockopt(clientSocket, SOL_SOCKET, SO_SNDTIMEO, reinterpret_cast<const char*>(&timeout), sizeof(timeout));
+                tcp_keepalive keepAlive{1, 10000, 1000};
+                DWORD returned = 0;
+                WSAIoctl(clientSocket, SIO_KEEPALIVE_VALS, &keepAlive, sizeof(keepAlive), nullptr, 0, &returned, nullptr, nullptr);
                 int assignedId = 1;
                 while (assignedId <= 4) {
                     bool used = false;
@@ -173,6 +198,7 @@ int main()
 
                 clientSockets.push_back(clientSocket);
                 clientIds[clientSocket] = assignedId;
+                readyPlayers[clientSocket] = false;
 
                 std::cout << "Player " << assignedId
                     << " 들어옴 (현재 대기실 인원: "
@@ -183,7 +209,7 @@ int main()
                 welcomePkt.header.size = sizeof(WelcomePacket);
                 welcomePkt.assignedPlayerId = assignedId;
 
-                send(clientSocket, reinterpret_cast<const char*>(&welcomePkt), sizeof(welcomePkt), 0);
+                SendPacket(clientSocket, reinterpret_cast<const char*>(&welcomePkt), sizeof(welcomePkt), 0);
 
                 BroadcastPlayerCount(clientSockets);
             }
@@ -200,40 +226,92 @@ int main()
 
                 if (recvBytes > 0)
                 {
-                    int offset = 0;
+                    auto& pending = receiveBuffers[currentSocket];
+                    pending.insert(pending.end(), buffer, buffer + recvBytes);
+                    size_t offset = 0;
 
-                    while (offset < recvBytes)
+                    while (offset < pending.size())
                     {
-                        if (recvBytes - offset < sizeof(NetMessageHeader)) break;
+                        if (pending.size() - offset < sizeof(NetMessageHeader)) break;
 
-                        NetMessageHeader* pHeader = reinterpret_cast<NetMessageHeader*>(buffer + offset);
+                        NetMessageHeader* pHeader = reinterpret_cast<NetMessageHeader*>(pending.data() + offset);
 
-                        if (pHeader->size == 0 || offset + pHeader->size > recvBytes) break;
+                        if (pHeader->magic != NET_MAGIC || pHeader->version != 1 ||
+                            pHeader->size < sizeof(NetMessageHeader) || pHeader->size > 4096) {
+                            shutdown(currentSocket, SD_BOTH);
+                            pending.clear(); offset = 0; break;
+                        }
+                        if (offset + pHeader->size > pending.size()) break;
+                        auto type = static_cast<NET_MESSAGE_TYPE>(pHeader->type);
+                        size_t expected = 0;
+                        switch (type) {
+                        case NET_MESSAGE_TYPE::ROOM_SYNC_EVENT: expected = sizeof(RoomSyncEventPacket); break;
+                        case NET_MESSAGE_TYPE::LOAD_COMPLETE: expected = sizeof(LoadCompletePacket); break;
+                        case NET_MESSAGE_TYPE::PLAYER_STATE: expected = sizeof(PlayerStatePacket); break;
+                        case NET_MESSAGE_TYPE::RACE_FINISH: expected = sizeof(RaceFinishPacket); break;
+                        case NET_MESSAGE_TYPE::MAP_ITEM_EVENT: expected = sizeof(MapItemEventPacket); break;
+                        case NET_MESSAGE_TYPE::COLLISION_EVENT: expected = sizeof(CollisionEventPacket); break;
+                        case NET_MESSAGE_TYPE::EFFECT_EVENT: expected = sizeof(EffectEventPacket); break;
+                        case NET_MESSAGE_TYPE::ITEM_EVENT: expected = sizeof(ItemEventPacket); break;
+                        case NET_MESSAGE_TYPE::BANANA_EVENT: expected = sizeof(BananaEventPacket); break;
+                        default: break;
+                        }
+                        if (!expected || pHeader->size != expected || phase == Phase::Results) {
+                            offset += pHeader->size; continue;
+                        }
+                        if (type == NET_MESSAGE_TYPE::ROOM_SYNC_EVENT) {
+                            if (phase != Phase::Waiting) { offset += pHeader->size; continue; }
+                            auto* room = reinterpret_cast<RoomSyncEventPacket*>(pending.data() + offset);
+                            room->eventData.playerId = clientIds[currentSocket];
+                            readyPlayers[currentSocket] = room->eventData.isReady;
+                            if (std::all_of(clientSockets.begin(), clientSockets.end(),
+                                [&](SOCKET peer) { return readyPlayers[peer]; })) {
+                                phase = Phase::Playing;
+                                raceRecords.clear(); loadedPlayers.clear(); ResetServerItems();
+                            }
+                        }
+                        else if (type == NET_MESSAGE_TYPE::LOAD_COMPLETE) {
+                            if (phase == Phase::Playing && loadedPlayers.insert(currentSocket).second &&
+                                loadedPlayers.size() == clientSockets.size()) {
+                                GameStartSignPacket start{};
+                                start.header.type = static_cast<unsigned>(NET_MESSAGE_TYPE::GAME_START_SIGN);
+                                start.header.size = sizeof(start);
+                                start.eventData.startSign = true;
+                                for (SOCKET peer : clientSockets)
+                                    SendPacket(peer, reinterpret_cast<const char*>(&start), sizeof(start), 0);
+                            }
+                            offset += pHeader->size; continue;
+                        }
+                        else if (phase != Phase::Playing) { offset += pHeader->size; continue; }
 
                         if (pHeader->type == static_cast<unsigned int>(NET_MESSAGE_TYPE::PLAYER_STATE))
                         {
                             for (SOCKET otherSocket : clientSockets) {
                                 if (otherSocket != currentSocket) {
-                                    send(otherSocket, buffer + offset, pHeader->size, 0);
+                                    SendPacket(otherSocket, pending.data() + offset, pHeader->size, 0);
                                 }
                             }
                         }
                         else if (pHeader->type == static_cast<unsigned int>(NET_MESSAGE_TYPE::MAP_ITEM_EVENT))
                         {
                             // 아이템 선점 처리
-                            MapItemEventPacket* pItemPkt = reinterpret_cast<MapItemEventPacket*>(buffer + offset);
+                            MapItemEventPacket* pItemPkt = reinterpret_cast<MapItemEventPacket*>(pending.data() + offset);
                             HandleMapItemRequest(
                                 pItemPkt->eventData.itemIndex,
                                 pItemPkt->eventData.playerId,
                                 clientSockets,
-                                buffer + offset,
+                                pending.data() + offset,
                                 pHeader->size
                             );
                         }
                         else if (pHeader->type == static_cast<unsigned int>(NET_MESSAGE_TYPE::RACE_FINISH))
                         {
                             // 완주 패킷 처리
-                            RaceFinishPacket* pFinishPkt = reinterpret_cast<RaceFinishPacket*>(buffer + offset);
+                            RaceFinishPacket* pFinishPkt = reinterpret_cast<RaceFinishPacket*>(pending.data() + offset);
+                            pFinishPkt->record.playerId = clientIds[currentSocket];
+                            if (std::any_of(raceRecords.begin(), raceRecords.end(), [&](const RaceRecordNet& record) {
+                                return record.playerId == pFinishPkt->record.playerId;
+                            })) { offset += pHeader->size; continue; }
                             raceRecords.push_back(pFinishPkt->record);
 
                             std::cout << "[Server] Player " << pFinishPkt->record.playerId
@@ -261,10 +339,12 @@ int main()
 
                                 // 모든 플레이어에게 결과 브로드캐스트
                                 for (SOCKET otherSocket : clientSockets) {
-                                    send(otherSocket, reinterpret_cast<const char*>(&resultPkt), sizeof(resultPkt), 0);
+                                    SendPacket(otherSocket, reinterpret_cast<const char*>(&resultPkt), sizeof(resultPkt), 0);
                                 }
 
                                 raceRecords.clear(); // 기록 초기화
+                                phase = Phase::Results;
+                                loadedPlayers.clear(); readyPlayers.clear(); ResetServerItems();
                             }
                         }
                         else
@@ -272,13 +352,14 @@ int main()
                             // 이동/아이템/완주가 아닌 일반 패킷(이펙트, 충돌 등) 브로드캐스트
                             for (SOCKET otherSocket : clientSockets) {
                                 if (otherSocket != currentSocket) {
-                                    send(otherSocket, buffer + offset, pHeader->size, 0);
+                                    SendPacket(otherSocket, pending.data() + offset, pHeader->size, 0);
                                 }
                             }
                         }
 
                         offset += pHeader->size;
                     }
+                    pending.erase(pending.begin(), pending.begin() + offset);
                     ++it;
                 }
                 else
@@ -288,9 +369,21 @@ int main()
                     std::cout << clientIds[currentSocket] <<"퇴장. (현재 남은 인원: "
                         << clientSockets.size() - 1 << "명)" << std::endl;
 
+                    receiveBuffers.erase(currentSocket);
+                    readyPlayers.erase(currentSocket);
+                    loadedPlayers.erase(currentSocket);
                     clientIds.erase(currentSocket);
                     closesocket(currentSocket);
                     it = clientSockets.erase(it);
+
+                    // A race/loading participant (or room host) leaving invalidates this single room.
+                    if (phase == Phase::Playing || (phase == Phase::Waiting && leftPlayerId == 1)) {
+                        for (SOCKET peer : clientSockets) { shutdown(peer, SD_BOTH); closesocket(peer); }
+                        clientSockets.clear(); clientIds.clear(); receiveBuffers.clear();
+                        readyPlayers.clear(); loadedPlayers.clear(); raceRecords.clear(); ResetServerItems();
+                        phase = Phase::Waiting;
+                        break;
+                    }
 
                     RoomSyncEventPacket leavePkt{};
                     leavePkt.header.type = static_cast<unsigned int>(NET_MESSAGE_TYPE::ROOM_SYNC_EVENT);
@@ -301,11 +394,13 @@ int main()
                     leavePkt.eventData.isReady = false; // 레디 상태도 강제로 풂
 
                     for (SOCKET s : clientSockets) {
-                        send(s, reinterpret_cast<const char*>(&leavePkt), sizeof(leavePkt), 0);
+                        SendPacket(s, reinterpret_cast<const char*>(&leavePkt), sizeof(leavePkt), 0);
                     }
 
                     if (clientSockets.empty())
                     {
+                        phase = Phase::Waiting;
+                        readyPlayers.clear(); loadedPlayers.clear(); receiveBuffers.clear();
                         raceRecords.clear();
                         ResetServerItems();
                     }

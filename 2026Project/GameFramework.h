@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #define FRAME_BUFFER_WIDTH		640
 #define FRAME_BUFFER_HEIGHT		480
@@ -139,7 +139,7 @@ public:
 	void CreateD2DDevice();
 	void CreateRenderTargetView();
 	void CreateTextResources();
-	void RenderUI();
+	HRESULT RenderUI();
 	void BuildObjectEnd();
 	
 
@@ -214,7 +214,11 @@ public:
 	float m_fSFXVolume = 0.5f;
 
 	bool m_bIPInputActive{ false };
-	wchar_t m_wszServerIP[32];
+	wchar_t m_wszServerIP[32]{};
+	char m_szLastServerAddress[32] = "127.0.0.1";
+	bool m_bIPSelectAll = false;
+	size_t m_nIPCaret = 0;
+	void ReturnToLobby();
 
 	D2D1_RECT_F GetGameMenuImageRect() const;
 	D2D1_RECT_F GetGameMenuButtonRect(int index) const;
@@ -572,7 +576,7 @@ public:
 
 	void LoadLoadingImage();
 	void DrawLoadingImage();
-	bool m_bLoadingPageShown = false;
+	bool m_bLoadingFramePresented = false;
 
 
 	ComPtr<ID2D1PathGeometry> m_pPathGeometry;

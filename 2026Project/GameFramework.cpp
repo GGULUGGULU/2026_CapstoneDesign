@@ -1,10 +1,12 @@
-//-----------------------------------------------------------------------------
+﻿//-----------------------------------------------------------------------------
 // File: CGameFramework.cpp
 //-----------------------------------------------------------------------------
 #include "stdafx.h"
 #include "GameFramework.h"
 #include "EffectLibrary.h"
 #include "ClientNetworkManager.h"
+#include <dwmapi.h>
+#pragma comment(lib, "dwmapi.lib")
 
 CGameFramework::CGameFramework()
 {
@@ -167,6 +169,7 @@ bool CGameFramework::OnCreate(HINSTANCE hInstance, HWND hMainWnd)
 
 	m_SoundManager.Init();
 	m_SoundManager.SetMasterVolume(0.5f);
+	m_SoundManager.SetBGMVolume(m_fBGMVolume);
 
 	m_pVideoPlayer = std::make_unique<CVideoPlayer>();
 	m_pVideoPlayer->Initialize(m_hWnd);
@@ -180,7 +183,7 @@ bool CGameFramework::OnCreate(HINSTANCE hInstance, HWND hMainWnd)
 
 	if (!m_bPlayingIntroVideo)
 	{
-		m_SoundManager.PlayBGM("Asset/Audio/TRBGM.mp3");
+		m_SoundManager.PlayLobbyBGM();
 	}
 
 	ChangeSwapChainState();
@@ -546,55 +549,7 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 			}
 			else if (m_nGameMenuHoveredIndex == 2)
 			{
-				m_bShowGameMenu = false;
-
-				if (m_pNetwork)
-				{
-					m_pNetwork->Shutdown();
-				}
-
-				ReleaseObjects();
-
-				m_SoundManager.StopCarEngine();
-
-				BuildObjectGameStart();
-
-				m_nStage = 0;
-				m_bIsHostPlayer = false;
-				m_bMultiplayerEnabled = false;
-
-				for (int i = 0; i < 4; ++i)
-				{
-					m_nPlayerIndices[i] = -1;
-					m_bPlayerReady[i] = false;
-					swprintf_s(m_szPlayerNames[i], L"Player%d", i + 1);
-				}
-
-				m_nScore = 0;
-				m_nCurrentLap = 1;
-				m_nPassedCheckPoints = 0;
-
-				m_fMyFinalTime = 0.0f;
-				m_fTotalTime = 0.0f;
-
-				m_bIsDrifting = false;
-				m_bIsDashing = false;
-				m_bBananaSpinning = false;
-				m_bDashLocked = false;
-
-				m_fCurrentDashGauge = m_fMaxDashGauge;
-
-				m_bRaceStarted = false;
-				m_bRaceStartDelayStarted = false;
-				m_bServerStartSign = false;
-				m_bCountdownSoundPlayed = false;
-
-				m_bLoadingPageShown = false;
-				m_bGameObjectsBuilt = false;
-
-				m_GameTimer.Reset();
-
-				m_SoundManager.PlayBGM("Asset/Audio/TRBGM.mp3");
+				ReturnToLobby();
 
 				return;
 			}
@@ -603,7 +558,7 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 		return;
 	} // 사운드 설정
 
-	if (m_bBananaSpinning)
+	if (m_bBananaSpinning && m_nStage == 2)
 	{
 		m_bIsDrifting = false;
 		m_bIsDashing = false;
@@ -662,33 +617,16 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 			if (m_nHoveredButtonIndex == 0) {
 				SaveNameFromEditControl();
 
-				STARTUPINFO si;
-				PROCESS_INFORMATION pi;
-				ZeroMemory(&si, sizeof(si));
-				si.cb = sizeof(si);
-				ZeroMemory(&pi, sizeof(pi));
-
-				LPCWSTR serverPath = L"2026Server.exe";
-
-				if (CreateProcess(serverPath, NULL, NULL, NULL, FALSE, CREATE_NEW_CONSOLE, NULL, NULL, &si, &pi)) {
-					CloseHandle(pi.hProcess);
-					CloseHandle(pi.hThread);
-
-					Sleep(500);
-				}
-				else {
-					OutputDebugStringA("server execute failed\n");
-				}
-
-				m_nStage = -1;
-				ConnectToServer("127.0.0.1");
+				ConnectToServer(m_szLastServerAddress);
 			}
 			else if (m_nHoveredButtonIndex == 1) {
 				SaveNameFromEditControl();
 
 				m_bIPInputActive = true;
 				m_bNameInputActive = false;
-				wcscpy_s(m_wszServerIP, L"");
+				MultiByteToWideChar(CP_ACP, 0, m_szLastServerAddress, -1, m_wszServerIP, 32);
+				m_bIPSelectAll = true;
+				m_nIPCaret = wcslen(m_wszServerIP);
 
 				//ConnectToServer("127.0.0.1");
 			}
@@ -777,21 +715,8 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 				}
 			}
 			else if (m_nHoveredButtonIndex == 21) {
-				if (m_pNetwork) m_pNetwork->Shutdown();
-
-				m_nStage = 0;
-				m_bIsHostPlayer = false;
-
-				for (int i = 0; i < 4; ++i) {
-					m_nPlayerIndices[i] = -1;
-					m_bPlayerReady[i] = false;
-					swprintf_s(m_szPlayerNames[i], L"Player%d", i + 1);
-				}
-
-				if (m_nMyPlayerId >= 1 && m_nMyPlayerId <= 4)
-				{
-					wcscpy_s(m_szPlayerNames[m_nMyPlayerId - 1], m_szMyPlayerName);
-				}
+				ReturnToLobby();
+				return;
 			}
 
 			if (changed && m_pNetwork && m_pNetwork->IsConnected()) {
@@ -819,34 +744,10 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 			m_nHoveredButtonIndex = 30;
 		}
 
-		if (nMessageID == WM_LBUTTONDOWN)
+		if (nMessageID == WM_LBUTTONDOWN && m_nHoveredButtonIndex == 30)
 		{
-			if (m_pNetwork) {
-				m_pNetwork->Shutdown();
-			}
-
-			ReleaseObjects();
-
-			m_SoundManager.StopCarEngine();
-
-			BuildObjectGameStart();
-
-			m_nStage = 0;
-			m_bIsHostPlayer = false;
-			m_bMultiplayerEnabled = false;
-
-			for (int i = 0; i < 4; ++i) {
-				m_nPlayerIndices[i] = -1;
-				m_bPlayerReady[i] = false;
-			}
-
-			m_nScore = 0;
-			m_nCurrentLap = 1;
-			m_nPassedCheckPoints = 0;
-			m_fMyFinalTime = 0.0f;
-			m_fTotalTime = 0.0f;
-			m_bCountdownSoundPlayed = false;
-			m_GameTimer.Reset();
+			ReturnToLobby();
+			return;
 		}
 	}
 
@@ -1027,7 +928,7 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 			break;
 		case 'O':
 			WCHAR szDebug[256];
-			swprintf_s(szDebug, L"%.2f, %.2f, %.2f\n", m_pPlayer->GetPosition().x, m_pPlayer->GetPosition().y+20, m_pPlayer->GetPosition().z);
+			swprintf_s(szDebug, L"%.2f, %.2f, %.2f\n", m_pPlayer->GetPosition().x, m_pPlayer->GetPosition().y + 20, m_pPlayer->GetPosition().z);
 			OutputDebugStringW(szDebug);
 			break;
 
@@ -1172,7 +1073,6 @@ LRESULT CALLBACK CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMess
 				{
 					m_bIPInputActive = false;
 					SaveNameFromEditControl();
-					m_nStage = -1;
 
 					char szIP[32];
 					WideCharToMultiByte(CP_ACP, 0, m_wszServerIP, -1, szIP, 32, NULL, NULL);
@@ -1180,22 +1080,52 @@ LRESULT CALLBACK CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMess
 					ConnectToServer(szIP);
 					return 0;
 				}
-				else if (wParam == VK_BACK)
+				else if (GetKeyState(VK_CONTROL) & 0x8000)
 				{
-					HandleIPCharInput(wParam);
+					if (wParam == 'A') m_bIPSelectAll = true;
+					else if (wParam == 'C' && m_bIPSelectAll && OpenClipboard(m_hWnd))
+					{
+						SIZE_T bytes = (wcslen(m_wszServerIP) + 1) * sizeof(wchar_t);
+						HGLOBAL data = GlobalAlloc(GMEM_MOVEABLE, bytes);
+						if (data) {
+							void* dest = GlobalLock(data);
+							if (dest) {
+								memcpy(dest, m_wszServerIP, bytes);
+								GlobalUnlock(data);
+								if (!EmptyClipboard() || !SetClipboardData(CF_UNICODETEXT, data)) GlobalFree(data);
+							}
+							else GlobalFree(data);
+						}
+						CloseClipboard();
+					}
+					else if (wParam == 'V' && OpenClipboard(m_hWnd))
+					{
+						HANDLE data = GetClipboardData(CF_UNICODETEXT);
+						const wchar_t* text = data ? static_cast<const wchar_t*>(GlobalLock(data)) : nullptr;
+						if (text) {
+							for (SIZE_T i = 0; i < GlobalSize(data) / sizeof(wchar_t) && text[i]; ++i)
+								HandleIPCharInput(text[i]);
+							GlobalUnlock(data);
+						}
+						CloseClipboard();
+					}
 				}
-				else if (wParam >= '0' && wParam <= '9')
-				{
-					HandleIPCharInput(wParam);
+				else if (wParam == VK_DELETE) {
+					if (m_bIPSelectAll) { m_wszServerIP[0] = 0; m_bIPSelectAll = false; m_nIPCaret = 0; }
+					else if (m_nIPCaret < wcslen(m_wszServerIP))
+						memmove(m_wszServerIP + m_nIPCaret, m_wszServerIP + m_nIPCaret + 1, (wcslen(m_wszServerIP) - m_nIPCaret) * sizeof(wchar_t));
 				}
-				else if (wParam >= VK_NUMPAD0 && wParam <= VK_NUMPAD9)
-				{
-					HandleIPCharInput((wParam - VK_NUMPAD0) + '0');
+				else if (wParam == VK_LEFT || wParam == VK_RIGHT || wParam == VK_HOME || wParam == VK_END) {
+					size_t len = wcslen(m_wszServerIP);
+					if (wParam == VK_HOME || (m_bIPSelectAll && wParam == VK_LEFT)) m_nIPCaret = 0;
+					else if (wParam == VK_END || (m_bIPSelectAll && wParam == VK_RIGHT)) m_nIPCaret = len;
+					else if (wParam == VK_LEFT && m_nIPCaret > 0) --m_nIPCaret;
+					else if (wParam == VK_RIGHT && m_nIPCaret < len) ++m_nIPCaret;
+					m_bIPSelectAll = false;
 				}
-				else if (wParam == VK_OEM_PERIOD || wParam == VK_DECIMAL)
-				{
-					HandleIPCharInput('.');
-				}
+				else if (wParam == VK_BACK || (wParam >= '0' && wParam <= '9')) HandleIPCharInput(wParam);
+				else if (wParam >= VK_NUMPAD0 && wParam <= VK_NUMPAD9) HandleIPCharInput(wParam - VK_NUMPAD0 + '0');
+				else if (wParam == VK_OEM_PERIOD || wParam == VK_DECIMAL) HandleIPCharInput('.');
 				return 0;
 			}
 
@@ -1226,6 +1156,7 @@ LRESULT CALLBACK CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMess
 
 void CGameFramework::OnDestroy()
 {
+	m_SoundManager.Release();
 
 	if (m_pVideoPlayer)
 	{
@@ -1846,6 +1777,7 @@ void CGameFramework::SetUIInfo()
 
 void CGameFramework::BuildGameObjects()
 {
+	WaitForGpuComplete();
 	m_pd3dCommandList->Reset(m_d3dCommandAllocators[0].Get(), NULL);
 
 	if (m_pPlayer)
@@ -1914,6 +1846,10 @@ void CGameFramework::BuildGameObjects()
 	CreateRemotePlayers();
 	ApplyMultiplayerSpawn();
 	m_pCamera = m_pPlayer->GetCamera();
+
+	XMFLOAT3 cameraTarget = m_pPlayer->GetPosition();
+	m_pCamera->SetLookAt(cameraTarget);
+	m_pCamera->RegenerateViewMatrix();
 
 	m_fBasePlayerMaxSpeed = m_pPlayer->m_fMaxVelocityXZ;
 	m_fSpeedItemBonus = 0.0f;
@@ -1988,16 +1924,7 @@ void CGameFramework::BuildGameObjects()
 	}
 	m_bRaceStarted = !m_bMultiplayerEnabled;
 
-	m_SoundManager.StopBGM();
-
-	if (m_nSelectedMapIndex == 0)
-	{
-		m_SoundManager.PlayBGM("Asset/Audio/TurboCandyCircuit.mp3");
-	}
-	else if (m_nSelectedMapIndex == 1)
-	{
-		m_SoundManager.PlayBGM("Asset/Audio/CutlassDash.mp3");
-	}
+	m_SoundManager.PlayMapBGM(m_nSelectedMapIndex);
 	m_GameTimer.Reset();
 	m_SoundManager.SetBGMVolume(m_fBGMVolume);
 }
@@ -2189,7 +2116,7 @@ void CGameFramework::InstallBananaItem()
 
 	XMFLOAT3 bananaPosition(
 		playerPosition.x - look.x * BACK_DISTANCE,
-		playerPosition.y + 3.0f ,
+		playerPosition.y + 3.0f,
 		playerPosition.z - look.z * BACK_DISTANCE
 	);
 
@@ -2429,7 +2356,13 @@ void CGameFramework::UpdateDashSystem(float fTimeElapsed, bool bDashKeyDown, boo
 
 void CGameFramework::CollisionProcess()
 {
-	if (m_bMultiplayerEnabled && m_pPlayer)
+
+	if (m_bIsStun && m_fTotalTime - m_fCollisionCurrentTime > 1.0f)
+	{
+		m_bIsStun = false;
+	}
+
+	if (m_bMultiplayerEnabled && m_pPlayer && !m_bIsStun)
 	{
 		BoundingOrientedBox worldOBB_Local = m_pPlayer->GetWorldOBB();
 
@@ -2452,23 +2385,15 @@ void CGameFramework::CollisionProcess()
 				else
 					pushDir = Vector3::Normalize(pushDir);
 
-				const float fSeparation = 8.0f;
+				const float fSeparation = 12.0f;
 
 				XMFLOAT3 localNewPos = Vector3::Add(
 					localPos,
-					Vector3::ScalarProduct(pushDir, fSeparation * 0.25f, false)
-				);
-
-				XMFLOAT3 remoteNewPos = Vector3::Add(
-					remotePos,
-					Vector3::ScalarProduct(pushDir, -fSeparation * 0.75f, false)
+					Vector3::ScalarProduct(pushDir, fSeparation, false)
 				);
 
 				m_pPlayer->SetPosition(localNewPos);
-				pTargetPlayer->SetPosition(remoteNewPos);
-
 				m_pPlayer->OnPrepareRender();
-				pTargetPlayer->OnPrepareRender();
 
 				XMFLOAT3 localVel = m_pPlayer->GetVelocity();
 				float localSpeed = max(120.0f, Vector3::Length(localVel));
@@ -2477,11 +2402,7 @@ void CGameFramework::CollisionProcess()
 				float victimBouncePower = localSpeed * 0.90f;
 
 				XMFLOAT3 localBounceVel = Vector3::ScalarProduct(pushDir, attackerBouncePower, false);
-
-				XMFLOAT3 remoteBounceVel = Vector3::ScalarProduct(pushDir, -victimBouncePower, false);
-
 				m_pPlayer->SetVelocity(localBounceVel);
-				pTargetPlayer->SetVelocity(remoteBounceVel);
 
 
 				if (m_pNetwork && m_pNetwork->IsConnected())
@@ -2492,9 +2413,9 @@ void CGameFramework::CollisionProcess()
 					ev.type = 1;
 					ev.objectIndex = -1;
 
-					ev.x = remoteNewPos.x;
-					ev.y = remoteNewPos.y;
-					ev.z = remoteNewPos.z;
+					ev.x = (localPos.x + remotePos.x) * 0.5f;
+					ev.y = (localPos.y + remotePos.y) * 0.5f + 10.0f;
+					ev.z = (localPos.z + remotePos.z) * 0.5f;
 
 					ev.nx = -pushDir.x;
 					ev.ny = 0.0f;
@@ -2771,14 +2692,14 @@ void CGameFramework::CollisionProcess()
 					return;
 				}
 
-			
+
 				if (m_fBananaCollisionCooldown > 0.0f)
 				{
 					return;
 				}
 
 				m_fBananaCollisionCooldown = 0.3f;
-			
+
 				StartBananaSpin(1.2f);
 				m_pScene->RemoveBanana(bananaId);
 				SendBananaHitEvent(bananaId, ownerPlayerId, m_nMyPlayerId);
@@ -2790,7 +2711,7 @@ void CGameFramework::CollisionProcess()
 		// 체크포인트
 		if (pCollidedObject->m_bIsCheckPoint) {
 			int hitIndex = pCollidedObject->m_nCheckPointIndex;
-			
+
 			if (hitIndex == m_nPassedCheckPoints + 1) {
 				++m_nPassedCheckPoints;
 				WCHAR szDebug[256];
@@ -2879,8 +2800,8 @@ void CGameFramework::CollisionProcess()
 
 			m_pPlayer->SetVelocity(boostVelocity);
 
-			m_fSpeedItemBonus = 300.0f;     
-			m_fSpeedItemBonusTime = 1.5f;   
+			m_fSpeedItemBonus = 300.0f;
+			m_fSpeedItemBonusTime = 1.5f;
 
 			m_pPlayer->m_fMaxVelocityXZ = GetPlayerEffectiveMaxSpeed();
 
@@ -2983,11 +2904,6 @@ void CGameFramework::CollisionProcess()
 		//	m_bIsStun = true;
 		//	m_fCollisionCurrentTime = m_fTotalTime;
 		//}
-	}
-
-	if (m_bIsStun && m_fTotalTime - m_fCollisionCurrentTime > 1.0f)
-	{
-		m_bIsStun = false;
 	}
 
 }
@@ -3287,7 +3203,7 @@ void CGameFramework::CreateTextResources()
 
 }
 
-void CGameFramework::RenderUI()
+HRESULT CGameFramework::RenderUI()
 {
 	m_d3d11On12Device->AcquireWrappedResources(m_wrappedBackBuffers[m_nSwapChainBufferIndex].GetAddressOf(), 1);
 	m_d2dDeviceContext->SetTarget(m_d2dRenderTargets[m_nSwapChainBufferIndex].Get());
@@ -3296,9 +3212,15 @@ void CGameFramework::RenderUI()
 	if (m_nStage == 1)
 	{
 		m_d2dDeviceContext->Clear(D2D1::ColorF(D2D1::ColorF::Black, 1.0f));
-
+		DrawLoadingImage();
+		HRESULT drawResult = m_d2dDeviceContext->EndDraw();
+		m_d3d11On12Device->ReleaseWrappedResources(m_wrappedBackBuffers[m_nSwapChainBufferIndex].GetAddressOf(), 1);
+		m_d3d11DeviceContext->Flush();
+		return m_pLoadingImage ? drawResult : E_FAIL;
 	}
-	if (0 == m_nStage) {
+	if (0 == m_nStage || -1 == m_nStage) {
+		if (m_nStage == -1)
+			m_d2dDeviceContext->Clear(D2D1::ColorF(D2D1::ColorF::Black, 1.0f));
 		if (m_pLobbyD2DBitmap)
 		{
 			D2D1_RECT_F destRect = D2D1::RectF(
@@ -3319,7 +3241,7 @@ void CGameFramework::RenderUI()
 			{
 				m_LobbyButtons[i].Update(m_nWndClientWidth, m_nWndClientHeight);
 
-				if (m_nHoveredButtonIndex == i)
+				if (m_nStage == 0 && m_nHoveredButtonIndex == i)
 				{
 					m_d2dDeviceContext->FillRoundedRectangle(
 						D2D1::RoundedRect(
@@ -3335,6 +3257,15 @@ void CGameFramework::RenderUI()
 
 		DrawNameInputUI();
 		DrawIPInputUI();
+		if (m_nStage == -1)
+		{
+			D2D1_RECT_F statusRect = D2D1::RectF(0.0f, m_nWndClientHeight * 0.42f,
+				(float)m_nWndClientWidth, m_nWndClientHeight * 0.58f);
+			m_d2dDeviceContext->FillRectangle(statusRect, m_textNameTagBgBrush.Get());
+			const wchar_t* status = L"Connecting...";
+			m_d2dDeviceContext->DrawTextW(status, (UINT32)wcslen(status),
+				m_textNameTagFormat.Get(), statusRect, m_textNameTagBrush.Get());
+		}
 	}
 
 	else if (-2 == m_nStage) {
@@ -3853,11 +3784,6 @@ void CGameFramework::RenderUI()
 
 	}
 
-	if (m_nStage == 1)
-	{
-		DrawLoadingImage();
-	}
-
 	if (m_nStage == 99 && m_bShowRankingWaitImage)
 	{
 		DrawRankingWaitImage();
@@ -3979,13 +3905,19 @@ void CGameFramework::RenderUI()
 		DrawGameMenuUI();
 	}
 
-	m_d2dDeviceContext->EndDraw();
+	HRESULT drawResult = m_d2dDeviceContext->EndDraw();
 	m_d3d11On12Device->ReleaseWrappedResources(m_wrappedBackBuffers[m_nSwapChainBufferIndex].GetAddressOf(), 1);
 	m_d3d11DeviceContext->Flush();
+	return drawResult;
 }
 
 void CGameFramework::BuildObjectEnd()
 {
+	m_SoundManager.StopBGM();
+	m_SoundManager.StopCarEngine();
+	WaitForGpuComplete();
+	CEffectLibrary::Instance()->ClearActiveEffects();
+	m_pLocalBananaSpinEffect = nullptr;
 	m_pd3dCommandList->Reset(m_d3dCommandAllocators[0].Get(), NULL);
 
 	if (m_pPlayer)
@@ -4212,14 +4144,59 @@ void CGameFramework::ApplyMultiplayerSpawn()
 
 			if (m_nSelectedMapIndex == 0) baseSpawn = Map1SinglePlayerSpawn;
 			else if (m_nSelectedMapIndex == 1) baseSpawn = Map2SinglePlayerSpawn;
-			else if(m_nSelectedMapIndex == 2) baseSpawn = Map3SinglePlayerSpawn;
-			else if(m_nSelectedMapIndex == 3) baseSpawn = Map4SinglePlayerSpawn;
+			else if (m_nSelectedMapIndex == 2) baseSpawn = Map3SinglePlayerSpawn;
+			else if (m_nSelectedMapIndex == 3) baseSpawn = Map4SinglePlayerSpawn;
 
 			SetupPlayerTransform(info.pPlayer, baseSpawn, fTargetYaw);
 			info.pPlayer->m_bIsActive = false;
 			info.yaw = fTargetYaw;
 		}
 	}
+}
+
+void CGameFramework::ReturnToLobby()
+{
+	if (m_pNetwork) m_pNetwork->Shutdown();
+	WaitForGpuComplete();
+	CEffectLibrary::Instance()->ClearActiveEffects();
+	m_pLocalBananaSpinEffect = nullptr;
+	ReleaseObjects();
+	m_pCamera = nullptr;
+	ReleaseCapture();
+	m_SoundManager.StopCarEngine();
+	m_nStage = 0;
+	m_bMultiplayerEnabled = m_bIsHostPlayer = m_bNeedRemotePlayerInit = false;
+	m_nMyPlayerId = 0;
+	m_nLastPlayerCount = 0;
+	m_nLoadedPlayersCnt = 0;
+	m_bStartSign = m_bServerStartSign = m_bRaceStarted = m_bRaceStartDelayStarted = false;
+	m_bLoadingFramePresented = m_bGameObjectsBuilt = m_bCountdownSoundPlayed = false;
+	m_fRaceStartDelayTime = m_fFinishAfterTime = m_fMyFinalTime = m_fTotalTime = 0.0f;
+	m_FinalRaceResult = {};
+	m_nScore = m_nPassedCheckPoints = m_nLastRCPIndex = m_nPlayerCurrentSpeed = 0;
+	m_nCurrentLap = 1;
+	m_bShowRankingWaitImage = m_bShowGameMenu = m_bShowHelpUI = false;
+	m_bIPInputActive = m_bNameInputActive = false;
+	m_bIsDrifting = m_bIsDashing = m_bBananaSpinning = m_bDashLocked = false;
+	m_bIsStun = m_bJump = m_bFlag = false;
+	m_nJumpCount = 0;
+	m_fFirstJumpTime = m_fCollisionCurrentTime = m_fJumpCurrentTime = m_fCheckRotationTime = 0.0f;
+	m_bRemoteLockEffectActive = m_bNoDashGaugeConsume = m_bDashOverheated = m_bPrevBoosterSyncActive = false;
+	m_fDashLockTime = m_fRemoteLockEffectTime = m_fNoDashGaugeConsumeTime = m_fDashOverheatTime = 0.0f;
+	m_fSpeedItemBonus = m_fSpeedItemBonusTime = m_fItemDisplayTimer = m_fDriftHoldTime = 0.0f;
+	m_fBananaSpinRemainTime = m_fBananaCollisionCooldown = m_fDashPotionFlashTime = m_fDashVignetteAlpha = 0.0f;
+	m_nNextBananaSequence = 1;
+	m_eHoldItem = ITEM_NONE;
+	m_fCurrentDashGauge = m_fMaxDashGauge = 100.0f;
+	m_nSelectedMapIndex = 0;
+	for (int i = 0; i < 4; ++i) {
+		m_nPlayerIndices[i] = -1;
+		m_bPlayerReady[i] = false;
+		swprintf_s(m_szPlayerNames[i], L"Player%d", i + 1);
+	}
+	BuildObjectGameStart();
+	m_GameTimer.Reset();
+	m_SoundManager.PlayLobbyBGM();
 }
 
 bool CGameFramework::ConnectToServer(const char* pszAddress, unsigned short port)
@@ -4231,6 +4208,8 @@ bool CGameFramework::ConnectToServer(const char* pszAddress, unsigned short port
 
 	m_pNetwork = new CNetworkManager();
 
+	if (m_nStage == 0) m_nMyPlayerId = 0;
+	OutputDebugStringA("[Room] Connecting to server.\n");
 	bool bConnectSuccess = m_pNetwork->ConnectToServer(pszAddress, port);
 
 	if (!bConnectSuccess)
@@ -4238,11 +4217,19 @@ bool CGameFramework::ConnectToServer(const char* pszAddress, unsigned short port
 		::MessageBoxW(m_hWnd, L"서버연결 실패", L"연결 실패", MB_OK | MB_ICONERROR);
 
 		m_bMultiplayerEnabled = false;
+		m_nStage = 0;
 		return false;
 	}
 
+	if (pszAddress != m_szLastServerAddress) strcpy_s(m_szLastServerAddress, pszAddress);
 	m_bMultiplayerEnabled = bConnectSuccess;
 	m_bIsHostPlayer = false;
+	if (m_nStage == 0)
+	{
+		m_bIPInputActive = m_bNameInputActive = false;
+		m_nStage = -1;
+		OutputDebugStringA("[Room] TCP connected; waiting for WELCOME.\n");
+	}
 
 	if (m_bMultiplayerEnabled && (m_nStage == 2))
 	{
@@ -4281,7 +4268,7 @@ PlayerNetState CGameFramework::BuildLocalPlayerState() const
 	{
 		int nextCPIndex = m_nPassedCheckPoints + 1;
 		int objectIndex = -1;
-		
+
 		if (m_nSelectedMapIndex == 0)
 		{
 			objectIndex = nextCPIndex + 2;
@@ -4290,11 +4277,11 @@ PlayerNetState CGameFramework::BuildLocalPlayerState() const
 		{
 			objectIndex = nextCPIndex + 1;
 		}
-		
+
 		if (objectIndex != -1 && m_pScene->m_ppGameObjects[objectIndex])
 		{
 			XMFLOAT3 nextCPPos = m_pScene->m_ppGameObjects[objectIndex]->GetPosition();
-		
+
 			XMVECTOR vPlayer = XMLoadFloat3(&position);
 			XMVECTOR vCP = XMLoadFloat3(&nextCPPos);
 			fDistToNext = XMVectorGetX(XMVector3Length(vCP - vPlayer));
@@ -4418,7 +4405,7 @@ void CGameFramework::SyncRoom()
 		}
 	}
 
-	if (currentTotalPlayers > 0)
+	if (currentTotalPlayers > 0 && m_nStage == -2)
 	{
 		int readyCount = 0;
 		for (int i = 0; i < 4; ++i) {
@@ -4429,6 +4416,7 @@ void CGameFramework::SyncRoom()
 
 		if (readyCount == currentTotalPlayers)
 		{
+			m_bLoadingFramePresented = false;
 			m_nStage = 1;
 		}
 	}
@@ -4445,39 +4433,19 @@ void CGameFramework::SyncInGame()
 
 		m_bStartSign = false;
 
-		if (m_bIsHostPlayer) {
-			m_nLoadedPlayersCnt++;
-
-			if (m_nLoadedPlayersCnt >= m_pNetwork->GetCurrentPlayerCount()) {
-				GameStartSignNet startEv{};
-				startEv.startSign = true;
-				m_pNetwork->SendGameStartSignal(startEv);
-				m_bServerStartSign = true;
-			}
-		}
 	}
 
-	LoadCompleteNet loadEv;
-	while (m_pNetwork->ConsumeLoadCompleteEvent(loadEv)) {
-		if (m_bIsHostPlayer) {
-			m_nLoadedPlayersCnt++;
-
-			if (m_nLoadedPlayersCnt >= m_pNetwork->GetCurrentPlayerCount()) {
-				GameStartSignNet startEv{};
-				startEv.startSign = true;
-				m_pNetwork->SendGameStartSignal(startEv);
-				m_bServerStartSign = true;
-			}
-		}
-	}
+	LoadCompleteNet loadEv{};
+	while (m_pNetwork->ConsumeLoadCompleteEvent(loadEv)) {}
 
 	GameStartSignNet startEv;
 	while (m_pNetwork->ConsumeGameStartSignal(startEv)) {
 		m_bServerStartSign = true;
 	}
 
-	PlayerNetState localState = BuildLocalPlayerState();
-	m_pNetwork->Update(0.0f, &localState);
+	PlayerNetState localState{};
+	if (m_nStage == 2 || m_nStage == 99) localState = BuildLocalPlayerState();
+	m_pNetwork->Update(0.0f, (m_nStage == 2 || m_nStage == 99) ? &localState : nullptr);
 
 	PlayerNetState remoteState{};
 	while (m_pNetwork->ConsumeRemoteState(remoteState))
@@ -4764,7 +4732,7 @@ RemotePlayerInfo* CGameFramework::FindOrAllocateRemotePlayer(int targetId)
 	return nullptr;
 }
 
-D2D1_POINT_2F CGameFramework::WorldToMinimap(const XMFLOAT3& worldPos,const D2D1_RECT_F& minimapRect)
+D2D1_POINT_2F CGameFramework::WorldToMinimap(const XMFLOAT3& worldPos, const D2D1_RECT_F& minimapRect)
 {
 	float worldMinX;
 	float worldMaxX;
@@ -4799,7 +4767,7 @@ D2D1_POINT_2F CGameFramework::WorldToMinimap(const XMFLOAT3& worldPos,const D2D1
 	float u, v;
 
 	if (2 == m_nSelectedMapIndex) {
-		u = 1-(worldPos.z - worldMinZ) / (worldMaxZ - worldMinZ);
+		u = 1 - (worldPos.z - worldMinZ) / (worldMaxZ - worldMinZ);
 		v = (worldPos.x - worldMinX) / (worldMaxX - worldMinX);
 	}
 	else {
@@ -4847,7 +4815,7 @@ void CGameFramework::FinishIntroVideo()
 
 	m_bPlayingIntroVideo = false;
 
-	m_SoundManager.PlayBGM("Asset/Audio/TRBGM.mp3");
+	m_SoundManager.PlayLobbyBGM();
 }
 
 void CGameFramework::CheckMulti(const float& fTimeElapsed)
@@ -4922,6 +4890,8 @@ void CGameFramework::ShowResult()
 		if (m_pNetwork->ConsumeRaceResult(finalResult))
 		{
 			m_FinalRaceResult = finalResult;
+			m_pNetwork->Shutdown();
+			m_bMultiplayerEnabled = false;
 			BuildObjectEnd();
 			m_nStage = 100;
 		}
@@ -5027,7 +4997,12 @@ void CGameFramework::FrameAdvance()
 
 
 	SetUIInfo();
+	if (m_pNetwork && m_bMultiplayerEnabled) {
+		m_pNetwork->Update(0.0f, nullptr);
+		if (!m_pNetwork->IsConnected()) ReturnToLobby();
+	}
 	SyncMultiplayer();
+	if (m_bMultiplayerEnabled && m_pNetwork && !m_pNetwork->IsConnected()) ReturnToLobby();
 	//if (1 == m_nStage)
 	//{
 	//	m_pScene->m_nGFStage = m_nStage = 2;
@@ -5035,13 +5010,14 @@ void CGameFramework::FrameAdvance()
 	//	BuildGameObjects();
 	//} // 
 
-	if (-1 == m_nStage)
-	{
-		if (m_pScene)
-			m_pScene->m_nGFStage = -2;
-
-		m_nStage = -2;
+	if (-1 == m_nStage && m_nMyPlayerId >= 1 && m_nMyPlayerId <= 4)
+	{	OutputDebugStringA("[Room] WELCOME received; building waiting room.\n");
+		WaitForGpuComplete();
+		ReleaseObjects();
 		BuildObjectGameRoom();
+		if (m_pScene) m_pScene->m_nGFStage = -2;
+		m_nStage = -2;
+		OutputDebugStringA("[Room] Waiting room ready.\n");
 	}
 
 	if (0 == m_nStage)
@@ -5051,16 +5027,14 @@ void CGameFramework::FrameAdvance()
 
 	else if (1 == m_nStage)
 	{
-		if (!m_bLoadingPageShown)
-		{
-			m_bLoadingPageShown = true;
-		}
-		else
+		if (m_bLoadingFramePresented)
 		{
 			if (!m_bGameObjectsBuilt)
 			{
+				OutputDebugStringA("[Loading] BuildGameObjects begin (loading frame presented).\n");
 				BuildGameObjects();
 				m_bGameObjectsBuilt = true;
+				OutputDebugStringA("[Loading] BuildGameObjects complete; waiting for server.\n");
 			}
 
 			SyncInGame();
@@ -5069,7 +5043,7 @@ void CGameFramework::FrameAdvance()
 			{
 				m_nStage = 2;
 				m_bGameObjectsBuilt = false;
-				m_bLoadingPageShown = false;
+				m_bLoadingFramePresented = false;
 			}
 		}
 	}
@@ -5167,6 +5141,7 @@ void CGameFramework::FrameAdvance()
 		m_pNetwork->Update(m_GameTimer.GetTimeElapsed(), NULL);
 	}
 
+	if (m_bMultiplayerEnabled && m_pNetwork && !m_pNetwork->IsConnected()) ReturnToLobby();
 	CheckResult();
 
 	if (99 == m_nStage)
@@ -5253,7 +5228,7 @@ void CGameFramework::FrameAdvance()
 
 		ClearRTVDSV(m_pd3dRtvDescriptorHeap, m_pd3dDsvDescriptorHeap, m_pd3dCommandList);
 		SetMainViewport();
-		if (m_nStage != 1) {
+		if (m_nStage != 1 && m_nStage != -1) {
 			if (m_pScene) m_pScene->Render(m_pd3dCommandList, m_pCamera);
 			if (m_pPlayer) m_pPlayer->Render(m_pd3dCommandList, NULL, m_pCamera);
 		}
@@ -5277,7 +5252,7 @@ void CGameFramework::FrameAdvance()
 	ID3D12CommandList* ppd3dCommandLists[] = { m_pd3dCommandList };
 	m_pd3dCommandQueue->ExecuteCommandLists(1, ppd3dCommandLists);
 
-	RenderUI();
+	const HRESULT uiResult = RenderUI();
 
 	hResult = m_pd3dCommandList->Reset(m_d3dCommandAllocators[m_nSwapChainBufferIndex].Get(), NULL);
 
@@ -5328,20 +5303,50 @@ void CGameFramework::FrameAdvance()
 	m_pd3dCommandQueue->ExecuteCommandLists(1, ppd3dCommandLists);
 	WaitForGpuComplete();
 
+	const bool firstLoadingFrame = (m_nStage == 1 && !m_bLoadingFramePresented);
+	HRESULT presentResult = S_OK;
+	if (firstLoadingFrame)
+	{
+		
+		presentResult = m_pdxgiSwapChain->Present(1, 0);
+	}
+	else
+	{
 #ifdef _WITH_PRESENT_PARAMETERS
-	DXGI_PRESENT_PARAMETERS dxgiPresentParameters;
-	dxgiPresentParameters.DirtyRectsCount = 0;
-	dxgiPresentParameters.pDirtyRects = NULL;
-	dxgiPresentParameters.pScrollRect = NULL;
-	dxgiPresentParameters.pScrollOffset = NULL;
-	m_pdxgiSwapChain->Present1(1, 0, &dxgiPresentParameters);
+		DXGI_PRESENT_PARAMETERS dxgiPresentParameters{};
+		presentResult = m_pdxgiSwapChain->Present1(1, 0, &dxgiPresentParameters);
 #else
 #ifdef _WITH_SYNCH_SWAPCHAIN
-	m_pdxgiSwapChain->Present(1, 0);
+		presentResult = m_pdxgiSwapChain->Present(1, 0);
 #else
-	m_pdxgiSwapChain->Present(0, 0);
+		presentResult = m_pdxgiSwapChain->Present(0, 0);
 #endif
 #endif
+	}
+
+	if (firstLoadingFrame)
+	{
+		HRESULT displayResult = S_OK;
+		if (uiResult == S_OK && presentResult == S_OK)
+		{
+			BOOL fullscreen = FALSE;
+			displayResult = m_pdxgiSwapChain->GetFullscreenState(&fullscreen, nullptr);
+			if (SUCCEEDED(displayResult) && !fullscreen) displayResult = DwmFlush();
+		}
+		if (uiResult == S_OK && presentResult == S_OK && displayResult == S_OK)
+		{
+			m_bLoadingFramePresented = true;
+			OutputDebugStringA("[Loading] loading.png drawn and presented.\n");
+		}
+		else
+		{
+			char message[192];
+			sprintf_s(message, "[Loading] Frame not presented: image=%d Draw=0x%08X Present=0x%08X Display=0x%08X\n",
+				m_pLoadingImage ? 1 : 0, static_cast<unsigned>(uiResult),
+				static_cast<unsigned>(presentResult), static_cast<unsigned>(displayResult));
+			OutputDebugStringA(message);
+		}
+	}
 
 	MoveToNextFrame();
 
@@ -5666,21 +5671,24 @@ D2D1_RECT_F CGameFramework::GetIPInputRect() const
 void CGameFramework::HandleIPCharInput(WPARAM wParam)
 {
 	if (m_nStage != 0 || !m_bIPInputActive) return;
-
-	if (wParam == VK_BACK)
-	{
-		size_t len = wcsnlen_s(m_wszServerIP, 32);
-		if (len > 0) m_wszServerIP[len - 1] = L'\0';
-		return;
+	if (wParam != VK_BACK && !((wParam >= '0' && wParam <= '9') || wParam == '.')) return;
+	if (m_bIPSelectAll) {
+		m_wszServerIP[0] = 0;
+		m_nIPCaret = 0;
+		m_bIPSelectAll = false;
+		if (wParam == VK_BACK) return;
 	}
-
-	if ((wParam >= '0' && wParam <= '9') || wParam == '.')
-	{
-		size_t len = wcsnlen_s(m_wszServerIP, 32);
-		if (len >= 15) return;
-
-		m_wszServerIP[len] = static_cast<wchar_t>(wParam);
-		m_wszServerIP[len + 1] = L'\0';
+	size_t len = wcslen(m_wszServerIP);
+	if (m_nIPCaret > len) m_nIPCaret = len;
+	if (wParam == VK_BACK) {
+		if (m_nIPCaret > 0) {
+			memmove(m_wszServerIP + m_nIPCaret - 1, m_wszServerIP + m_nIPCaret, (len - m_nIPCaret + 1) * sizeof(wchar_t));
+			--m_nIPCaret;
+		}
+	}
+	else if (len < 15) {
+		memmove(m_wszServerIP + m_nIPCaret + 1, m_wszServerIP + m_nIPCaret, (len - m_nIPCaret + 1) * sizeof(wchar_t));
+		m_wszServerIP[m_nIPCaret++] = static_cast<wchar_t>(wParam);
 	}
 }
 
@@ -5706,7 +5714,7 @@ void CGameFramework::DrawIPInputUI()
 	if (m_dashGaugeBorderBrush)
 		m_d2dDeviceContext->DrawRoundedRectangle(D2D1::RoundedRect(rect, 8.0f, 8.0f), m_dashGaugeBorderBrush.Get(), 3.0f);
 
-	const wchar_t* label = L"Enter IP Address and Press 'ENTER'";
+	const wchar_t* label = (m_bIPSelectAll ? L"IP selected (Ctrl+C / Ctrl+V)" : L"Enter IP Address and Press 'ENTER'");
 	m_d2dDeviceContext->DrawTextW(
 		label, (UINT32)wcslen(label), m_textNameTagFormat.Get(),
 		D2D1::RectF(rect.left - 50.0f, rect.top - 40.0f, rect.right + 50.0f, rect.top - 5.0f), m_textNameTagBrush.Get()
@@ -5718,7 +5726,9 @@ void CGameFramework::DrawIPInputUI()
 	m_fNameCaretTime += m_GameTimer.GetTimeElapsed();
 	if (fmodf(m_fNameCaretTime, 1.0f) < 0.5f)
 	{
-		wcscat_s(textBuffer, 32, L"|");
+		size_t caret = m_nIPCaret <= wcslen(textBuffer) ? m_nIPCaret : wcslen(textBuffer);
+		memmove(textBuffer + caret + 1, textBuffer + caret, (wcslen(textBuffer) - caret + 1) * sizeof(wchar_t));
+		textBuffer[caret] = L'|';
 	}
 
 	m_d2dDeviceContext->DrawTextW(
@@ -6570,7 +6580,7 @@ void CGameFramework::LoadRankingWaitImage()
 	);
 }
 
-void CGameFramework::SendBananaSpawnEvent(int bananaId,const XMFLOAT3& position,float yaw
+void CGameFramework::SendBananaSpawnEvent(int bananaId, const XMFLOAT3& position, float yaw
 )
 {
 	if (!m_pNetwork || !m_pNetwork->IsConnected())
@@ -6594,7 +6604,7 @@ void CGameFramework::SendBananaSpawnEvent(int bananaId,const XMFLOAT3& position,
 	m_pNetwork->SendBananaEvent(ev);
 }
 
-void CGameFramework::SendBananaHitEvent(int bananaId,int ownerPlayerId,int hitPlayerId)
+void CGameFramework::SendBananaHitEvent(int bananaId, int ownerPlayerId, int hitPlayerId)
 {
 	if (!m_pNetwork || !m_pNetwork->IsConnected())
 	{
@@ -6636,7 +6646,7 @@ void CGameFramework::StartBananaSpin(float duration)
 }
 
 
-void CGameFramework::StartRemoteBananaSpin(int playerId,float duration)
+void CGameFramework::StartRemoteBananaSpin(int playerId, float duration)
 {
 	RemotePlayerInfo* pInfo = FindOrAllocateRemotePlayer(playerId);
 
@@ -6668,10 +6678,10 @@ void CGameFramework::UpdateRemoteBananaSpins(
 
 		float spinDeltaTime = min(fTimeElapsed, info.bananaSpinRemainTime);
 		float spinDeltaAngle = m_fBananaSpinSpeed * spinDeltaTime;
-	
+
 		info.pPlayer->RotateBodyOnly(spinDeltaAngle);
 		info.pPlayer->OnPrepareRender();
-		
+
 		XMFLOAT3 effectPosition = info.pPlayer->GetPosition();
 
 		effectPosition.y += 18.0f;
